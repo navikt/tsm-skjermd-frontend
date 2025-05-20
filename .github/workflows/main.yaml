@@ -1,0 +1,42 @@
+name: Build and deploy
+on: [push, workflow_dispatch]
+
+permissions:
+  actions: read
+  contents: read
+  id-token: write
+  packages: write
+  security-events: write
+
+jobs:
+  build:
+    name: Build and push image
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.docker-build-push.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Push docker image to GAR
+        uses: nais/docker-build-push@v0
+        id: docker-build-push
+        with:
+          team: navdig
+          identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }} # ORG. Secret
+          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }} # ORG. Var
+          build_secrets: NODE_AUTH_TOKEN=${{ secrets.READER_TOKEN }}
+          dockerfile: Dockerfile
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Nais deploy PROD-GCP🚀
+      - name: Deploy to prod-gcp
+        if: github.ref == 'refs/heads/main'
+        uses: nais/deploy/actions/deploy@v2
+        env:
+          CLUSTER: prod-gcp
+          RESOURCE: .nais/nais.yaml
+          VAR: image=${{ needs.build.outputs.image }}
