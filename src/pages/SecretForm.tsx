@@ -2,9 +2,11 @@ import { useState } from "react";
 
 
 export const SecretForm = () => {
-    const [issueId, setIssueId] = useState<string>("fake-issue-id");
+    //const [issueId, setIssueId] = useState<string>("fake-issue-id");
     const [info, setInfo] = useState("");
     const [status, setStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
+
+    const issueId = "fake-issue-id"; // Simulert issueId for testing
 
     // Bare eksempel på hvordan en kan gjøre det.
     const handleSave = async () => {
