@@ -2,9 +2,9 @@ apiVersion: nais.io/v1alpha1
 kind: Application
 metadata:
     name: jira-secret-display
-    namespace: navdig
+    namespace: team-service-management
     labels:
-        team: navdig
+        team: team-service-management
 spec:
   ingresses:
     - https://jira-secret-display.intern.nav.no
