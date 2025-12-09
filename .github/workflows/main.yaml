@@ -40,3 +40,12 @@ jobs:
           CLUSTER: prod-gcp
           RESOURCE: .nais/nais.yaml
           VAR: image=${{ needs.build.outputs.image }}
+
+      # Nais deploy DEV-GCP🚀
+      - name: Deploy to dev-gcp
+        if: github.ref == 'refs/heads/dev'
+        uses: nais/deploy/actions/deploy@v2
+        env:
+          CLUSTER: dev-gcp
+          RESOURCE: .nais/dev.yaml
+          VAR: image=${{ needs.build.outputs.image }}
