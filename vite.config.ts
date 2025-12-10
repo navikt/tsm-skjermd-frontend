@@ -9,7 +9,7 @@ export default defineConfig({
     port: 3000,        // Dev-server
     host: "0.0.0.0",   // Tillat tilgang utenfra, f.eks. fra Docker
     cors: {
-      origin: ["https://jira-secret-display.intern.nav.no"],     // Endre dette hvis du trenger strengere CORS-regler
+      origin: ["https://tsm-skjermd-frontend.intern.nav.no"],     // Endre dette hvis du trenger strengere CORS-regler
       credentials: true,
     },
     proxy: {

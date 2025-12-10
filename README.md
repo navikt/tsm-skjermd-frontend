@@ -29,13 +29,13 @@ Appen starter på [http://localhost:3000](http://localhost:3000)
 Bygg:
 
 ```bash
-docker build -t jira-secret-display .
+docker build -t tsm-skjermd-frontend .
 ```
 
 Kjør lokalt:
 
 ```bash
-docker run -p 3000:80 jira-secret-display
+docker run -p 3000:80 tsm-skjermd-frontend
 ```
 
 Appen er da tilgjengelig på [http://localhost:3000](http://localhost:3000)
