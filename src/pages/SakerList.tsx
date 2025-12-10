@@ -142,19 +142,19 @@ export const SakerList = () => {
               selected={filter === "alle"}
               onClick={() => setFilter("alle")}
             >
-              Alle ({saker.length})
+              {`Alle (${saker.length})`}
             </Chips.Toggle>
             <Chips.Toggle
               selected={filter === "original"}
               onClick={() => setFilter("original")}
             >
-              Originale ({saker.filter((s) => !s.endretTidspunkt).length})
+              {`Originale (${saker.filter((s) => !s.endretTidspunkt).length})`}
             </Chips.Toggle>
             <Chips.Toggle
               selected={filter === "endret"}
               onClick={() => setFilter("endret")}
             >
-              Endret ({saker.filter((s) => s.endretTidspunkt).length})
+              {`Endret (${saker.filter((s) => s.endretTidspunkt).length})`}
             </Chips.Toggle>
           </Chips>
         </VStack>

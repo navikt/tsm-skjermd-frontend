@@ -7,7 +7,7 @@ import { NySak } from "./pages/NySak";
 export default function App() {
   return (
     <BrowserRouter basename="/">
-      <AppLayout title="Skjermd">
+      <AppLayout>
         <Routes>
           <Route path="/" element={<SakerList />} />
           <Route path="/saker/ny" element={<NySak />} />

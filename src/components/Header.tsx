@@ -50,7 +50,9 @@ export const Header = ({ title = "Skjermd", userName = "Z123456" }: Props) => {
 
             {/* Bruker */}
             <Dropdown>
-                <InternalHeader.User as={Dropdown.Toggle} name={userName} />
+                <InternalHeader.Button as={Dropdown.Toggle}>
+                    {userName}
+                </InternalHeader.Button>
                 <Dropdown.Menu>
                     <Dropdown.Menu.List>
                         <Dropdown.Menu.List.Item as="a" href="/oauth2/logout">
