@@ -30,7 +30,7 @@ spec:
           - /health/*
   env:
     - name: BACKEND_URL
-      value: "http://tsm-skjermd"
+      value: http://tsm-skjermd.team-service-management.svc.nais.local #"http://tsm-skjermd"
   accessPolicy:
     outbound:
       rules:
