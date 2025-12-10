@@ -17,7 +17,8 @@ interface Props {
     userName?: string;
 }
 
-export const Header = ({ title = "Skjermd", userName = "Z123456" }: Props) => {
+export const Header = ({ title = "Skjermd", userName }: Props) => {
+    const displayName = userName || "Laster...";
     return (
         <InternalHeader>
             <InternalHeader.Title as={Link} to="/">
@@ -51,7 +52,7 @@ export const Header = ({ title = "Skjermd", userName = "Z123456" }: Props) => {
             {/* Bruker */}
             <Dropdown>
                 <InternalHeader.Button as={Dropdown.Toggle}>
-                    {userName}
+                    {displayName}
                 </InternalHeader.Button>
                 <Dropdown.Menu>
                     <Dropdown.Menu.List>

@@ -1,4 +1,4 @@
-import type { Sak, OpprettSakRequest, EndreSakRequest } from "./types";
+import type { Sak, OpprettSakRequest, EndreSakRequest, UserInfo } from "./types";
 
 const API_BASE = "/api/v1";
 
@@ -105,4 +105,18 @@ export const sakApi = {
     apiRequest(`/saker/${id}`, {
       method: "DELETE",
     }),
+};
+
+export const userApi = {
+  hentBruker: async (): Promise<UserInfo> => {
+    const res = await fetch("/api/me", {
+      credentials: "include",
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to fetch user info: ${res.status}`);
+    }
+
+    return res.json();
+  },
 };

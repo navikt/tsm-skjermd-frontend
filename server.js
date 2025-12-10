@@ -25,6 +25,44 @@ app.use((req, res, next) => {
     next();
 });
 
+// Helper function to decode JWT payload (without verification - Wonderwall already verified)
+function decodeJwtPayload(token) {
+    try {
+        const parts = token.split('.');
+        if (parts.length !== 3) return null;
+        const payload = Buffer.from(parts[1], 'base64url').toString('utf8');
+        return JSON.parse(payload);
+    } catch (error) {
+        console.error('[JWT] Failed to decode token:', error);
+        return null;
+    }
+}
+
+// Endpoint to get current user info from Wonderwall token
+app.get('/api/me', (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const payload = decodeJwtPayload(token);
+
+    if (!payload) {
+        return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    // Extract user info from Entra ID token claims
+    const userInfo = {
+        navIdent: payload.NAVident || payload.preferred_username?.split('@')[0] || 'Ukjent',
+        name: payload.name || payload.preferred_username || 'Ukjent bruker',
+        email: payload.preferred_username || payload.email || null,
+    };
+
+    console.log(`[User] Authenticated: ${userInfo.navIdent} (${userInfo.name})`);
+    res.json(userInfo);
+});
+
 // Token cache for OBO tokens
 const tokenCache = new Map();
 

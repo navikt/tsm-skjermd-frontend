@@ -16,3 +16,9 @@ export interface OpprettSakRequest {
 export interface EndreSakRequest {
   sensitivData: string;
 }
+
+export interface UserInfo {
+  navIdent: string;
+  name: string;
+  email: string | null;
+}
