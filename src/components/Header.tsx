@@ -7,7 +7,6 @@ import {
     MenuGridIcon,
     ExternalLinkIcon,
     LeaveIcon,
-    ShieldLockIcon,
     BriefcaseIcon,
 } from "@navikt/aksel-icons";
 import { Link } from "react-router-dom";
@@ -22,7 +21,6 @@ export const Header = ({ title = "Skjermd", userName }: Props) => {
     return (
         <InternalHeader>
             <InternalHeader.Title as={Link} to="/">
-                <ShieldLockIcon title="Skjermd" fontSize="1.5rem" />
                 {title}
             </InternalHeader.Title>
             <Spacer />
