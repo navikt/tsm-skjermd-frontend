@@ -1,4 +1,4 @@
-import type { Sak, OpprettSakRequest, EndreSakRequest, UserInfo } from "./types";
+import type { Sak, OpprettSakRequest, EndreSakRequest, UserInfo, Tilgang, GiTilgangRequest } from "./types";
 
 const API_BASE = "/api/v1";
 
@@ -103,6 +103,17 @@ export const sakApi = {
 
   slett: (id: string): Promise<void> =>
     apiRequest(`/saker/${id}`, {
+      method: "DELETE",
+    }),
+
+  giTilgang: (sakId: string, request: GiTilgangRequest): Promise<Tilgang> =>
+    apiRequest(`/saker/${sakId}/tilganger`, {
+      method: "POST",
+      body: JSON.stringify(request),
+    }),
+
+  fjernTilgang: (sakId: string, navIdent: string): Promise<void> =>
+    apiRequest(`/saker/${sakId}/tilganger/${navIdent}`, {
       method: "DELETE",
     }),
 };

@@ -1,3 +1,9 @@
+export interface Tilgang {
+  navIdent: string;
+  gittAv: string;
+  gittTidspunkt: string;
+}
+
 export interface Sak {
   id: string;
   jiraIssueKey: string;
@@ -6,6 +12,7 @@ export interface Sak {
   opprettetTidspunkt: string;
   endretAv: string | null;
   endretTidspunkt: string | null;
+  tilganger: Tilgang[];
 }
 
 export interface OpprettSakRequest {
@@ -15,6 +22,10 @@ export interface OpprettSakRequest {
 
 export interface EndreSakRequest {
   sensitivData: string;
+}
+
+export interface GiTilgangRequest {
+  navIdent: string;
 }
 
 export interface UserInfo {

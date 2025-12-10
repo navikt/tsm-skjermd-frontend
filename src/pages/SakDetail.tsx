@@ -6,6 +6,7 @@ import {
   Loader,
   Heading,
   Textarea,
+  TextField,
   HStack,
   VStack,
   BodyShort,
@@ -15,6 +16,7 @@ import {
   CopyButton,
   Modal,
   ConfirmationPanel,
+  Table,
 } from "@navikt/ds-react";
 import {
   PencilIcon,
@@ -26,6 +28,8 @@ import {
   ClockIcon,
   FileTextIcon,
   ExternalLinkIcon,
+  PersonGroupIcon,
+  PlusIcon,
 } from "@navikt/aksel-icons";
 import { sakApi } from "../api/sakApi";
 import type { Sak } from "../api/types";
@@ -41,6 +45,9 @@ export const SakDetail = () => {
   const [saving, setSaving] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmed, setDeleteConfirmed] = useState(false);
+  const [showTilgangModal, setShowTilgangModal] = useState(false);
+  const [newNavIdent, setNewNavIdent] = useState("");
+  const [tilgangLoading, setTilgangLoading] = useState(false);
 
   useEffect(() => {
     const hentSak = async () => {
@@ -89,6 +96,37 @@ export const SakDetail = () => {
   const handleCancel = () => {
     if (sak) setSensitivData(sak.sensitivData);
     setEditing(false);
+  };
+
+  const handleGiTilgang = async () => {
+    if (!id || !newNavIdent.trim()) return;
+    try {
+      setTilgangLoading(true);
+      const nyTilgang = await sakApi.giTilgang(id, { navIdent: newNavIdent.trim().toUpperCase() });
+      setSak((prev) =>
+        prev ? { ...prev, tilganger: [...prev.tilganger, nyTilgang] } : prev
+      );
+      setNewNavIdent("");
+      setShowTilgangModal(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Kunne ikke gi tilgang");
+    } finally {
+      setTilgangLoading(false);
+    }
+  };
+
+  const handleFjernTilgang = async (navIdent: string) => {
+    if (!id) return;
+    try {
+      await sakApi.fjernTilgang(id, navIdent);
+      setSak((prev) =>
+        prev
+          ? { ...prev, tilganger: prev.tilganger.filter((t) => t.navIdent !== navIdent) }
+          : prev
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Kunne ikke fjerne tilgang");
+    }
   };
 
   const formatDato = (dato: string | null) => {
@@ -339,6 +377,83 @@ export const SakDetail = () => {
           </VStack>
         </Box>
 
+        {/* Tilganger */}
+        <Box
+          background="surface-default"
+          padding="5"
+          borderRadius="large"
+          shadow="xsmall"
+        >
+          <VStack gap="4">
+            <HStack justify="space-between" align="center">
+              <HStack gap="2" align="center">
+                <PersonGroupIcon aria-hidden />
+                <Heading size="xsmall">Tilganger</Heading>
+              </HStack>
+              <Button
+                variant="tertiary"
+                size="small"
+                icon={<PlusIcon aria-hidden />}
+                onClick={() => setShowTilgangModal(true)}
+              >
+                Gi tilgang
+              </Button>
+            </HStack>
+
+            {sak.tilganger.length === 0 ? (
+              <BodyShort className="text-gray-500">
+                Ingen har tilgang til denne saken ennå. Oppretteren ({sak.opprettetAv}) har alltid tilgang.
+              </BodyShort>
+            ) : (
+              <Table size="small">
+                <Table.Header>
+                  <Table.Row>
+                    <Table.HeaderCell>NAVident</Table.HeaderCell>
+                    <Table.HeaderCell>Gitt av</Table.HeaderCell>
+                    <Table.HeaderCell>Gitt tidspunkt</Table.HeaderCell>
+                    <Table.HeaderCell />
+                  </Table.Row>
+                </Table.Header>
+                <Table.Body>
+                  {sak.tilganger.map((tilgang) => (
+                    <Table.Row key={tilgang.navIdent}>
+                      <Table.DataCell>
+                        <HStack gap="2" align="center">
+                          <PersonIcon aria-hidden fontSize="1rem" />
+                          {tilgang.navIdent}
+                          {tilgang.navIdent === sak.opprettetAv && (
+                            <Tag variant="neutral" size="xsmall">
+                              Oppretter
+                            </Tag>
+                          )}
+                        </HStack>
+                      </Table.DataCell>
+                      <Table.DataCell>{tilgang.gittAv}</Table.DataCell>
+                      <Table.DataCell>
+                        {formatDato(tilgang.gittTidspunkt)} kl. {formatTid(tilgang.gittTidspunkt)}
+                      </Table.DataCell>
+                      <Table.DataCell>
+                        {tilgang.navIdent !== sak.opprettetAv && (
+                          <Button
+                            variant="tertiary-neutral"
+                            size="xsmall"
+                            icon={<TrashIcon aria-hidden />}
+                            onClick={() => handleFjernTilgang(tilgang.navIdent)}
+                            title="Fjern tilgang"
+                          />
+                        )}
+                      </Table.DataCell>
+                    </Table.Row>
+                  ))}
+                </Table.Body>
+              </Table>
+            )}
+            <Detail className="text-gray-500">
+              Oppretteren ({sak.opprettetAv}) har alltid tilgang og kan ikke fjernes.
+            </Detail>
+          </VStack>
+        </Box>
+
         {/* Jira-lenke */}
         <Box
           background="surface-action-subtle"
@@ -401,6 +516,49 @@ export const SakDetail = () => {
             onClick={() => {
               setShowDeleteModal(false);
               setDeleteConfirmed(false);
+            }}
+          >
+            Avbryt
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Tilgang Modal */}
+      <Modal
+        open={showTilgangModal}
+        onClose={() => {
+          setShowTilgangModal(false);
+          setNewNavIdent("");
+        }}
+        header={{ heading: "Gi tilgang", closeButton: true }}
+      >
+        <Modal.Body>
+          <VStack gap="4">
+            <BodyShort>
+              Gi en bruker tilgang til saken <strong>{sak.jiraIssueKey}</strong>.
+            </BodyShort>
+            <TextField
+              label="NAVident"
+              description="Skriv inn NAVident (f.eks. Z123456)"
+              value={newNavIdent}
+              onChange={(e) => setNewNavIdent(e.target.value)}
+              placeholder="Z123456"
+            />
+          </VStack>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            onClick={handleGiTilgang}
+            loading={tilgangLoading}
+            disabled={!newNavIdent.trim()}
+          >
+            Gi tilgang
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setShowTilgangModal(false);
+              setNewNavIdent("");
             }}
           >
             Avbryt
