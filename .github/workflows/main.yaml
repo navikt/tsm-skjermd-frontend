@@ -21,7 +21,7 @@ jobs:
         uses: nais/docker-build-push@v0
         id: docker-build-push
         with:
-          team: navdig
+          team: team-service-management
           identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }} # ORG. Secret
           project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }} # ORG. Var
           build_secrets: NODE_AUTH_TOKEN=${{ secrets.READER_TOKEN }}
