@@ -14,8 +14,7 @@ COPY tsconfig*.json ./
 COPY vite.config.ts tailwind.config.js postcss.config.js index.html ./
 COPY server.js ./
 
-RUN --mount=type=secret,id=BACKEND_API_KEY \
-    export VITE_BACKEND_API_KEY=$(cat /run/secrets/BACKEND_API_KEY) && npm run build
+RUN npm run build
 
 
 # --- STAGE 2: Runtime ---
