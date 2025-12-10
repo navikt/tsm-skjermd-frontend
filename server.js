@@ -10,6 +10,12 @@ const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8080";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Log ALL incoming requests
+app.use((req, res, next) => {
+    console.log(`[Express] ${req.method} ${req.url}`);
+    next();
+});
+
 // Proxy API requests til backend
 app.use("/api", createProxyMiddleware({
     target: BACKEND_URL,
