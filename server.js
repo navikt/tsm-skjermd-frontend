@@ -31,6 +31,9 @@ app.use("/api", createProxyMiddleware({
     },
     onProxyReq: (proxyReq, req) => {
         console.log(`[Proxy] Forwarding: ${req.method} ${BACKEND_URL}${proxyReq.path}`);
+        console.log(`[Proxy] Authorization header present: ${!!req.headers.authorization}`);
+        // Log all headers for debugging
+        console.log(`[Proxy] Request headers:`, JSON.stringify(req.headers, null, 2));
     },
     onProxyRes: (proxyRes, req) => {
         console.log(`[Proxy] Response: ${proxyRes.statusCode} for ${req.originalUrl}`);
