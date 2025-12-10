@@ -17,19 +17,29 @@ app.use((req, res, next) => {
 });
 
 // Proxy API requests til backend
-app.use("/api", createProxyMiddleware({
+console.log(`[Startup] Setting up proxy to: ${BACKEND_URL}`);
+const apiProxy = createProxyMiddleware({
     target: BACKEND_URL,
     changeOrigin: true,
+    secure: false,
+    logLevel: 'debug',
     onProxyReq: (proxyReq, req) => {
-        console.log(`[Proxy] ${req.method} ${BACKEND_URL}${req.originalUrl}`);
+        console.log(`[Proxy] Forwarding: ${req.method} ${BACKEND_URL}${req.originalUrl}`);
     },
     onProxyRes: (proxyRes, req) => {
         console.log(`[Proxy] Response: ${proxyRes.statusCode} for ${req.originalUrl}`);
     },
     onError: (err, req, res) => {
         console.error(`[Proxy] Error: ${err.message} for ${req.originalUrl}`);
+        console.error(`[Proxy] Error details:`, err);
+        res.status(502).json({ error: 'Proxy error', message: err.message });
     },
-}));
+});
+
+app.use("/api", (req, res, next) => {
+    console.log(`[API Route] Matched /api: ${req.method} ${req.url}`);
+    apiProxy(req, res, next);
+});
 
 // Serve statiske filer fra dist/
 app.use(express.static(path.join(__dirname, "dist")));
