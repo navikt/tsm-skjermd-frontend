@@ -30,8 +30,10 @@ spec:
           - /health/*
   env:
     - name: BACKEND_URL
-      value: "https://tsm-skjermd.intern.dev.nav.no"
+      value: "http://tsm-skjermd"
+    - name: BACKEND_TARGET_AUDIENCE
+      value: "api://dev-gcp.team-service-management.tsm-skjermd/.default"
   accessPolicy:
     outbound:
-      external:
-        - host: tsm-skjermd.intern.dev.nav.no
+      rules:
+        - application: tsm-skjermd
