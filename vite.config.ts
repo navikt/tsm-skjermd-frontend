@@ -12,6 +12,12 @@ export default defineConfig({
       origin: ["https://jira-secret-display.intern.nav.no"],     // Endre dette hvis du trenger strengere CORS-regler
       credentials: true,
     },
+    proxy: {
+      "/api": {
+        target: "http://localhost:8080",
+        changeOrigin: true,
+      },
+    },
   },
   plugins: [react()],
   resolve: {

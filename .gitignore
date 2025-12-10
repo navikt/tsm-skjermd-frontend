@@ -25,3 +25,5 @@ dist-ssr
 *.npmrc
 *.env
 
+# Claude
+CLAUDE.md

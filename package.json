@@ -11,6 +11,7 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "@navikt/aksel-icons": "^7.35.1",
     "@navikt/ds-css": "^7.22.0",
     "@navikt/ds-react": "^7.22.0",
     "@navikt/ds-tailwind": "^7.22.0",

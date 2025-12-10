@@ -25,4 +25,6 @@ spec:
       singlePageApplication: false
     sidecar:
         enabled: true
-        autoLogin: false
+        autoLogin: true
+        autoLoginIgnorePaths:
+          - /health/*
