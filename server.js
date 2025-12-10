@@ -14,6 +14,15 @@ const __dirname = path.dirname(__filename);
 app.use("/api", createProxyMiddleware({
     target: BACKEND_URL,
     changeOrigin: true,
+    onProxyReq: (proxyReq, req) => {
+        console.log(`[Proxy] ${req.method} ${BACKEND_URL}${req.originalUrl}`);
+    },
+    onProxyRes: (proxyRes, req) => {
+        console.log(`[Proxy] Response: ${proxyRes.statusCode} for ${req.originalUrl}`);
+    },
+    onError: (err, req, res) => {
+        console.error(`[Proxy] Error: ${err.message} for ${req.originalUrl}`);
+    },
 }));
 
 // Serve statiske filer fra dist/
