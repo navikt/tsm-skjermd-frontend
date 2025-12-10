@@ -28,7 +28,6 @@ spec:
         autoLogin: true
         autoLoginIgnorePaths:
           - /health/*
-          - 
   accessPolicy:
     outbound:
       rules:
