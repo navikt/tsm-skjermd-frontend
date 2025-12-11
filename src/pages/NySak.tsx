@@ -167,7 +167,7 @@ export const NySak = () => {
               type="submit"
               icon={<FloppydiskIcon aria-hidden />}
               loading={saving}
-              disabled={!sensitivData.trim() || (jiraIssueKey.trim() && !isValidJiraKey(jiraIssueKey))}
+              disabled={!sensitivData.trim() || (!!jiraIssueKey.trim() && !isValidJiraKey(jiraIssueKey))}
             >
               Opprett sak
             </Button>
