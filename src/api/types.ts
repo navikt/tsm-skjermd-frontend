@@ -6,7 +6,7 @@ export interface Tilgang {
 
 export interface Sak {
   id: string;
-  jiraIssueKey: string;
+  jiraIssueKey: string | null;
   sensitivData: string;
   opprettetAv: string;
   opprettetTidspunkt: string;
@@ -16,7 +16,7 @@ export interface Sak {
 }
 
 export interface OpprettSakRequest {
-  jiraIssueKey: string;
+  jiraIssueKey?: string;
   sensitivData: string;
 }
 

@@ -34,12 +34,12 @@ export const NySak = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!jiraIssueKey.trim() || !sensitivData.trim()) {
-      setError("Alle felt må fylles ut");
+    if (!sensitivData.trim()) {
+      setError("Sensitiv informasjon må fylles ut");
       return;
     }
 
-    if (!isValidJiraKey(jiraIssueKey)) {
+    if (jiraIssueKey.trim() && !isValidJiraKey(jiraIssueKey)) {
       setError("Ugyldig Jira-nøkkel format. Bruk formatet ABC-123");
       return;
     }
@@ -48,7 +48,7 @@ export const NySak = () => {
       setSaving(true);
       setError(null);
       const nySak = await sakApi.opprett({
-        jiraIssueKey: jiraIssueKey.trim().toUpperCase(),
+        jiraIssueKey: jiraIssueKey.trim() ? jiraIssueKey.trim().toUpperCase() : undefined,
         sensitivData: sensitivData.trim(),
       });
       navigate(`/saker/${nySak.id}`);
@@ -85,7 +85,7 @@ export const NySak = () => {
             <Heading size="large">Opprett ny sak</Heading>
           </HStack>
           <BodyShort className="text-gray-500">
-            Opprett en ny skjermet sak som kobles til en Jira-issue
+            Opprett en ny skjermet sak. Kan kobles til en Jira-issue nå eller senere.
           </BodyShort>
         </VStack>
       </Box>
@@ -102,8 +102,8 @@ export const NySak = () => {
           <BodyShort weight="semibold">Om skjermede saker</BodyShort>
           <BodyShort>
             Sensitiv informasjon du legger inn her blir lagret sikkert og vil
-            ikke være synlig i Jira. Jira-saken vil kun inneholde en referanse
-            til denne skjermede saken.
+            ikke være synlig i Jira. Du kan koble saken til en Jira-issue nå
+            eller senere ved å redigere saken.
           </BodyShort>
         </VStack>
       </GuidePanel>
@@ -120,11 +120,10 @@ export const NySak = () => {
         <VStack gap="6">
           <VStack gap="2">
             <TextField
-              label="Jira-nøkkel"
-              description="Nøkkelen til Jira-saken som skal kobles til (f.eks. TSM-1234)"
+              label="Jira-nøkkel (valgfritt)"
+              description="Nøkkelen til Jira-saken som skal kobles til (f.eks. TSM-1234). Kan legges til senere."
               value={jiraIssueKey}
               onChange={(e) => setJiraIssueKey(e.target.value.toUpperCase())}
-              autoFocus
               error={
                 jiraIssueKey && !isValidJiraKey(jiraIssueKey)
                   ? "Bruk formatet ABC-123"
@@ -168,7 +167,7 @@ export const NySak = () => {
               type="submit"
               icon={<FloppydiskIcon aria-hidden />}
               loading={saving}
-              disabled={!jiraIssueKey.trim() || !sensitivData.trim() || !isValidJiraKey(jiraIssueKey)}
+              disabled={!sensitivData.trim() || (jiraIssueKey.trim() && !isValidJiraKey(jiraIssueKey))}
             >
               Opprett sak
             </Button>

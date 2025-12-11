@@ -201,7 +201,7 @@ export const SakDetail = () => {
                 </Button>
               </HStack>
               <HStack gap="3" align="center">
-                <Heading size="large">{sak.jiraIssueKey}</Heading>
+                <Heading size="large">{sak.jiraIssueKey ?? "Uten Jira-kobling"}</Heading>
                 {sak.endretTidspunkt ? (
                   <Tag variant="warning" size="small">
                     Endret
@@ -455,30 +455,32 @@ export const SakDetail = () => {
         </Box>
 
         {/* Jira-lenke */}
-        <Box
-          background="surface-action-subtle"
-          padding="4"
-          borderRadius="large"
-        >
-          <HStack justify="space-between" align="center">
-            <VStack gap="1">
-              <Detail className="text-gray-600">Koblet til Jira-sak</Detail>
-              <BodyShort weight="semibold">{sak.jiraIssueKey}</BodyShort>
-            </VStack>
-            <Button
-              as="a"
-              href={`https://jira.adeo.no/browse/${sak.jiraIssueKey}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              variant="tertiary"
-              size="small"
-              icon={<ExternalLinkIcon aria-hidden />}
-              iconPosition="right"
-            >
-              Åpne i Jira
-            </Button>
-          </HStack>
-        </Box>
+        {sak.jiraIssueKey && (
+          <Box
+            background="surface-action-subtle"
+            padding="4"
+            borderRadius="large"
+          >
+            <HStack justify="space-between" align="center">
+              <VStack gap="1">
+                <Detail className="text-gray-600">Koblet til Jira-sak</Detail>
+                <BodyShort weight="semibold">{sak.jiraIssueKey}</BodyShort>
+              </VStack>
+              <Button
+                as="a"
+                href={`https://jira.adeo.no/browse/${sak.jiraIssueKey}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                variant="tertiary"
+                size="small"
+                icon={<ExternalLinkIcon aria-hidden />}
+                iconPosition="right"
+              >
+                Åpne i Jira
+              </Button>
+            </HStack>
+          </Box>
+        )}
       </VStack>
 
       {/* Delete Modal */}
@@ -494,7 +496,7 @@ export const SakDetail = () => {
           <VStack gap="4">
             <BodyShort>
               Er du sikker på at du vil slette saken{" "}
-              <strong>{sak.jiraIssueKey}</strong>? Dette kan ikke angres.
+              <strong>{sak.jiraIssueKey ?? sak.id}</strong>? Dette kan ikke angres.
             </BodyShort>
             <ConfirmationPanel
               checked={deleteConfirmed}
@@ -535,7 +537,7 @@ export const SakDetail = () => {
         <Modal.Body>
           <VStack gap="4">
             <BodyShort>
-              Gi en bruker tilgang til saken <strong>{sak.jiraIssueKey}</strong>.
+              Gi en bruker tilgang til saken <strong>{sak.jiraIssueKey ?? sak.id}</strong>.
             </BodyShort>
             <TextField
               label="NAVident"

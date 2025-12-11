@@ -78,7 +78,7 @@ export const SakerList = () => {
 
   const filteredSaker = saker.filter((sak) => {
     const matchesSearch =
-      sak.jiraIssueKey.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (sak.jiraIssueKey?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
       sak.opprettetAv.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesFilter =
@@ -203,7 +203,7 @@ export const SakerList = () => {
                   <VStack gap="2" className="flex-1">
                     <HStack gap="3" align="center">
                       <Heading size="small" className="text-blue-600">
-                        {sak.jiraIssueKey}
+                        {sak.jiraIssueKey ?? "Uten Jira-kobling"}
                       </Heading>
                       {sak.endretTidspunkt ? (
                         <Tag variant="warning" size="xsmall">
