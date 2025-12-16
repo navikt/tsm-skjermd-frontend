@@ -29,8 +29,8 @@ export default defineConfig({
     sourcemap: false,
     rollupOptions: {
       input: {
-        main: 'index.html',
-        iframe: 'iframe.html',
+        main: path.resolve(__dirname, 'index.html'),
+        iframe: path.resolve(__dirname, 'iframe.html'),
       },
       output: {
         // Bruk standard navngivning hvis du ikke har spesielle grunner til custom dir
