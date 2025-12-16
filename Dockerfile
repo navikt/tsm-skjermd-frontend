@@ -11,7 +11,7 @@ RUN npm config set @navikt:registry=https://npm.pkg.github.com
 COPY public ./public
 COPY src ./src
 COPY tsconfig*.json ./
-COPY vite.config.ts tailwind.config.js postcss.config.js index.html ./
+COPY vite.config.ts tailwind.config.js postcss.config.js index.html iframe.html ./
 COPY server.js ./
 
 RUN npm run build
