@@ -30,7 +30,6 @@ export default defineConfig({
     rollupOptions: {
       input: [
         path.resolve(__dirname, 'index.html'),
-        path.resolve(__dirname, 'iframe.html'),
       ],
       output: {
         // Bruk standard navngivning hvis du ikke har spesielle grunner til custom dir
