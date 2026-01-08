@@ -40,27 +40,6 @@ docker run -p 3000:80 tsm-skjermd-frontend
 
 Appen er da tilgjengelig på [http://localhost:3000](http://localhost:3000)
 
-### Iframe / widget
-
-Denne repoen bygger også en egen `iframe`-versjon som kan embeddes i andre sider.
-
-- Bygget prod-pakken vil inneholde `iframe.html` i `dist/`.
-- Du kan åpne iframe direkte med hash-router:
-
-	- Lokal fil: `file:///.../tsm-skjermd-frontend/iframe.html#/saker/<ID>`
-	- Deployed: `https://ditt-domene/iframe.html#/saker/<ID>`
-
-Eksempel på hvordan du embedder i en ekstern side:
-
-```html
-<iframe
-	src="https://ditt-domene/iframe.html#/saker/SAK-123"
-	width="100%"
-	height="600"
-	style="border:0"
-	title="Sak-iframe"
-></iframe>
-```
 
 ## 📁 Filstruktur
 
