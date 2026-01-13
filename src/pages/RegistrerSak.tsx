@@ -199,12 +199,11 @@ export const RegistrerSak = () => {
                   Rediger
                 </Button>
                 <Button
-                  variant="danger"
+                  variant="primary"
                   size="small"
-                  icon={<TrashIcon aria-hidden />}
-                  onClick={() => setShowDeleteModal(true)}
+                  onClick={() => window.close()}
                 >
-                  Slett
+                  Lukk
                 </Button>
               </HStack>
             </HStack>
