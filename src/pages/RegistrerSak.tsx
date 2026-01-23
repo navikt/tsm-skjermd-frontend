@@ -57,7 +57,7 @@ export const RegistrerSak = () => {
         setError(null);
         const data = await sakApi.hentPaId(id);
         setSak(data);
-        setSensitivData(data.sensitivData || "");
+        setSensitivData(data.sensitivData && data.sensitivData !== "null" ? data.sensitivData : "");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Kunne ikke hente sak");
       } finally {
@@ -94,7 +94,7 @@ export const RegistrerSak = () => {
   };
 
   const handleCancel = () => {
-    if (sak) setSensitivData(sak.sensitivData || "");
+    if (sak) setSensitivData(sak.sensitivData && sak.sensitivData !== "null" ? sak.sensitivData : "");
     setEditing(false);
   };
 
