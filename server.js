@@ -119,10 +119,10 @@ async function exchangeToken(userToken) {
 }
 
 // Proxy API requests til backend
-app.use('/api', async (req, res) => {
+app.use('/internal', async (req, res) => {
     const startTime = Date.now();
     try {
-        const targetUrl = `${BACKEND_URL}/api${req.url}`;
+        const targetUrl = `${BACKEND_URL}/internal${req.url}`;
         console.log(`[Proxy] ${req.method} ${targetUrl}`);
 
         // Get user token from Wonderwall
