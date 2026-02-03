@@ -199,7 +199,7 @@ export const Sensurering = () => {
                     <CopyButton
                       copyText={item.original}
                       size="small"
-                      variant="tertiary"
+                      variant="neutral"
                     />
                   </HStack>
                 ))}
