@@ -58,17 +58,17 @@ async function mockFetch(input: RequestInfo, init?: RequestInit) {
     }
 
     // API v1 saker
-    if (url.startsWith("/api/v1/saker") || url.includes("/api/v1/saker")) {
+    if (url.startsWith("/v1/saker") || url.includes("/v1/saker")) {
       const path = url.replace(/^https?:\/\/[^/]+/, "");
-      const parts = path.split("/").filter(Boolean); // ['api','v1','saker', ...]
+      const parts = path.split("/").filter(Boolean); // ['v1','saker', ...]
 
-      // GET /api/v1/saker
-      if (method === "GET" && parts.length === 3) {
+      // GET /v1/saker
+      if (method === "GET" && parts.length === 2) {
         return jsonResponse(mockSaker);
       }
 
-      // POST /api/v1/saker
-      if (method === "POST" && parts.length === 3) {
+      // POST /v1/saker
+      if (method === "POST" && parts.length === 2) {
         const body = init && init.body ? JSON.parse(init.body as string) : {};
         const newSak = {
           id: `SAK-${nextId++}`,
@@ -84,32 +84,32 @@ async function mockFetch(input: RequestInfo, init?: RequestInit) {
         return jsonResponse(newSak, 201);
       }
 
-      // operations on /api/v1/saker/:id
-      if (parts.length >= 4) {
-        const id = parts[3];
+      // operations on /v1/saker/:id
+      if (parts.length >= 3) {
+        const id = parts[2];
         const sakIndex = mockSaker.findIndex((s) => s.id === id);
         if (sakIndex === -1) return new Response(null, { status: 404 });
 
-        // GET /api/v1/saker/:id
-        if (method === "GET" && parts.length === 4) {
+        // GET /v1/saker/:id
+        if (method === "GET" && parts.length === 3) {
           return jsonResponse(mockSaker[sakIndex]);
         }
 
-        // PUT /api/v1/saker/:id
-        if (method === "PUT" && parts.length === 4) {
+        // PUT /v1/saker/:id
+        if (method === "PUT" && parts.length === 3) {
           const body = init && init.body ? JSON.parse(init.body as string) : {};
           mockSaker[sakIndex] = { ...mockSaker[sakIndex], ...body, endretTidspunkt: now() };
           return jsonResponse(mockSaker[sakIndex]);
         }
 
-        // DELETE /api/v1/saker/:id
-        if (method === "DELETE" && parts.length === 4) {
+        // DELETE /v1/saker/:id
+        if (method === "DELETE" && parts.length === 3) {
           mockSaker.splice(sakIndex, 1);
           return new Response(null, { status: 204 });
         }
 
-        // Tilganger endpoints: /api/v1/saker/:id/tilganger
-        if (parts[4] === "tilganger") {
+        // Tilganger endpoints: /v1/saker/:id/tilganger
+        if (parts[3] === "tilganger") {
           // POST add tilgang
           if (method === "POST") {
             const body = init && init.body ? JSON.parse(init.body as string) : {};
@@ -118,9 +118,9 @@ async function mockFetch(input: RequestInfo, init?: RequestInit) {
             return jsonResponse(tilgang, 201);
           }
 
-          // DELETE /api/v1/saker/:id/tilganger/:navIdent
-          if (method === "DELETE" && parts.length === 6) {
-            const navIdent = parts[5];
+          // DELETE /v1/saker/:id/tilganger/:navIdent
+          if (method === "DELETE" && parts.length === 5) {
+            const navIdent = parts[4];
             mockSaker[sakIndex].tilganger = mockSaker[sakIndex].tilganger.filter((t: any) => t.navIdent !== navIdent);
             return new Response(null, { status: 204 });
           }
