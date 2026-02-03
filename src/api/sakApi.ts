@@ -1,6 +1,6 @@
 import type { Sak, OpprettSakRequest, EndreSakRequest, UserInfo, Tilgang, GiTilgangRequest } from "./types";
 
-const API_BASE = "internal/v1";
+const API_BASE = "/internal/v1";
 
 const isLocalDev = window.location.hostname === "localhost";
 
