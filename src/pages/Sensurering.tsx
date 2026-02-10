@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import {
   Button,
   Heading,
@@ -9,6 +10,7 @@ import {
   CopyButton,
   Tag,
   BodyShort,
+  Loader,
 } from "@navikt/ds-react";
 import {
   EyeSlashIcon,
@@ -26,15 +28,51 @@ interface SensurertTekst {
 }
 
 export const Sensurering = () => {
+  const { sakId } = useParams<{ sakId: string }>();
   const [content, setContent] = useState("");
   const [previousContent, setPreviousContent] = useState("");
   const [sensurertListe, setSensurertListe] = useState<SensurertTekst[]>([]);
   const [originaltekst, setOriginaltekst] = useState("");
   const [lagrer, setLagrer] = useState(false);
+  const [laster, setLaster] = useState(true);
   const [lagreStatus, setLagreStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const editableRef = useRef<HTMLDivElement>(null);
 
   const genererPlaceholder = (index: number) => `[SLADDET-${index + 1}]`;
+
+  // Hent eksisterende sensurering ved innlasting
+  useEffect(() => {
+    if (!sakId) return;
+    setLaster(true);
+    sensureringApi
+      .hent(sakId)
+      .then((data) => {
+        setOriginaltekst(data.originaltekst);
+        const liste = data.sensurertElementer.map((el, i) => ({
+          original: el.original,
+          placeholder: el.placeholder,
+          id: `loaded-${i}`,
+        }));
+        setSensurertListe(liste);
+
+        // Bygg opp HTML med sensurerte spans
+        if (editableRef.current) {
+          let html = data.sensurertTekst;
+          liste.forEach((item) => {
+            html = html.replace(
+              item.placeholder,
+              `<span class="bg-gray-900 text-white px-1 rounded font-mono" data-sensurert-id="${item.id}">${item.placeholder}</span>`
+            );
+          });
+          editableRef.current.innerHTML = html;
+          setContent(html);
+        }
+      })
+      .catch(() => {
+        // Ingen eksisterende sensurering funnet, start med blankt
+      })
+      .finally(() => setLaster(false));
+  }, [sakId]);
 
   const markerSomSensitiv = useCallback(() => {
     const selection = window.getSelection();
@@ -120,10 +158,11 @@ export const Sensurering = () => {
   }, [hentRenTekst, sensurertListe]);
 
   const lagreSensurering = useCallback(async () => {
+    if (!sakId) return;
     setLagrer(true);
     setLagreStatus(null);
     try {
-      await sensureringApi.lagre({
+      await sensureringApi.lagre(sakId, {
         originaltekst,
         sensurertTekst: hentRenTekst(),
         sensurertElementer: sensurertListe.map(({ placeholder, original }) => ({
@@ -140,12 +179,20 @@ export const Sensurering = () => {
     } finally {
       setLagrer(false);
     }
-  }, [originaltekst, hentRenTekst, sensurertListe]);
+  }, [sakId, originaltekst, hentRenTekst, sensurertListe]);
 
   return (
     <Box className="max-w-3xl mx-auto">
       <VStack gap="6">
         <Heading size="large">Sensurering av tekst</Heading>
+        <BodyShort size="small">Sak: {sakId}</BodyShort>
+
+        {laster ? (
+          <HStack gap="2" align="center">
+            <Loader size="small" />
+            <BodyShort>Laster eksisterende sensurering...</BodyShort>
+          </HStack>
+        ) : null}
 
         <Alert variant="info" size="small">
           Marker tekst du ønsker å sensurere, og klikk "Marker som sensitiv".

@@ -119,8 +119,11 @@ export const sakApi = {
 };
 
 export const sensureringApi = {
-  lagre: (request: LagreSensureringRequest): Promise<LagreSensureringResponse> =>
-    apiRequest("/saker/sensurering", {
+  hent: (sakId: string): Promise<LagreSensureringResponse> =>
+    apiRequest(`/saker/${sakId}/sensurering`),
+
+  lagre: (sakId: string, request: LagreSensureringRequest): Promise<LagreSensureringResponse> =>
+    apiRequest(`/saker/${sakId}/sensurering`, {
       method: "POST",
       body: JSON.stringify(request),
     }),

@@ -15,7 +15,7 @@ export default function App() {
           <Route path="/saker/ny" element={<NySak />} />
           <Route path="/registrer/:id" element={<RegistrerSak />} />
           <Route path="/saker/:id" element={<SakDetail />} />
-          <Route path="/sensurering" element={<Sensurering />} />
+          <Route path="/saker/:sakId/sensurering" element={<Sensurering />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AppLayout>
