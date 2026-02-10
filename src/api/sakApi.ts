@@ -1,4 +1,4 @@
-import type { Sak, OpprettSakRequest, EndreSakRequest, UserInfo, Tilgang, GiTilgangRequest } from "./types";
+import type { Sak, OpprettSakRequest, EndreSakRequest, UserInfo, Tilgang, GiTilgangRequest, LagreSensureringRequest, LagreSensureringResponse } from "./types";
 
 const API_BASE = "/internal/v1";
 
@@ -115,6 +115,14 @@ export const sakApi = {
   fjernTilgang: (sakId: string, navIdent: string): Promise<void> =>
     apiRequest(`/saker/${sakId}/tilganger/${navIdent}`, {
       method: "DELETE",
+    }),
+};
+
+export const sensureringApi = {
+  lagre: (request: LagreSensureringRequest): Promise<LagreSensureringResponse> =>
+    apiRequest("/saker/sensurering", {
+      method: "POST",
+      body: JSON.stringify(request),
     }),
 };
 

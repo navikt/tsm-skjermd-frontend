@@ -28,6 +28,26 @@ export interface GiTilgangRequest {
   navIdent: string;
 }
 
+export interface SensurertElement {
+  placeholder: string;
+  original: string;
+}
+
+export interface LagreSensureringRequest {
+  originaltekst: string;
+  sensurertTekst: string;
+  sensurertElementer: SensurertElement[];
+}
+
+export interface LagreSensureringResponse {
+  id: string;
+  originaltekst: string;
+  sensurertTekst: string;
+  sensurertElementer: SensurertElement[];
+  opprettetAv: string;
+  opprettetTidspunkt: string;
+}
+
 export interface UserInfo {
   navIdent: string;
   name: string;

@@ -15,7 +15,9 @@ import {
   ArrowUndoIcon,
   TrashIcon,
   ClipboardIcon,
+  FloppydiskIcon,
 } from "@navikt/aksel-icons";
+import { sensureringApi } from "../api/sakApi";
 
 interface SensurertTekst {
   original: string;
@@ -27,6 +29,9 @@ export const Sensurering = () => {
   const [content, setContent] = useState("");
   const [previousContent, setPreviousContent] = useState("");
   const [sensurertListe, setSensurertListe] = useState<SensurertTekst[]>([]);
+  const [originaltekst, setOriginaltekst] = useState("");
+  const [lagrer, setLagrer] = useState(false);
+  const [lagreStatus, setLagreStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const editableRef = useRef<HTMLDivElement>(null);
 
   const genererPlaceholder = (index: number) => `[SLADDET-${index + 1}]`;
@@ -47,6 +52,11 @@ export const Sensurering = () => {
 
     // Lagre forrige state for angre-funksjon
     setPreviousContent(editableRef.current?.innerHTML || "");
+
+    // Lagre originaltekst ved første sensurering
+    if (sensurertListe.length === 0) {
+      setOriginaltekst(editableRef.current?.innerText || "");
+    }
 
     const nyId = crypto.randomUUID();
     const placeholder = genererPlaceholder(sensurertListe.length);
@@ -89,6 +99,8 @@ export const Sensurering = () => {
     setContent("");
     setPreviousContent("");
     setSensurertListe([]);
+    setOriginaltekst("");
+    setLagreStatus(null);
   }, []);
 
   const hentRenTekst = useCallback(() => {
@@ -106,6 +118,29 @@ export const Sensurering = () => {
       })),
     };
   }, [hentRenTekst, sensurertListe]);
+
+  const lagreSensurering = useCallback(async () => {
+    setLagrer(true);
+    setLagreStatus(null);
+    try {
+      await sensureringApi.lagre({
+        originaltekst,
+        sensurertTekst: hentRenTekst(),
+        sensurertElementer: sensurertListe.map(({ placeholder, original }) => ({
+          placeholder,
+          original,
+        })),
+      });
+      setLagreStatus({ type: "success", message: "Sensurering lagret!" });
+    } catch (error) {
+      setLagreStatus({
+        type: "error",
+        message: error instanceof Error ? error.message : "Kunne ikke lagre sensurering",
+      });
+    } finally {
+      setLagrer(false);
+    }
+  }, [originaltekst, hentRenTekst, sensurertListe]);
 
   return (
     <Box className="max-w-3xl mx-auto">
@@ -207,6 +242,16 @@ export const Sensurering = () => {
 
               <HStack gap="2" className="mt-2">
                 <Button
+                  variant="primary"
+                  size="small"
+                  icon={<FloppydiskIcon aria-hidden />}
+                  onClick={lagreSensurering}
+                  loading={lagrer}
+                  disabled={sensurertListe.length === 0}
+                >
+                  Lagre til backend
+                </Button>
+                <Button
                   variant="secondary"
                   size="small"
                   icon={<ClipboardIcon aria-hidden />}
@@ -218,6 +263,12 @@ export const Sensurering = () => {
                   Kopier all data (JSON)
                 </Button>
               </HStack>
+
+              {lagreStatus && (
+                <Alert variant={lagreStatus.type} size="small" className="mt-2">
+                  {lagreStatus.message}
+                </Alert>
+              )}
             </VStack>
           </Box>
         )}
