@@ -28,9 +28,10 @@ interface SensurertTekst {
 
 interface SensureringEditorProps {
   sakId: string;
+  onLagreOgLukk?: () => void;
 }
 
-export const SensureringEditor = ({ sakId }: SensureringEditorProps) => {
+export const SensureringEditor = ({ sakId, onLagreOgLukk }: SensureringEditorProps) => {
   const [content, setContent] = useState("");
   const [previousContent, setPreviousContent] = useState("");
   const [sensurertListe, setSensurertListe] = useState<SensurertTekst[]>([]);
@@ -155,15 +156,24 @@ export const SensureringEditor = ({ sakId }: SensureringEditorProps) => {
         sakApi.endre(sakId, { sensitivData: sensurertTekst }),
       ]);
       setLagreStatus({ type: "success", message: "Sensurering lagret!" });
+      return true;
     } catch (error) {
       setLagreStatus({
         type: "error",
         message: error instanceof Error ? error.message : "Kunne ikke lagre sensurering",
       });
+      return false;
     } finally {
       setLagrer(false);
     }
   }, [sakId, originaltekst, hentRenTekst, sensurertListe]);
+
+  const handleLagreOgLukk = useCallback(async () => {
+    const ok = await lagreSensurering();
+    if (ok && onLagreOgLukk) {
+      onLagreOgLukk();
+    }
+  }, [lagreSensurering, onLagreOgLukk]);
 
   return (
     <Box
@@ -266,27 +276,34 @@ export const SensureringEditor = ({ sakId }: SensureringEditorProps) => {
                   </HStack>
                 ))}
               </div>
-
-              <HStack gap="2" className="mt-2">
-                <Button
-                  variant="primary"
-                  size="small"
-                  icon={<FloppydiskIcon aria-hidden />}
-                  onClick={lagreSensurering}
-                  loading={lagrer}
-                  disabled={sensurertListe.length === 0}
-                >
-                  Lagre
-                </Button>
-              </HStack>
-
-              {lagreStatus && (
-                <Alert variant={lagreStatus.type} size="small" className="mt-2">
-                  {lagreStatus.message}
-                </Alert>
-              )}
             </VStack>
           </Box>
+        )}
+
+        <HStack gap="2">
+          <Button
+            variant="primary"
+            size="small"
+            icon={<FloppydiskIcon aria-hidden />}
+            onClick={lagreSensurering}
+            loading={lagrer}
+          >
+            Lagre
+          </Button>
+          <Button
+            variant="secondary"
+            size="small"
+            onClick={handleLagreOgLukk}
+            loading={lagrer}
+          >
+            Lagre og lukk
+          </Button>
+        </HStack>
+
+        {lagreStatus && (
+          <Alert variant={lagreStatus.type} size="small">
+            {lagreStatus.message}
+          </Alert>
         )}
       </VStack>
     </Box>

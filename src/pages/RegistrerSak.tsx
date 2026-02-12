@@ -151,91 +151,14 @@ export const RegistrerSak = () => {
   return (
     <>
       <VStack gap="6">
-        {/* Header */}
-        <Box
-          background="surface-default"
-          padding="5"
-          borderRadius="large"
-          shadow="xsmall"
-        >
-          <HStack justify="space-between" align="start" wrap gap="4">
-            <HStack gap="2">
-              <Button
-                variant="primary"
-                size="small"
-                onClick={() => window.close()}
-              >
-                Lukk
-              </Button>
-            </HStack>
-          </HStack>
-        </Box>
-
         {error && (
           <Alert variant="error" closeButton onClose={() => setError(null)}>
             {error}
           </Alert>
         )}
 
-        {/* Metadata */}
-        <Accordion>
-          <Accordion.Item>
-            <Accordion.Header>Saksinformasjon</Accordion.Header>
-            <Accordion.Content>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <VStack gap="1">
-                  <HStack gap="1" align="center" className="text-gray-500">
-                    <PersonIcon aria-hidden fontSize="1rem" />
-                    <Detail>Opprettet av</Detail>
-                  </HStack>
-                  <BodyShort weight="semibold">{sak.opprettetAv}</BodyShort>
-                </VStack>
-                <VStack gap="1">
-                  <HStack gap="1" align="center" className="text-gray-500">
-                    <ClockIcon aria-hidden fontSize="1rem" />
-                    <Detail>Opprettet</Detail>
-                  </HStack>
-                  <BodyShort weight="semibold">
-                    {formatDato(sak.opprettetTidspunkt)}
-                  </BodyShort>
-                  <Detail className="text-gray-500">
-                    kl. {formatTid(sak.opprettetTidspunkt)}
-                  </Detail>
-                </VStack>
-                <VStack gap="1">
-                  <HStack gap="1" align="center" className="text-gray-500">
-                    <PersonIcon aria-hidden fontSize="1rem" />
-                    <Detail>Endret av</Detail>
-                  </HStack>
-                  <BodyShort weight="semibold">
-                    {sak.endretAv || "-"}
-                  </BodyShort>
-                </VStack>
-                <VStack gap="1">
-                  <HStack gap="1" align="center" className="text-gray-500">
-                    <ClockIcon aria-hidden fontSize="1rem" />
-                    <Detail>Sist endret</Detail>
-                  </HStack>
-                  {sak.endretTidspunkt ? (
-                    <>
-                      <BodyShort weight="semibold">
-                        {formatDato(sak.endretTidspunkt)}
-                      </BodyShort>
-                      <Detail className="text-gray-500">
-                        kl. {formatTid(sak.endretTidspunkt)}
-                      </Detail>
-                    </>
-                  ) : (
-                    <BodyShort className="text-gray-400">Ikke endret</BodyShort>
-                  )}
-                </VStack>
-              </div>
-            </Accordion.Content>
-          </Accordion.Item>
-        </Accordion>
-
         {/* Sensitiv data med sensurering */}
-        <SensureringEditor sakId={id!} />
+        <SensureringEditor sakId={id!} onLagreOgLukk={() => window.close()} />
 
         {/* Tilganger */}
         <Box
@@ -314,33 +237,79 @@ export const RegistrerSak = () => {
           </VStack>
         </Box>
 
-        {/* Jira-lenke */}
-        {sak.jiraIssueKey && (
-          <Box
-            background="surface-action-subtle"
-            padding="4"
-            borderRadius="large"
-          >
-            <HStack justify="space-between" align="center">
-              <VStack gap="1">
-                <Detail className="text-gray-600">Koblet til Jira-sak</Detail>
-                <BodyShort weight="semibold">{sak.jiraIssueKey}</BodyShort>
-              </VStack>
-              <Button
-                as="a"
-                href={`https://jira.adeo.no/browse/${sak.jiraIssueKey}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                variant="tertiary"
-                size="small"
-                icon={<ExternalLinkIcon aria-hidden />}
-                iconPosition="right"
-              >
-                Åpne i Jira
-              </Button>
-            </HStack>
-          </Box>
-        )}
+        {/* Metadata */}
+        <Accordion>
+          <Accordion.Item>
+            <Accordion.Header>Saksinformasjon</Accordion.Header>
+            <Accordion.Content>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <VStack gap="1">
+                  <HStack gap="1" align="center" className="text-gray-500">
+                    <PersonIcon aria-hidden fontSize="1rem" />
+                    <Detail>Opprettet av</Detail>
+                  </HStack>
+                  <BodyShort weight="semibold">{sak.opprettetAv}</BodyShort>
+                </VStack>
+                <VStack gap="1">
+                  <HStack gap="1" align="center" className="text-gray-500">
+                    <ClockIcon aria-hidden fontSize="1rem" />
+                    <Detail>Opprettet</Detail>
+                  </HStack>
+                  <BodyShort weight="semibold">
+                    {formatDato(sak.opprettetTidspunkt)}
+                  </BodyShort>
+                  <Detail className="text-gray-500">
+                    kl. {formatTid(sak.opprettetTidspunkt)}
+                  </Detail>
+                </VStack>
+                <VStack gap="1">
+                  <HStack gap="1" align="center" className="text-gray-500">
+                    <PersonIcon aria-hidden fontSize="1rem" />
+                    <Detail>Endret av</Detail>
+                  </HStack>
+                  <BodyShort weight="semibold">
+                    {sak.endretAv || "-"}
+                  </BodyShort>
+                </VStack>
+                <VStack gap="1">
+                  <HStack gap="1" align="center" className="text-gray-500">
+                    <ClockIcon aria-hidden fontSize="1rem" />
+                    <Detail>Sist endret</Detail>
+                  </HStack>
+                  {sak.endretTidspunkt ? (
+                    <>
+                      <BodyShort weight="semibold">
+                        {formatDato(sak.endretTidspunkt)}
+                      </BodyShort>
+                      <Detail className="text-gray-500">
+                        kl. {formatTid(sak.endretTidspunkt)}
+                      </Detail>
+                    </>
+                  ) : (
+                    <BodyShort className="text-gray-400">Ikke endret</BodyShort>
+                  )}
+                </VStack>
+              </div>
+              {sak.jiraIssueKey && (
+                <HStack gap="2" align="center" className="mt-4">
+                  <Detail className="text-gray-500">Jira-sak:</Detail>
+                  <Button
+                    as="a"
+                    href={`https://jira.adeo.no/browse/${sak.jiraIssueKey}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    variant="tertiary"
+                    size="small"
+                    icon={<ExternalLinkIcon aria-hidden />}
+                    iconPosition="right"
+                  >
+                    {sak.jiraIssueKey}
+                  </Button>
+                </HStack>
+              )}
+            </Accordion.Content>
+          </Accordion.Item>
+        </Accordion>
       </VStack>
 
       {/* Delete Modal */}
