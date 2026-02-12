@@ -201,18 +201,6 @@ export const SensureringEditor = ({ sakId }: SensureringEditorProps) => {
           Sensitiv informasjon vil bli erstattet med en placeholder.
         </Alert>
 
-        <BodyShort weight="semibold">Lim inn eller skriv tekst:</BodyShort>
-
-        <div
-          ref={editableRef}
-          contentEditable
-          className="min-h-[200px] p-4 border border-gray-300 rounded-lg
-                     whitespace-pre-wrap font-mono text-sm bg-white
-                     focus:outline-none focus:ring-2 focus:ring-blue-500"
-          onInput={(e) => setContent(e.currentTarget.innerHTML)}
-          suppressContentEditableWarning
-        />
-
         <HStack gap="2" wrap>
           <Button
             variant="primary"
@@ -241,6 +229,16 @@ export const SensureringEditor = ({ sakId }: SensureringEditorProps) => {
             Nullstill
           </Button>
         </HStack>
+
+        <div
+          ref={editableRef}
+          contentEditable
+          className="min-h-[200px] p-4 border border-gray-300 rounded-lg
+                     whitespace-pre-wrap font-mono text-sm bg-white
+                     focus:outline-none focus:ring-2 focus:ring-blue-500"
+          onInput={(e) => setContent(e.currentTarget.innerHTML)}
+          suppressContentEditableWarning
+        />
 
         {sensurertListe.length > 0 && (
           <Box
