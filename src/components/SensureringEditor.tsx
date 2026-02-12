@@ -15,7 +15,6 @@ import {
   EyeSlashIcon,
   ArrowUndoIcon,
   TrashIcon,
-  ClipboardIcon,
   FloppydiskIcon,
   FileTextIcon,
 } from "@navikt/aksel-icons";
@@ -137,16 +136,6 @@ export const SensureringEditor = ({ sakId }: SensureringEditorProps) => {
   const hentRenTekst = useCallback(() => {
     return editableRef.current?.innerText || "";
   }, []);
-
-  const hentSensurertData = useCallback(() => {
-    return {
-      tekst: hentRenTekst(),
-      sensurert: sensurertListe.map(({ original, placeholder }) => ({
-        placeholder,
-        original,
-      })),
-    };
-  }, [hentRenTekst, sensurertListe]);
 
   const lagreSensurering = useCallback(async () => {
     if (!sakId) return;
@@ -288,17 +277,6 @@ export const SensureringEditor = ({ sakId }: SensureringEditorProps) => {
                   disabled={sensurertListe.length === 0}
                 >
                   Lagre
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="small"
-                  icon={<ClipboardIcon aria-hidden />}
-                  onClick={() => {
-                    const data = hentSensurertData();
-                    navigator.clipboard.writeText(JSON.stringify(data, null, 2));
-                  }}
-                >
-                  Kopier all data (JSON)
                 </Button>
               </HStack>
 
