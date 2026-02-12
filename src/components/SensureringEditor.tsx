@@ -18,7 +18,7 @@ import {
   FloppydiskIcon,
   FileTextIcon,
 } from "@navikt/aksel-icons";
-import { sakApi, sensureringApi } from "../api/sakApi";
+import { sensureringApi } from "../api/sakApi";
 
 interface SensurertTekst {
   original: string;
@@ -144,17 +144,14 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk }: SensureringEditorPro
     setLagreStatus(null);
     try {
       const sensurertTekst = hentRenTekst();
-      await Promise.all([
-        sensureringApi.lagre(sakId, {
-          originaltekst,
-          sensurertTekst,
-          sensurertElementer: sensurertListe.map(({ placeholder, original }) => ({
-            placeholder,
-            original,
-          })),
-        }),
-        sakApi.endre(sakId, { sensitivData: sensurertTekst }),
-      ]);
+      await sensureringApi.lagre(sakId, {
+        originaltekst,
+        sensurertTekst,
+        sensurertElementer: sensurertListe.map(({ placeholder, original }) => ({
+          placeholder,
+          original,
+        })),
+      });
       setLagreStatus({ type: "success", message: "Sensurering lagret!" });
       return true;
     } catch (error) {
