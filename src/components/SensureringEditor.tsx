@@ -1,14 +1,13 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { useParams } from "react-router-dom";
 import {
   Button,
-  Heading,
   Box,
   VStack,
   HStack,
   Alert,
   CopyButton,
   Tag,
+  Heading,
   BodyShort,
   Loader,
 } from "@navikt/ds-react";
@@ -18,8 +17,9 @@ import {
   TrashIcon,
   ClipboardIcon,
   FloppydiskIcon,
+  FileTextIcon,
 } from "@navikt/aksel-icons";
-import { sensureringApi } from "../api/sakApi";
+import { sakApi, sensureringApi } from "../api/sakApi";
 
 interface SensurertTekst {
   original: string;
@@ -27,8 +27,11 @@ interface SensurertTekst {
   id: string;
 }
 
-export const Sensurering = () => {
-  const { sakId } = useParams<{ sakId: string }>();
+interface SensureringEditorProps {
+  sakId: string;
+}
+
+export const SensureringEditor = ({ sakId }: SensureringEditorProps) => {
   const [content, setContent] = useState("");
   const [previousContent, setPreviousContent] = useState("");
   const [sensurertListe, setSensurertListe] = useState<SensurertTekst[]>([]);
@@ -40,7 +43,6 @@ export const Sensurering = () => {
 
   const genererPlaceholder = (index: number) => `[SLADDET-${index + 1}]`;
 
-  // Hent eksisterende sensurering ved innlasting
   useEffect(() => {
     if (!sakId) return;
     setLaster(true);
@@ -55,7 +57,6 @@ export const Sensurering = () => {
         }));
         setSensurertListe(liste);
 
-        // Bygg opp HTML med sensurerte spans
         if (editableRef.current) {
           let html = data.sensurertTekst;
           liste.forEach((item) => {
@@ -69,7 +70,7 @@ export const Sensurering = () => {
         }
       })
       .catch(() => {
-        // Ingen eksisterende sensurering funnet, start med blankt
+        // Ingen eksisterende sensurering funnet
       })
       .finally(() => setLaster(false));
   }, [sakId]);
@@ -83,15 +84,12 @@ export const Sensurering = () => {
     const selectedText = selection.toString();
     const range = selection.getRangeAt(0);
 
-    // Sjekk at selection er innenfor editable div
     if (!editableRef.current?.contains(range.commonAncestorContainer)) {
       return;
     }
 
-    // Lagre forrige state for angre-funksjon
     setPreviousContent(editableRef.current?.innerHTML || "");
 
-    // Lagre originaltekst ved første sensurering
     if (sensurertListe.length === 0) {
       setOriginaltekst(editableRef.current?.innerText || "");
     }
@@ -99,24 +97,20 @@ export const Sensurering = () => {
     const nyId = crypto.randomUUID();
     const placeholder = genererPlaceholder(sensurertListe.length);
 
-    // Opprett span med markering
     const span = document.createElement("span");
     span.className = "bg-gray-900 text-white px-1 rounded font-mono";
     span.dataset.sensurertId = nyId;
     span.textContent = placeholder;
 
-    // Erstatt markert tekst med span
     range.deleteContents();
     range.insertNode(span);
     selection.removeAllRanges();
 
-    // Lagre sensurert tekst i liste
     setSensurertListe((prev) => [
       ...prev,
       { original: selectedText, placeholder, id: nyId },
     ]);
 
-    // Oppdater content state
     setContent(editableRef.current?.innerHTML || "");
   }, [sensurertListe.length]);
 
@@ -124,7 +118,6 @@ export const Sensurering = () => {
     if (previousContent && editableRef.current) {
       editableRef.current.innerHTML = previousContent;
       setContent(previousContent);
-      // Fjern siste element fra sensurert liste
       setSensurertListe((prev) => prev.slice(0, -1));
       setPreviousContent("");
     }
@@ -142,12 +135,10 @@ export const Sensurering = () => {
   }, []);
 
   const hentRenTekst = useCallback(() => {
-    // Returnerer teksten med placeholders (uten HTML)
     return editableRef.current?.innerText || "";
   }, []);
 
   const hentSensurertData = useCallback(() => {
-    // Returnerer objekt med både ren tekst og liste over sensurerte verdier
     return {
       tekst: hentRenTekst(),
       sensurert: sensurertListe.map(({ original, placeholder }) => ({
@@ -162,14 +153,18 @@ export const Sensurering = () => {
     setLagrer(true);
     setLagreStatus(null);
     try {
-      await sensureringApi.lagre(sakId, {
-        originaltekst,
-        sensurertTekst: hentRenTekst(),
-        sensurertElementer: sensurertListe.map(({ placeholder, original }) => ({
-          placeholder,
-          original,
-        })),
-      });
+      const sensurertTekst = hentRenTekst();
+      await Promise.all([
+        sensureringApi.lagre(sakId, {
+          originaltekst,
+          sensurertTekst,
+          sensurertElementer: sensurertListe.map(({ placeholder, original }) => ({
+            placeholder,
+            original,
+          })),
+        }),
+        sakApi.endre(sakId, { sensitivData: sensurertTekst }),
+      ]);
       setLagreStatus({ type: "success", message: "Sensurering lagret!" });
     } catch (error) {
       setLagreStatus({
@@ -182,10 +177,17 @@ export const Sensurering = () => {
   }, [sakId, originaltekst, hentRenTekst, sensurertListe]);
 
   return (
-    <Box className="max-w-3xl mx-auto">
-      <VStack gap="6">
-        <Heading size="large">Sensurering av tekst</Heading>
-        <BodyShort size="small">Sak: {sakId}</BodyShort>
+    <Box
+      background="surface-default"
+      padding="5"
+      borderRadius="large"
+      shadow="xsmall"
+    >
+      <VStack gap="4">
+        <HStack gap="2" align="center">
+          <FileTextIcon aria-hidden />
+          <Heading size="xsmall">Sensitiv informasjon</Heading>
+        </HStack>
 
         {laster ? (
           <HStack gap="2" align="center">
@@ -195,59 +197,50 @@ export const Sensurering = () => {
         ) : null}
 
         <Alert variant="info" size="small">
-          Marker tekst du ønsker å sensurere, og klikk "Marker som sensitiv".
+          Marker tekst du ønsker å sensurere, og klikk &quot;Marker som sensitiv&quot;.
           Sensitiv informasjon vil bli erstattet med en placeholder.
         </Alert>
 
-        <Box
-          background="surface-default"
-          padding="4"
-          borderRadius="medium"
-          shadow="small"
-        >
-          <VStack gap="4">
-            <BodyShort weight="semibold">Lim inn eller skriv tekst:</BodyShort>
+        <BodyShort weight="semibold">Lim inn eller skriv tekst:</BodyShort>
 
-            <div
-              ref={editableRef}
-              contentEditable
-              className="min-h-[200px] p-4 border border-gray-300 rounded-lg
-                         whitespace-pre-wrap font-mono text-sm bg-white
-                         focus:outline-none focus:ring-2 focus:ring-blue-500"
-              onInput={(e) => setContent(e.currentTarget.innerHTML)}
-              suppressContentEditableWarning
-            />
+        <div
+          ref={editableRef}
+          contentEditable
+          className="min-h-[200px] p-4 border border-gray-300 rounded-lg
+                     whitespace-pre-wrap font-mono text-sm bg-white
+                     focus:outline-none focus:ring-2 focus:ring-blue-500"
+          onInput={(e) => setContent(e.currentTarget.innerHTML)}
+          suppressContentEditableWarning
+        />
 
-            <HStack gap="2" wrap>
-              <Button
-                variant="primary"
-                size="small"
-                icon={<EyeSlashIcon aria-hidden />}
-                onClick={markerSomSensitiv}
-              >
-                Marker som sensitiv
-              </Button>
-              <Button
-                variant="secondary"
-                size="small"
-                icon={<ArrowUndoIcon aria-hidden />}
-                onClick={angre}
-                disabled={!previousContent}
-              >
-                Angre
-              </Button>
-              <Button
-                variant="tertiary"
-                size="small"
-                icon={<TrashIcon aria-hidden />}
-                onClick={nullstill}
-                disabled={!content}
-              >
-                Nullstill
-              </Button>
-            </HStack>
-          </VStack>
-        </Box>
+        <HStack gap="2" wrap>
+          <Button
+            variant="primary"
+            size="small"
+            icon={<EyeSlashIcon aria-hidden />}
+            onClick={markerSomSensitiv}
+          >
+            Marker som sensitiv
+          </Button>
+          <Button
+            variant="secondary"
+            size="small"
+            icon={<ArrowUndoIcon aria-hidden />}
+            onClick={angre}
+            disabled={!previousContent}
+          >
+            Angre
+          </Button>
+          <Button
+            variant="tertiary"
+            size="small"
+            icon={<TrashIcon aria-hidden />}
+            onClick={nullstill}
+            disabled={!content}
+          >
+            Nullstill
+          </Button>
+        </HStack>
 
         {sensurertListe.length > 0 && (
           <Box
@@ -296,7 +289,7 @@ export const Sensurering = () => {
                   loading={lagrer}
                   disabled={sensurertListe.length === 0}
                 >
-                  Lagre til backend
+                  Lagre
                 </Button>
                 <Button
                   variant="secondary"
@@ -316,18 +309,6 @@ export const Sensurering = () => {
                   {lagreStatus.message}
                 </Alert>
               )}
-            </VStack>
-          </Box>
-        )}
-
-        {/* Debug/Preview - kan fjernes i prod */}
-        {content && (
-          <Box background="surface-subtle" padding="4" borderRadius="medium">
-            <VStack gap="2">
-              <Heading size="xsmall">Ren tekst (for sending):</Heading>
-              <pre className="text-xs bg-white p-3 rounded border overflow-auto">
-                {hentRenTekst()}
-              </pre>
             </VStack>
           </Box>
         )}

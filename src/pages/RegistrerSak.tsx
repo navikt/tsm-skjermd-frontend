@@ -5,7 +5,6 @@ import {
   Alert,
   Loader,
   Heading,
-  Textarea,
   TextField,
   HStack,
   VStack,
@@ -13,17 +12,13 @@ import {
   Box,
   Tag,
   Detail,
-  CopyButton,
   Modal,
   ConfirmationPanel,
   Table,
   Accordion,
 } from "@navikt/ds-react";
 import {
-  PencilIcon,
   TrashIcon,
-  FloppydiskIcon,
-  XMarkIcon,
   PersonIcon,
   ClockIcon,
   FileTextIcon,
@@ -33,6 +28,7 @@ import {
 } from "@navikt/aksel-icons";
 import { sakApi } from "../api/sakApi";
 import type { Sak } from "../api/types";
+import { SensureringEditor } from "../components/SensureringEditor";
 
 export const RegistrerSak = () => {
   const { id } = useParams<{ id: string }>();
@@ -40,9 +36,6 @@ export const RegistrerSak = () => {
   const [sak, setSak] = useState<Sak | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [editing, setEditing] = useState(true);
-  const [sensitivData, setSensitivData] = useState("");
-  const [saving, setSaving] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmed, setDeleteConfirmed] = useState(false);
   const [showTilgangModal, setShowTilgangModal] = useState(false);
@@ -57,7 +50,6 @@ export const RegistrerSak = () => {
         setError(null);
         const data = await sakApi.hentPaId(id);
         setSak(data);
-        setSensitivData(data.sensitivData && data.sensitivData !== "null" ? data.sensitivData : "");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Kunne ikke hente sak");
       } finally {
@@ -67,22 +59,6 @@ export const RegistrerSak = () => {
     hentSak();
   }, [id]);
 
-  const handleSave = async () => {
-    if (!id || !sak) return;
-    try {
-      setSaving(true);
-      const oppdatert = await sakApi.endre(id, { sensitivData });
-      setSak(oppdatert);
-      setEditing(false);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Kunne ikke lagre endringer"
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const handleSlett = async () => {
     if (!id) return;
     try {
@@ -91,11 +67,6 @@ export const RegistrerSak = () => {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Kunne ikke slette sak");
     }
-  };
-
-  const handleCancel = () => {
-    if (sak) setSensitivData(sak.sensitivData && sak.sensitivData !== "null" ? sak.sensitivData : "");
-    setEditing(false);
   };
 
   const handleGiTilgang = async () => {
@@ -181,34 +152,24 @@ export const RegistrerSak = () => {
     <>
       <VStack gap="6">
         {/* Header */}
-        {!editing && (
-          <Box
-            background="surface-default"
-            padding="5"
-            borderRadius="large"
-            shadow="xsmall"
-          >
-            <HStack justify="space-between" align="start" wrap gap="4">
-              <HStack gap="2">
-                <Button
-                  variant="secondary"
-                  size="small"
-                  icon={<PencilIcon aria-hidden />}
-                  onClick={() => setEditing(true)}
-                >
-                  Rediger
-                </Button>
-                <Button
-                  variant="primary"
-                  size="small"
-                  onClick={() => window.close()}
-                >
-                  Lukk
-                </Button>
-              </HStack>
+        <Box
+          background="surface-default"
+          padding="5"
+          borderRadius="large"
+          shadow="xsmall"
+        >
+          <HStack justify="space-between" align="start" wrap gap="4">
+            <HStack gap="2">
+              <Button
+                variant="primary"
+                size="small"
+                onClick={() => window.close()}
+              >
+                Lukk
+              </Button>
             </HStack>
-          </Box>
-        )}
+          </HStack>
+        </Box>
 
         {error && (
           <Alert variant="error" closeButton onClose={() => setError(null)}>
@@ -273,69 +234,8 @@ export const RegistrerSak = () => {
           </Accordion.Item>
         </Accordion>
 
-        {/* Sensitiv data */}
-        <Box
-          background="surface-default"
-          padding="5"
-          borderRadius="large"
-          shadow="xsmall"
-        >
-          <VStack gap="4">
-            <HStack justify="space-between" align="center">
-              <HStack gap="2" align="center">
-                <FileTextIcon aria-hidden />
-                <Heading size="xsmall">Sensitiv informasjon</Heading>
-              </HStack>
-              {!editing && (
-                <CopyButton
-                  size="small"
-                  copyText={sak.sensitivData}
-                  text="Kopier innhold"
-                />
-              )}
-            </HStack>
-
-            {editing ? (
-              <VStack gap="4">
-                <Textarea
-                  label="Sensitiv informasjon"
-                  hideLabel
-                  value={sensitivData}
-                  onChange={(e) => setSensitivData(e.target.value)}
-                  rows={12}
-                  className="font-mono"
-                />
-                <HStack gap="2">
-                  <Button
-                    icon={<FloppydiskIcon aria-hidden />}
-                    onClick={handleSave}
-                    loading={saving}
-                  >
-                    Lagre endringer
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    icon={<XMarkIcon aria-hidden />}
-                    onClick={handleCancel}
-                  >
-                    Avbryt
-                  </Button>
-                </HStack>
-              </VStack>
-            ) : (
-              <Box
-                background="surface-subtle"
-                padding="4"
-                borderRadius="medium"
-                className="overflow-auto"
-              >
-                <pre className="whitespace-pre-wrap font-mono text-sm m-0">
-                  {sak.sensitivData}
-                </pre>
-              </Box>
-            )}
-          </VStack>
-        </Box>
+        {/* Sensitiv data med sensurering */}
+        <SensureringEditor sakId={id!} />
 
         {/* Tilganger */}
         <Box
