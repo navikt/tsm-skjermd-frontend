@@ -14,7 +14,6 @@ import {
 import {
   EyeSlashIcon,
   ArrowUndoIcon,
-  TrashIcon,
   FloppydiskIcon,
   FileTextIcon,
 } from "@navikt/aksel-icons";
@@ -124,16 +123,18 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false }: Se
     }
   }, [previousContent]);
 
-  const nullstill = useCallback(() => {
-    if (editableRef.current) {
+  const angreAlt = useCallback(() => {
+    if (editableRef.current && originaltekst) {
+      editableRef.current.innerText = originaltekst;
+      setContent(originaltekst);
+    } else if (editableRef.current) {
       editableRef.current.innerHTML = "";
+      setContent("");
     }
-    setContent("");
     setPreviousContent("");
     setSensurertListe([]);
-    setOriginaltekst("");
     setLagreStatus(null);
-  }, []);
+  }, [originaltekst]);
 
   const hentRenTekst = useCallback(() => {
     return editableRef.current?.innerText || "";
@@ -225,13 +226,13 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false }: Se
             Angre
           </Button>
           <Button
-            variant="tertiary"
+            variant="secondary"
             size="small"
-            icon={<TrashIcon aria-hidden />}
-            onClick={nullstill}
+            icon={<><ArrowUndoIcon aria-hidden /><ArrowUndoIcon aria-hidden /></>}
+            onClick={angreAlt}
             disabled={!content}
           >
-            Nullstill
+            Angre alt
           </Button>
         </HStack>
 
