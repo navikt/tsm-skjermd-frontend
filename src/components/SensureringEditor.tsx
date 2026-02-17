@@ -29,9 +29,10 @@ interface SensurertTekst {
 interface SensureringEditorProps {
   sakId: string;
   onLagreOgLukk?: () => void;
+  autoSave?: boolean;
 }
 
-export const SensureringEditor = ({ sakId, onLagreOgLukk }: SensureringEditorProps) => {
+export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false }: SensureringEditorProps) => {
   const [content, setContent] = useState("");
   const [previousContent, setPreviousContent] = useState("");
   const [sensurertListe, setSensurertListe] = useState<SensurertTekst[]>([]);
@@ -165,6 +166,12 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk }: SensureringEditorPro
     }
   }, [sakId, originaltekst, hentRenTekst, sensurertListe]);
 
+  useEffect(() => {
+    if (autoSave && sensurertListe.length > 0 && !laster) {
+      lagreSensurering();
+    }
+  }, [autoSave, sensurertListe, laster, lagreSensurering]);
+
   const handleLagreOgLukk = useCallback(async () => {
     const ok = await lagreSensurering();
     if (ok && onLagreOgLukk) {
@@ -180,10 +187,12 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk }: SensureringEditorPro
       shadow="xsmall"
     >
       <VStack gap="4">
-        <HStack gap="2" align="center">
-          <FileTextIcon aria-hidden />
-          <Heading size="xsmall">Sensitiv informasjon</Heading>
-        </HStack>
+        {!autoSave && (
+          <HStack gap="2" align="center">
+            <FileTextIcon aria-hidden />
+            <Heading size="xsmall">Sensitiv informasjon</Heading>
+          </HStack>
+        )}
 
         {laster ? (
           <HStack gap="2" align="center">
@@ -277,25 +286,27 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk }: SensureringEditorPro
           </Box>
         )}
 
-        <HStack gap="2">
-          <Button
-            variant="primary"
-            size="small"
-            icon={<FloppydiskIcon aria-hidden />}
-            onClick={lagreSensurering}
-            loading={lagrer}
-          >
-            Lagre
-          </Button>
-          <Button
-            variant="secondary"
-            size="small"
-            onClick={handleLagreOgLukk}
-            loading={lagrer}
-          >
-            Lagre og lukk
-          </Button>
-        </HStack>
+        {!autoSave && (
+          <HStack gap="2">
+            <Button
+              variant="primary"
+              size="small"
+              icon={<FloppydiskIcon aria-hidden />}
+              onClick={lagreSensurering}
+              loading={lagrer}
+            >
+              Lagre
+            </Button>
+            <Button
+              variant="secondary"
+              size="small"
+              onClick={handleLagreOgLukk}
+              loading={lagrer}
+            >
+              Lagre og lukk
+            </Button>
+          </HStack>
+        )}
 
         {lagreStatus && (
           <Alert variant={lagreStatus.type} size="small">
