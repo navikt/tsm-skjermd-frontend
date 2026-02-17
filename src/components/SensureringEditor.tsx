@@ -33,7 +33,7 @@ interface SensureringEditorProps {
 
 export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false }: SensureringEditorProps) => {
   const [content, setContent] = useState("");
-  const [previousContent, setPreviousContent] = useState("");
+  const [contentHistory, setContentHistory] = useState<string[]>([]);
   const [sensurertListe, setSensurertListe] = useState<SensurertTekst[]>([]);
   const [originaltekst, setOriginaltekst] = useState("");
   const [lagrer, setLagrer] = useState(false);
@@ -88,7 +88,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false }: Se
       return;
     }
 
-    setPreviousContent(editableRef.current?.innerHTML || "");
+    setContentHistory((prev) => [...prev, editableRef.current?.innerHTML || ""]);
 
     if (sensurertListe.length === 0) {
       setOriginaltekst(editableRef.current?.innerText || "");
@@ -115,13 +115,14 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false }: Se
   }, [sensurertListe.length]);
 
   const angre = useCallback(() => {
-    if (previousContent && editableRef.current) {
-      editableRef.current.innerHTML = previousContent;
-      setContent(previousContent);
+    if (contentHistory.length > 0 && editableRef.current) {
+      const forrige = contentHistory[contentHistory.length - 1];
+      editableRef.current.innerHTML = forrige;
+      setContent(forrige);
       setSensurertListe((prev) => prev.slice(0, -1));
-      setPreviousContent("");
+      setContentHistory((prev) => prev.slice(0, -1));
     }
-  }, [previousContent]);
+  }, [contentHistory]);
 
   const angreAlt = useCallback(() => {
     if (editableRef.current && originaltekst) {
@@ -131,7 +132,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false }: Se
       editableRef.current.innerHTML = "";
       setContent("");
     }
-    setPreviousContent("");
+    setContentHistory([]);
     setSensurertListe([]);
     setLagreStatus(null);
   }, [originaltekst]);
@@ -221,7 +222,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false }: Se
             size="small"
             icon={<ArrowUndoIcon aria-hidden />}
             onClick={angre}
-            disabled={!previousContent}
+            disabled={contentHistory.length === 0}
           >
             Angre
           </Button>
