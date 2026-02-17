@@ -34,6 +34,7 @@ interface SensureringEditorProps {
 export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false }: SensureringEditorProps) => {
   const [content, setContent] = useState("");
   const [contentHistory, setContentHistory] = useState<string[]>([]);
+  const contentHistoryRef = useRef<string[]>([]);
   const [sensurertListe, setSensurertListe] = useState<SensurertTekst[]>([]);
   const [originaltekst, setOriginaltekst] = useState("");
   const [lagrer, setLagrer] = useState(false);
@@ -88,7 +89,8 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false }: Se
       return;
     }
 
-    setContentHistory((prev) => [...prev, editableRef.current?.innerHTML || ""]);
+    contentHistoryRef.current = [...contentHistoryRef.current, editableRef.current?.innerHTML || ""];
+    setContentHistory(contentHistoryRef.current);
 
     if (sensurertListe.length === 0) {
       setOriginaltekst(editableRef.current?.innerText || "");
@@ -115,14 +117,16 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false }: Se
   }, [sensurertListe.length]);
 
   const angre = useCallback(() => {
-    if (contentHistory.length > 0 && editableRef.current) {
-      const forrige = contentHistory[contentHistory.length - 1];
+    const history = contentHistoryRef.current;
+    if (history.length > 0 && editableRef.current) {
+      const forrige = history[history.length - 1];
       editableRef.current.innerHTML = forrige;
       setContent(forrige);
       setSensurertListe((prev) => prev.slice(0, -1));
-      setContentHistory((prev) => prev.slice(0, -1));
+      contentHistoryRef.current = history.slice(0, -1);
+      setContentHistory(contentHistoryRef.current);
     }
-  }, [contentHistory]);
+  }, []);
 
   const angreAlt = useCallback(() => {
     if (editableRef.current && originaltekst) {
@@ -132,6 +136,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false }: Se
       editableRef.current.innerHTML = "";
       setContent("");
     }
+    contentHistoryRef.current = [];
     setContentHistory([]);
     setSensurertListe([]);
     setLagreStatus(null);
