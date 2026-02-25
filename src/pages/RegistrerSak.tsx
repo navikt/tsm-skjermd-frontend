@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import {
   Button,
   Alert,
@@ -13,7 +13,6 @@ import {
   Tag,
   Detail,
   Modal,
-  ConfirmationPanel,
   Table,
   Accordion,
 } from "@navikt/ds-react";
@@ -32,12 +31,9 @@ import { SensureringEditor } from "../components/SensureringEditor";
 
 export const RegistrerSak = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const [sak, setSak] = useState<Sak | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deleteConfirmed, setDeleteConfirmed] = useState(false);
   const [showTilgangModal, setShowTilgangModal] = useState(false);
   const [newNavIdent, setNewNavIdent] = useState("");
   const [tilgangLoading, setTilgangLoading] = useState(false);
@@ -58,16 +54,6 @@ export const RegistrerSak = () => {
     };
     hentSak();
   }, [id]);
-
-  const handleSlett = async () => {
-    if (!id) return;
-    try {
-      await sakApi.slett(id);
-      navigate("/");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Kunne ikke slette sak");
-    }
-  };
 
   const handleGiTilgang = async () => {
     if (!id || !newNavIdent.trim()) return;
@@ -311,48 +297,6 @@ export const RegistrerSak = () => {
           </Accordion.Item>
         </Accordion>
       </VStack>
-
-      {/* Delete Modal */}
-      <Modal
-        open={showDeleteModal}
-        onClose={() => {
-          setShowDeleteModal(false);
-          setDeleteConfirmed(false);
-        }}
-        header={{ heading: "Slett sak", closeButton: true }}
-      >
-        <Modal.Body>
-          <VStack gap="4">
-            <BodyShort>
-              Er du sikker på at du vil slette saken{" "}
-              <strong>{sak.jiraIssueKey ?? sak.id}</strong>? Dette kan ikke angres.
-            </BodyShort>
-            <ConfirmationPanel
-              checked={deleteConfirmed}
-              onChange={() => setDeleteConfirmed(!deleteConfirmed)}
-              label="Ja, jeg forstår at saken blir permanent slettet"
-            />
-          </VStack>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button
-            variant="danger"
-            onClick={handleSlett}
-            disabled={!deleteConfirmed}
-          >
-            Slett sak
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={() => {
-              setShowDeleteModal(false);
-              setDeleteConfirmed(false);
-            }}
-          >
-            Avbryt
-          </Button>
-        </Modal.Footer>
-      </Modal>
 
       {/* Tilgang Modal */}
       <Modal

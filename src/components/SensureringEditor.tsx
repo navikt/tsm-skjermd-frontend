@@ -18,12 +18,9 @@ import {
   FileTextIcon,
 } from "@navikt/aksel-icons";
 import { sensureringApi } from "../api/sakApi";
+import type { SensurertElement } from "../api/types";
 
-interface SensurertTekst {
-  original: string;
-  placeholder: string;
-  id: string;
-}
+type SensurertItem = SensurertElement & { id: string };
 
 interface SensureringEditorProps {
   sakId: string;
@@ -33,9 +30,9 @@ interface SensureringEditorProps {
 
 export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false }: SensureringEditorProps) => {
   const [content, setContent] = useState("");
-  const [contentHistory, setContentHistory] = useState<string[]>([]);
+  const [historyLength, setHistoryLength] = useState(0);
   const contentHistoryRef = useRef<string[]>([]);
-  const [sensurertListe, setSensurertListe] = useState<SensurertTekst[]>([]);
+  const [sensurertListe, setSensurertListe] = useState<SensurertItem[]>([]);
   const [originaltekst, setOriginaltekst] = useState("");
   const [lagrer, setLagrer] = useState(false);
   const [laster, setLaster] = useState(true);
@@ -90,7 +87,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false }: Se
     }
 
     contentHistoryRef.current = [...contentHistoryRef.current, editableRef.current?.innerHTML || ""];
-    setContentHistory(contentHistoryRef.current);
+    setHistoryLength(contentHistoryRef.current.length);
 
     if (sensurertListe.length === 0) {
       setOriginaltekst(editableRef.current?.innerText || "");
@@ -124,7 +121,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false }: Se
       setContent(forrige);
       setSensurertListe((prev) => prev.slice(0, -1));
       contentHistoryRef.current = history.slice(0, -1);
-      setContentHistory(contentHistoryRef.current);
+      setHistoryLength(contentHistoryRef.current.length);
     }
   }, []);
 
@@ -137,21 +134,17 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false }: Se
       setContent("");
     }
     contentHistoryRef.current = [];
-    setContentHistory([]);
+    setHistoryLength(0);
     setSensurertListe([]);
     setLagreStatus(null);
   }, [originaltekst]);
-
-  const hentRenTekst = useCallback(() => {
-    return editableRef.current?.innerText || "";
-  }, []);
 
   const lagreSensurering = useCallback(async () => {
     if (!sakId) return;
     setLagrer(true);
     setLagreStatus(null);
     try {
-      const sensurertTekst = hentRenTekst();
+      const sensurertTekst = editableRef.current?.innerText || "";
       await sensureringApi.lagre(sakId, {
         originaltekst,
         sensurertTekst,
@@ -171,7 +164,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false }: Se
     } finally {
       setLagrer(false);
     }
-  }, [sakId, originaltekst, hentRenTekst, sensurertListe]);
+  }, [sakId, originaltekst, sensurertListe]);
 
   useEffect(() => {
     if (autoSave && sensurertListe.length > 0 && !laster) {
@@ -227,7 +220,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false }: Se
             size="small"
             icon={<ArrowUndoIcon aria-hidden />}
             onClick={angre}
-            disabled={contentHistory.length === 0}
+            disabled={historyLength === 0}
           >
             Angre
           </Button>

@@ -42,15 +42,12 @@ async function apiRequest<T>(
   }
 
   const fullUrl = `${API_BASE}${path}`;
-  console.log(`[API] ${options.method || "GET"} ${fullUrl}`);
 
   const res = await fetch(fullUrl, {
     ...options,
     credentials: "include",
     headers,
   });
-
-  console.log(`[API] Response: ${res.status} ${res.statusText}`);
 
   if (res.status === 401) {
     if (isLocalDev) {

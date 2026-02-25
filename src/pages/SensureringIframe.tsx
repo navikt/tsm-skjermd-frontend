@@ -13,9 +13,6 @@ export const SensureringIframe = () => {
       <SensureringEditor
         sakId={sakId}
         autoSave
-        onLagreOgLukk={() =>
-          window.parent.postMessage({ type: "sensurering-lagret" }, "*")
-        }
       />
     </div>
   );
