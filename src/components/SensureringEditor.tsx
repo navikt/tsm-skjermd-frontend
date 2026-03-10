@@ -26,9 +26,10 @@ interface SensureringEditorProps {
   sakId: string;
   onLagreOgLukk?: () => void;
   autoSave?: boolean;
+  readOnly?: boolean;
 }
 
-export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false }: SensureringEditorProps) => {
+export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false, readOnly = false }: SensureringEditorProps) => {
   const [content, setContent] = useState("");
   const [historyLength, setHistoryLength] = useState(0);
   const contentHistoryRef = useRef<string[]>([]);
@@ -201,46 +202,50 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false }: Se
           </HStack>
         ) : null}
 
-        <Alert variant="info" size="small">
-          Marker tekst du ønsker å sensurere, og klikk &quot;Marker som sensitiv&quot;.
-          Sensitiv informasjon vil bli erstattet med en placeholder.
-        </Alert>
+        {!readOnly && (
+          <Alert variant="info" size="small">
+            Marker tekst du ønsker å sensurere, og klikk &quot;Marker som sensitiv&quot;.
+            Sensitiv informasjon vil bli erstattet med en placeholder.
+          </Alert>
+        )}
 
-        <HStack gap="2" wrap>
-          <Button
-            variant="primary"
-            size="small"
-            icon={<EyeSlashIcon aria-hidden />}
-            onClick={markerSomSensitiv}
-          >
-            Marker som sensitiv
-          </Button>
-          <Button
-            variant="secondary"
-            size="small"
-            icon={<ArrowUndoIcon aria-hidden />}
-            onClick={angre}
-            disabled={historyLength === 0}
-          >
-            Angre
-          </Button>
-          <Button
-            variant="secondary"
-            size="small"
-            icon={<><ArrowUndoIcon aria-hidden /><ArrowUndoIcon aria-hidden /></>}
-            onClick={angreAlt}
-            disabled={!content}
-          >
-            Angre alt
-          </Button>
-        </HStack>
+        {!readOnly && (
+          <HStack gap="2" wrap>
+            <Button
+              variant="primary"
+              size="small"
+              icon={<EyeSlashIcon aria-hidden />}
+              onClick={markerSomSensitiv}
+            >
+              Marker som sensitiv
+            </Button>
+            <Button
+              variant="secondary"
+              size="small"
+              icon={<ArrowUndoIcon aria-hidden />}
+              onClick={angre}
+              disabled={historyLength === 0}
+            >
+              Angre
+            </Button>
+            <Button
+              variant="secondary"
+              size="small"
+              icon={<><ArrowUndoIcon aria-hidden /><ArrowUndoIcon aria-hidden /></>}
+              onClick={angreAlt}
+              disabled={!content}
+            >
+              Angre alt
+            </Button>
+          </HStack>
+        )}
 
         <div
           ref={editableRef}
-          contentEditable
-          className="min-h-[200px] p-4 border border-gray-300 rounded-lg
-                     whitespace-pre-wrap font-mono text-sm bg-white
-                     focus:outline-none focus:ring-2 focus:ring-blue-500"
+          contentEditable={!readOnly}
+          className={`min-h-[200px] p-4 border border-gray-300 rounded-lg
+                     whitespace-pre-wrap font-mono text-sm
+                     ${readOnly ? 'bg-gray-50 cursor-default' : 'bg-white focus:outline-none focus:ring-2 focus:ring-blue-500'}`}
           onInput={(e) => setContent(e.currentTarget.innerHTML)}
           suppressContentEditableWarning
         />
@@ -286,7 +291,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false }: Se
           </Box>
         )}
 
-        {!autoSave && (
+        {!autoSave && !readOnly && (
           <HStack gap="2">
             <Button
               variant="primary"

@@ -24,6 +24,7 @@ import {
   ExternalLinkIcon,
   PersonGroupIcon,
   PlusIcon,
+  ShieldLockIcon,
 } from "@navikt/aksel-icons";
 import { sakApi } from "../api/sakApi";
 import type { Sak } from "../api/types";
@@ -143,8 +144,18 @@ export const RegistrerSak = () => {
           </Alert>
         )}
 
+        {/* Lesemodus-varsling */}
+        {sak.jiraIssueKey && (
+          <Alert variant="info">
+            <HStack gap="2" align="center">
+              <ShieldLockIcon aria-hidden />
+              Saken er knyttet til Jira-sak {sak.jiraIssueKey} og kan ikke redigeres. Tilganger kan fortsatt endres.
+            </HStack>
+          </Alert>
+        )}
+
         {/* Sensitiv data med sensurering */}
-        <SensureringEditor sakId={id!} onLagreOgLukk={() => window.close()} />
+        <SensureringEditor sakId={id!} onLagreOgLukk={() => window.close()} readOnly={!!sak.jiraIssueKey} />
 
         {/* Tilganger */}
         <Box
