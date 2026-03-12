@@ -8,7 +8,6 @@ metadata:
 spec:
   ingresses:
     - https://tsm-skjermd-frontend.intern.dev.nav.no
-    - https://tsm-skjermd-frontend.ekstern.dev.nav.no
   image: {{image}}
   replicas:
     min: 1
