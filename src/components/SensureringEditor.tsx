@@ -39,8 +39,12 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false, read
   const [laster, setLaster] = useState(true);
   const [lagreStatus, setLagreStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const editableRef = useRef<HTMLDivElement>(null);
+  const nextPlaceholderIndex = useRef(0);
 
-  const genererPlaceholder = (index: number) => `[SLADDET-${index + 1}]`;
+  const genererPlaceholder = () => {
+    nextPlaceholderIndex.current += 1;
+    return `[SLADDET-${nextPlaceholderIndex.current}]`;
+  };
 
   useEffect(() => {
     if (!sakId) return;
@@ -55,6 +59,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false, read
           id: `loaded-${i}`,
         }));
         setSensurertListe(liste);
+        nextPlaceholderIndex.current = liste.length;
 
         if (editableRef.current) {
           let html = data.sensurertTekst;
@@ -95,7 +100,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false, read
     }
 
     const nyId = crypto.randomUUID();
-    const placeholder = genererPlaceholder(sensurertListe.length);
+    const placeholder = genererPlaceholder();
 
     const span = document.createElement("span");
     span.className = "bg-gray-900 text-white px-1 rounded font-mono";
@@ -112,7 +117,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false, read
     ]);
 
     setContent(editableRef.current?.innerHTML || "");
-  }, [sensurertListe.length]);
+  }, [sensurertListe]);
 
   const fjernSensurering = useCallback((itemId: string) => {
     const item = sensurertListe.find((s) => s.id === itemId);
