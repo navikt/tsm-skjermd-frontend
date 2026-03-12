@@ -12,7 +12,6 @@ import {
 } from "@navikt/ds-react";
 import {
   EyeSlashIcon,
-  ArrowUndoIcon,
   FloppydiskIcon,
   FileTextIcon,
   XMarkIcon,
@@ -30,9 +29,6 @@ interface SensureringEditorProps {
 }
 
 export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false, readOnly = false }: SensureringEditorProps) => {
-  const [content, setContent] = useState("");
-  const [historyLength, setHistoryLength] = useState(0);
-  const contentHistoryRef = useRef<string[]>([]);
   const [sensurertListe, setSensurertListe] = useState<SensurertItem[]>([]);
   const [originaltekst, setOriginaltekst] = useState("");
   const [lagrer, setLagrer] = useState(false);
@@ -70,7 +66,6 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false, read
             );
           });
           editableRef.current.innerHTML = html;
-          setContent(html);
         }
       })
       .catch(() => {
@@ -92,9 +87,6 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false, read
       return;
     }
 
-    contentHistoryRef.current = [...contentHistoryRef.current, editableRef.current?.innerHTML || ""];
-    setHistoryLength(contentHistoryRef.current.length);
-
     if (sensurertListe.length === 0) {
       setOriginaltekst(editableRef.current?.innerText || "");
     }
@@ -115,16 +107,11 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false, read
       ...prev,
       { original: selectedText, placeholder, id: nyId },
     ]);
-
-    setContent(editableRef.current?.innerHTML || "");
   }, [sensurertListe]);
 
   const fjernSensurering = useCallback((itemId: string) => {
     const item = sensurertListe.find((s) => s.id === itemId);
     if (!item || !editableRef.current) return;
-
-    contentHistoryRef.current = [...contentHistoryRef.current, editableRef.current.innerHTML];
-    setHistoryLength(contentHistoryRef.current.length + 1);
 
     const span = editableRef.current.querySelector(`[data-sensurert-id="${itemId}"]`);
     if (span) {
@@ -133,34 +120,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false, read
     }
 
     setSensurertListe((prev) => prev.filter((s) => s.id !== itemId));
-    setContent(editableRef.current.innerHTML);
   }, [sensurertListe]);
-
-  const angre = useCallback(() => {
-    const history = contentHistoryRef.current;
-    if (history.length > 0 && editableRef.current) {
-      const forrige = history[history.length - 1];
-      editableRef.current.innerHTML = forrige;
-      setContent(forrige);
-      setSensurertListe((prev) => prev.slice(0, -1));
-      contentHistoryRef.current = history.slice(0, -1);
-      setHistoryLength(contentHistoryRef.current.length);
-    }
-  }, []);
-
-  const angreAlt = useCallback(() => {
-    if (editableRef.current && originaltekst) {
-      editableRef.current.innerText = originaltekst;
-      setContent(originaltekst);
-    } else if (editableRef.current) {
-      editableRef.current.innerHTML = "";
-      setContent("");
-    }
-    contentHistoryRef.current = [];
-    setHistoryLength(0);
-    setSensurertListe([]);
-    setLagreStatus(null);
-  }, [originaltekst]);
 
   const lagreSensurering = useCallback(async () => {
     if (!sakId) return;
@@ -232,34 +192,14 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false, read
         )}
 
         {!readOnly && (
-          <HStack gap="2" wrap>
-            <Button
-              variant="primary"
-              size="small"
-              icon={<EyeSlashIcon aria-hidden />}
-              onClick={markerSomSensitiv}
-            >
-              Marker som sensitiv
-            </Button>
-            <Button
-              variant="secondary"
-              size="small"
-              icon={<ArrowUndoIcon aria-hidden />}
-              onClick={angre}
-              disabled={historyLength === 0}
-            >
-              Angre
-            </Button>
-            <Button
-              variant="secondary"
-              size="small"
-              icon={<><ArrowUndoIcon aria-hidden /><ArrowUndoIcon aria-hidden /></>}
-              onClick={angreAlt}
-              disabled={!content}
-            >
-              Angre alt
-            </Button>
-          </HStack>
+          <Button
+            variant="primary"
+            size="small"
+            icon={<EyeSlashIcon aria-hidden />}
+            onClick={markerSomSensitiv}
+          >
+            Marker som sensitiv
+          </Button>
         )}
 
         <div className="flex gap-4">
@@ -270,7 +210,6 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false, read
               className={`min-h-[200px] p-4 border border-gray-300 rounded-lg
                          whitespace-pre-wrap font-mono text-sm
                          ${readOnly ? 'bg-gray-50 cursor-default' : 'bg-white focus:outline-none focus:ring-2 focus:ring-blue-500'}`}
-              onInput={(e) => setContent(e.currentTarget.innerHTML)}
               suppressContentEditableWarning
             />
           </div>
