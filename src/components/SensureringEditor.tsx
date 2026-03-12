@@ -5,7 +5,6 @@ import {
   VStack,
   HStack,
   Alert,
-  CopyButton,
   Tag,
   Heading,
   BodyShort,
@@ -16,6 +15,7 @@ import {
   ArrowUndoIcon,
   FloppydiskIcon,
   FileTextIcon,
+  XMarkIcon,
 } from "@navikt/aksel-icons";
 import { sensureringApi } from "../api/sakApi";
 import type { SensurertElement } from "../api/types";
@@ -113,6 +113,23 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false, read
 
     setContent(editableRef.current?.innerHTML || "");
   }, [sensurertListe.length]);
+
+  const fjernSensurering = useCallback((itemId: string) => {
+    const item = sensurertListe.find((s) => s.id === itemId);
+    if (!item || !editableRef.current) return;
+
+    contentHistoryRef.current = [...contentHistoryRef.current, editableRef.current.innerHTML];
+    setHistoryLength(contentHistoryRef.current.length + 1);
+
+    const span = editableRef.current.querySelector(`[data-sensurert-id="${itemId}"]`);
+    if (span) {
+      const textNode = document.createTextNode(item.original);
+      span.replaceWith(textNode);
+    }
+
+    setSensurertListe((prev) => prev.filter((s) => s.id !== itemId));
+    setContent(editableRef.current.innerHTML);
+  }, [sensurertListe]);
 
   const angre = useCallback(() => {
     const history = contentHistoryRef.current;
@@ -240,56 +257,62 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false, read
           </HStack>
         )}
 
-        <div
-          ref={editableRef}
-          contentEditable={!readOnly}
-          className={`min-h-[200px] p-4 border border-gray-300 rounded-lg
-                     whitespace-pre-wrap font-mono text-sm
-                     ${readOnly ? 'bg-gray-50 cursor-default' : 'bg-white focus:outline-none focus:ring-2 focus:ring-blue-500'}`}
-          onInput={(e) => setContent(e.currentTarget.innerHTML)}
-          suppressContentEditableWarning
-        />
+        <div className="flex gap-4">
+          <div className="flex-1">
+            <div
+              ref={editableRef}
+              contentEditable={!readOnly}
+              className={`min-h-[200px] p-4 border border-gray-300 rounded-lg
+                         whitespace-pre-wrap font-mono text-sm
+                         ${readOnly ? 'bg-gray-50 cursor-default' : 'bg-white focus:outline-none focus:ring-2 focus:ring-blue-500'}`}
+              onInput={(e) => setContent(e.currentTarget.innerHTML)}
+              suppressContentEditableWarning
+            />
+          </div>
 
-        {sensurertListe.length > 0 && (
-          <Box
-            background="surface-subtle"
-            padding="4"
-            borderRadius="medium"
-          >
-            <VStack gap="3">
-              <HStack gap="2" align="center">
-                <Heading size="small">Sensurerte verdier</Heading>
-                <Tag variant="warning" size="small">
-                  {sensurertListe.length} element{sensurertListe.length > 1 ? "er" : ""}
-                </Tag>
-              </HStack>
-
-              <div className="space-y-2">
+          {sensurertListe.length > 0 && (
+            <div className="w-64 shrink-0">
+              <VStack gap="2">
+                <HStack gap="2" align="center">
+                  <Heading size="xsmall">Sensurerte verdier</Heading>
+                  <Tag variant="warning" size="xsmall">
+                    {sensurertListe.length}
+                  </Tag>
+                </HStack>
                 {sensurertListe.map((item) => (
-                  <HStack
+                  <Box
                     key={item.id}
-                    gap="2"
-                    align="center"
-                    className="bg-white p-2 rounded border"
+                    background="surface-subtle"
+                    padding="3"
+                    borderRadius="medium"
+                    borderColor="border-subtle"
+                    borderWidth="1"
                   >
-                    <Tag variant="neutral" size="small" className="font-mono">
-                      {item.placeholder}
-                    </Tag>
-                    <span className="text-sm text-gray-600">→</span>
-                    <code className="text-sm bg-red-50 text-red-800 px-2 py-1 rounded flex-1">
-                      {item.original}
-                    </code>
-                    <CopyButton
-                      copyText={item.original}
-                      size="small"
-                      variant="neutral"
-                    />
-                  </HStack>
+                    <VStack gap="1">
+                      <HStack justify="space-between" align="center">
+                        <Tag variant="neutral" size="xsmall" className="font-mono">
+                          {item.placeholder}
+                        </Tag>
+                        {!readOnly && (
+                          <Button
+                            variant="tertiary-neutral"
+                            size="xsmall"
+                            icon={<XMarkIcon aria-hidden />}
+                            onClick={() => fjernSensurering(item.id)}
+                            title="Fjern sensurering"
+                          />
+                        )}
+                      </HStack>
+                      <code className="text-xs bg-red-50 text-red-800 px-2 py-1 rounded break-all">
+                        {item.original}
+                      </code>
+                    </VStack>
+                  </Box>
                 ))}
-              </div>
-            </VStack>
-          </Box>
-        )}
+              </VStack>
+            </div>
+          )}
+        </div>
 
         {!autoSave && !readOnly && (
           <HStack gap="2">
