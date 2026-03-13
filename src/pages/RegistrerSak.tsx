@@ -158,81 +158,82 @@ export const RegistrerSak = () => {
         <SensureringEditor sakId={id!} onLagreOgLukk={() => window.close()} readOnly={!!sak.jiraIssueKey} />
 
         {/* Tilganger */}
-        <Box
-          background="surface-default"
-          padding="5"
-          borderRadius="large"
-          shadow="xsmall"
-        >
-          <VStack gap="4">
-            <HStack justify="space-between" align="center">
+        <Accordion>
+          <Accordion.Item>
+            <Accordion.Header>
               <HStack gap="2" align="center">
                 <PersonGroupIcon aria-hidden />
-                <Heading size="xsmall">Tilganger</Heading>
+                Tilganger
               </HStack>
-              <Button
-                variant="tertiary"
-                size="small"
-                icon={<PlusIcon aria-hidden />}
-                onClick={() => setShowTilgangModal(true)}
-              >
-                Gi tilgang
-              </Button>
-            </HStack>
+            </Accordion.Header>
+            <Accordion.Content>
+              <VStack gap="4">
+                <HStack justify="end">
+                  <Button
+                    variant="tertiary"
+                    size="small"
+                    icon={<PlusIcon aria-hidden />}
+                    onClick={() => setShowTilgangModal(true)}
+                  >
+                    Gi tilgang
+                  </Button>
+                </HStack>
 
-            {sak.tilganger.length === 0 ? (
-              <BodyShort className="text-gray-500">
-                Ingen har tilgang til denne saken ennå. Oppretteren ({sak.opprettetAv}) har alltid tilgang.
-              </BodyShort>
-            ) : (
-              <Table size="small">
-                <Table.Header>
-                  <Table.Row>
-                    <Table.HeaderCell>NAVident</Table.HeaderCell>
-                    <Table.HeaderCell>Gitt av</Table.HeaderCell>
-                    <Table.HeaderCell>Gitt tidspunkt</Table.HeaderCell>
-                    <Table.HeaderCell />
-                  </Table.Row>
-                </Table.Header>
-                <Table.Body>
-                  {sak.tilganger.map((tilgang) => (
-                    <Table.Row key={tilgang.navIdent}>
-                      <Table.DataCell>
-                        <HStack gap="2" align="center">
-                          <PersonIcon aria-hidden fontSize="1rem" />
-                          {tilgang.navIdent}
-                          {tilgang.navIdent === sak.opprettetAv && (
-                            <Tag variant="neutral" size="xsmall">
-                              Oppretter
-                            </Tag>
-                          )}
-                        </HStack>
-                      </Table.DataCell>
-                      <Table.DataCell>{tilgang.gittAv}</Table.DataCell>
-                      <Table.DataCell>
-                        {formatDato(tilgang.gittTidspunkt)} kl. {formatTid(tilgang.gittTidspunkt)}
-                      </Table.DataCell>
-                      <Table.DataCell>
-                        {tilgang.navIdent !== sak.opprettetAv && (
-                          <Button
-                            variant="tertiary-neutral"
-                            size="xsmall"
-                            icon={<TrashIcon aria-hidden />}
-                            onClick={() => handleFjernTilgang(tilgang.navIdent)}
-                            title="Fjern tilgang"
-                          />
-                        )}
-                      </Table.DataCell>
-                    </Table.Row>
-                  ))}
-                </Table.Body>
-              </Table>
-            )}
-            <Detail className="text-gray-500">
-              Oppretteren ({sak.opprettetAv}) har alltid tilgang og kan ikke fjernes.
-            </Detail>
-          </VStack>
-        </Box>
+                {sak.tilganger.length === 0 ? (
+                  <BodyShort className="text-gray-500">
+                    Ingen har tilgang til denne saken ennå. Oppretteren ({sak.opprettetAv}) har alltid tilgang.
+                  </BodyShort>
+                ) : (
+                  <Table size="small">
+                    <Table.Header>
+                      <Table.Row>
+                        <Table.HeaderCell>NAVident</Table.HeaderCell>
+                        <Table.HeaderCell>Gitt av</Table.HeaderCell>
+                        <Table.HeaderCell>Gitt tidspunkt</Table.HeaderCell>
+                        <Table.HeaderCell />
+                      </Table.Row>
+                    </Table.Header>
+                    <Table.Body>
+                      {sak.tilganger.map((tilgang) => (
+                        <Table.Row key={tilgang.navIdent}>
+                          <Table.DataCell>
+                            <HStack gap="2" align="center">
+                              <PersonIcon aria-hidden fontSize="1rem" />
+                              {tilgang.navIdent}
+                              {tilgang.navIdent === sak.opprettetAv && (
+                                <Tag variant="neutral" size="xsmall">
+                                  Oppretter
+                                </Tag>
+                              )}
+                            </HStack>
+                          </Table.DataCell>
+                          <Table.DataCell>{tilgang.gittAv}</Table.DataCell>
+                          <Table.DataCell>
+                            {formatDato(tilgang.gittTidspunkt)} kl. {formatTid(tilgang.gittTidspunkt)}
+                          </Table.DataCell>
+                          <Table.DataCell>
+                            {tilgang.navIdent !== sak.opprettetAv && (
+                              <Button
+                                variant="tertiary-neutral"
+                                size="xsmall"
+                                icon={<TrashIcon aria-hidden />}
+                                onClick={() => handleFjernTilgang(tilgang.navIdent)}
+                                title="Fjern tilgang"
+                              />
+                            )}
+                          </Table.DataCell>
+                        </Table.Row>
+                      ))}
+                    </Table.Body>
+                  </Table>
+                )}
+                <Detail className="text-gray-500">
+                  Oppretteren ({sak.opprettetAv}) har alltid tilgang og kan ikke fjernes.
+                </Detail>
+              </VStack>
+            </Accordion.Content>
+          </Accordion.Item>
+        </Accordion>
 
         {/* Metadata */}
         <Accordion>
