@@ -24,6 +24,9 @@ import {
 } from "@navikt/aksel-icons";
 import { sakApi } from "../api/sakApi";
 import type { Sak } from "../api/types";
+import { createLogger } from "../logger";
+
+const log = createLogger("SakerList");
 
 export const SakerList = () => {
   const [saker, setSaker] = useState<Sak[]>([]);
@@ -39,6 +42,7 @@ export const SakerList = () => {
       const data = await sakApi.hentAlle();
       setSaker(data);
     } catch (err) {
+      log.error("Kunne ikke hente saker", err);
       setError(err instanceof Error ? err.message : "Kunne ikke hente saker");
     } finally {
       setLoading(false);
@@ -57,6 +61,7 @@ export const SakerList = () => {
       await sakApi.slett(id);
       setSaker((prev) => prev.filter((s) => s.id !== id));
     } catch (err) {
+      log.error(`Kunne ikke slette sak ${id}`, err);
       setError(err instanceof Error ? err.message : "Kunne ikke slette sak");
     }
   };

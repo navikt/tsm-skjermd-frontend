@@ -20,6 +20,9 @@ import {
   InformationSquareIcon,
 } from "@navikt/aksel-icons";
 import { sakApi } from "../api/sakApi";
+import { createLogger } from "../logger";
+
+const log = createLogger("NySak");
 
 export const NySak = () => {
   const navigate = useNavigate();
@@ -51,8 +54,10 @@ export const NySak = () => {
         jiraIssueKey: jiraIssueKey.trim() ? jiraIssueKey.trim().toUpperCase() : undefined,
         sensitivData: sensitivData.trim(),
       });
+      log.info(`Sak opprettet: ${nySak.id}`);
       navigate(`/saker/${nySak.id}`);
     } catch (err) {
+      log.error("Kunne ikke opprette sak", err);
       setError(err instanceof Error ? err.message : "Kunne ikke opprette sak");
     } finally {
       setSaving(false);

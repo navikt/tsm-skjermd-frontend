@@ -1,4 +1,7 @@
 // Development fetch mocks for local dev environment
+import { createLogger } from "../logger";
+
+const log = createLogger("Mocks");
 const originalFetch = window.fetch.bind(window as any);
 
 type Sak = any;
@@ -128,7 +131,7 @@ async function mockFetch(input: RequestInfo, init?: RequestInit) {
       }
     }
   } catch (err) {
-    console.error("Mock fetch error", err);
+    log.error("Mock fetch error", err);
     return new Response(null, { status: 500 });
   }
 
@@ -140,7 +143,7 @@ async function mockFetch(input: RequestInfo, init?: RequestInit) {
 if ((import.meta as any).env.DEV) {
   // @ts-ignore
   window.fetch = mockFetch;
-  console.info("[Mocks] Dev fetch mocks installed");
+  log.info("Dev fetch mocks installed");
 }
 
 export {};

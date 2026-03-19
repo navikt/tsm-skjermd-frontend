@@ -29,6 +29,9 @@ import {
 import { sakApi } from "../api/sakApi";
 import type { Sak } from "../api/types";
 import { SensureringEditor } from "../components/SensureringEditor";
+import { createLogger } from "../logger";
+
+const log = createLogger("RegistrerSak");
 
 export const RegistrerSak = () => {
   const { id } = useParams<{ id: string }>();
@@ -48,6 +51,7 @@ export const RegistrerSak = () => {
         const data = await sakApi.hentPaId(id);
         setSak(data);
       } catch (err) {
+        log.error(`Kunne ikke hente sak ${id}`, err);
         setError(err instanceof Error ? err.message : "Kunne ikke hente sak");
       } finally {
         setLoading(false);
@@ -67,6 +71,7 @@ export const RegistrerSak = () => {
       setNewNavIdent("");
       setShowTilgangModal(false);
     } catch (err) {
+      log.error(`Kunne ikke gi tilgang for sak ${id}`, err);
       setError(err instanceof Error ? err.message : "Kunne ikke gi tilgang");
     } finally {
       setTilgangLoading(false);
@@ -83,6 +88,7 @@ export const RegistrerSak = () => {
           : prev
       );
     } catch (err) {
+      log.error(`Kunne ikke fjerne tilgang ${navIdent} for sak ${id}`, err);
       setError(err instanceof Error ? err.message : "Kunne ikke fjerne tilgang");
     }
   };

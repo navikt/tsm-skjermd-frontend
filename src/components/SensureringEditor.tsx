@@ -18,6 +18,9 @@ import {
 } from "@navikt/aksel-icons";
 import { sensureringApi } from "../api/sakApi";
 import type { SensurertElement } from "../api/types";
+import { createLogger } from "../logger";
+
+const log = createLogger("Sensurering");
 
 type SensurertItem = SensurertElement & { id: string };
 
@@ -68,8 +71,8 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false, read
           editableRef.current.innerHTML = html;
         }
       })
-      .catch(() => {
-        // Ingen eksisterende sensurering funnet
+      .catch((err) => {
+        log.warn(`Ingen eksisterende sensurering for sak ${sakId}`, err);
       })
       .finally(() => setLaster(false));
   }, [sakId]);
@@ -136,9 +139,11 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false, read
           original,
         })),
       });
+      log.info(`Sensurering lagret for sak ${sakId}`);
       setLagreStatus({ type: "success", message: "Sensurering lagret!" });
       return true;
     } catch (error) {
+      log.error(`Kunne ikke lagre sensurering for sak ${sakId}`, error);
       setLagreStatus({
         type: "error",
         message: error instanceof Error ? error.message : "Kunne ikke lagre sensurering",

@@ -3,6 +3,9 @@ import { Header } from "./components/Header";
 import { Footer } from "./components/Footer";
 import { userApi } from "./api/sakApi";
 import type { UserInfo } from "./api/types";
+import { createLogger } from "./logger";
+
+const log = createLogger("Layout");
 
 type Props = {
   children: ReactNode;
@@ -14,7 +17,7 @@ export const AppLayout = ({ children }: Props) => {
   useEffect(() => {
     userApi.hentBruker()
       .then(setUser)
-      .catch((err) => console.error("Failed to fetch user:", err));
+      .catch((err) => log.error("Kunne ikke hente bruker", err));
   }, []);
 
   return (
