@@ -195,7 +195,7 @@ app.use('/embed/api', async (req, res) => {
             return res.status(401).json({ error: 'Embed token expired' });
         }
 
-        const targetUrl = `${BACKEND_URL}/internal/v1${req.url}`;
+        const targetUrl = `${BACKEND_URL}/embed/v1${req.url}`;
         log('EmbedProxy', `${req.method} ${targetUrl} (user: ${stored.email})`);
 
         const headers = {
