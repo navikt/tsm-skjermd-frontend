@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -18,6 +19,7 @@ const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8080";
 const TOKEN_EXCHANGE_ENDPOINT = process.env.NAIS_TOKEN_EXCHANGE_ENDPOINT;
 // Target audience for OBO token exchange (backend app)
 const BACKEND_TARGET_AUDIENCE = process.env.BACKEND_TARGET_AUDIENCE || "api://dev-gcp.team-service-management.tsm-skjermd/.default";
+const EMBED_API_KEY = process.env.EMBED_API_KEY;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -25,6 +27,22 @@ const __dirname = path.dirname(__filename);
 log('Startup', `Backend URL: ${BACKEND_URL}`);
 log('Startup', `Token Exchange Endpoint: ${TOKEN_EXCHANGE_ENDPOINT || 'NOT SET (local dev mode)'}`);
 log('Startup', `Backend Target Audience: ${BACKEND_TARGET_AUDIENCE}`);
+log('Startup', `Embed API Key: ${EMBED_API_KEY ? 'SET' : 'NOT SET'}`);
+
+// Embed token store: Map<embedToken, { userToken, sakId, expiresAt }>
+const embedTokenStore = new Map();
+const EMBED_TOKEN_TTL_MS = 3600 * 1000;
+
+function cleanupExpiredEmbedTokens() {
+    const now = Date.now();
+    for (const [key, value] of embedTokenStore) {
+        if (value.expiresAt < now) {
+            embedTokenStore.delete(key);
+        }
+    }
+}
+
+setInterval(cleanupExpiredEmbedTokens, 60 * 1000);
 
 // Parse JSON bodies
 app.use(express.json());
@@ -71,6 +89,33 @@ app.get('/api/me', (req, res) => {
 
     log('User', `Authenticated: ${userInfo.navIdent} (${userInfo.name})`);
     res.json(userInfo);
+});
+
+// Generate embed token for iframe access
+app.post('/api/generate-embed-token', (req, res) => {
+    if (!EMBED_API_KEY) {
+        logError('Embed', 'EMBED_API_KEY not configured');
+        return res.status(500).json({ error: 'Embed tokens not configured' });
+    }
+
+    const apiKey = req.headers['x-api-key'];
+    if (apiKey !== EMBED_API_KEY) {
+        logError('Embed', 'Invalid API key');
+        return res.status(403).json({ error: 'Invalid API key' });
+    }
+
+    const { userToken, sakId } = req.body;
+    if (!userToken || !sakId) {
+        return res.status(400).json({ error: 'Missing userToken or sakId' });
+    }
+
+    const embedToken = crypto.randomUUID();
+    const expiresAt = Date.now() + EMBED_TOKEN_TTL_MS;
+
+    embedTokenStore.set(embedToken, { userToken, sakId, expiresAt });
+
+    log('Embed', `Token generated for sak ${sakId}, expires in ${EMBED_TOKEN_TTL_MS / 1000}s`);
+    res.json({ token: embedToken, expiresIn: EMBED_TOKEN_TTL_MS / 1000 });
 });
 
 // Token cache for OBO tokens
@@ -127,6 +172,78 @@ async function exchangeToken(userToken) {
         throw error;
     }
 }
+
+// Proxy for iframe embed API - validates embed token
+app.use('/embed/api', async (req, res) => {
+    const startTime = Date.now();
+    try {
+        const embedToken = req.headers.authorization?.replace('Bearer ', '');
+        if (!embedToken) {
+            logError('EmbedProxy', 'No embed token provided');
+            return res.status(401).json({ error: 'No embed token' });
+        }
+
+        const stored = embedTokenStore.get(embedToken);
+        if (!stored) {
+            logError('EmbedProxy', 'Invalid embed token');
+            return res.status(401).json({ error: 'Invalid or expired embed token' });
+        }
+
+        if (stored.expiresAt < Date.now()) {
+            embedTokenStore.delete(embedToken);
+            logError('EmbedProxy', 'Expired embed token');
+            return res.status(401).json({ error: 'Embed token expired' });
+        }
+
+        const targetUrl = `${BACKEND_URL}/internal/v1${req.url}`;
+        log('EmbedProxy', `${req.method} ${targetUrl}`);
+
+        let backendToken;
+        try {
+            backendToken = await exchangeToken(stored.userToken);
+        } catch (error) {
+            logError('EmbedProxy', 'Token exchange failed:', error);
+            return res.status(401).json({ error: 'Token exchange failed', message: error.message });
+        }
+
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${backendToken}`,
+        };
+
+        if (req.headers['x-correlation-id']) {
+            headers['X-Correlation-Id'] = req.headers['x-correlation-id'];
+        }
+
+        const options = { method: req.method, headers };
+        if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
+            options.body = JSON.stringify(req.body);
+        }
+
+        log('EmbedProxy', `Forwarding to: ${targetUrl}`);
+        const response = await fetch(targetUrl, options);
+        const duration = Date.now() - startTime;
+        log('EmbedProxy', `Response: ${response.status} ${response.statusText} (${duration}ms)`);
+
+        res.status(response.status);
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            const data = await response.json();
+            if (response.status >= 400) logError('EmbedProxy', `Error: ${JSON.stringify(data)}`);
+            res.json(data);
+        } else if (response.status === 204) {
+            res.end();
+        } else {
+            const text = await response.text();
+            if (response.status >= 400) logError('EmbedProxy', `Error: ${text}`);
+            res.send(text);
+        }
+    } catch (error) {
+        const duration = Date.now() - startTime;
+        logError('EmbedProxy', `Error (${duration}ms):`, error);
+        res.status(500).json({ error: 'Proxy request failed', message: error.message });
+    }
+});
 
 // Proxy API requests til backend
 app.use('/internal', async (req, res) => {

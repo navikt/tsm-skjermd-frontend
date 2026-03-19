@@ -6,6 +6,8 @@ metadata:
     labels:
         team: team-service-management
 spec:
+  envFrom:
+    - secret: serviceaccounts-jira
   ingresses:
     - https://tsm-skjermd-frontend.intern.dev.nav.no
   image: {{image}}
@@ -28,6 +30,8 @@ spec:
         autoLogin: true
         autoLoginIgnorePaths:
           - /health/*
+          - /embed/*
+          - /api/generate-embed-token
   env:
     - name: BACKEND_URL
       value: "http://tsm-skjermd"

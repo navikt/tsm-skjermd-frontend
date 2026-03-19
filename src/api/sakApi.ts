@@ -5,8 +5,22 @@ const log = createLogger("API");
 const authLog = createLogger("Auth");
 
 const API_BASE = "/internal/v1";
+const EMBED_API_BASE = "/embed/api";
 
 const isLocalDev = window.location.hostname === "localhost";
+
+function isEmbedMode(): boolean {
+  return window.location.pathname.startsWith("/embed/");
+}
+
+function getEmbedToken(): string | null {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("token");
+}
+
+function getApiBase(): string {
+  return isEmbedMode() ? EMBED_API_BASE : API_BASE;
+}
 
 // Token management for local dev
 let localDevToken: string | null = null;
@@ -41,14 +55,20 @@ async function apiRequest<T>(
     ...options.headers,
   };
 
-  // Add Authorization header for local dev
-  if (isLocalDev) {
+  // Add Authorization header for local dev or embed mode
+  if (isEmbedMode()) {
+    const embedToken = getEmbedToken();
+    if (embedToken) {
+      (headers as Record<string, string>)["Authorization"] = `Bearer ${embedToken}`;
+      log.info("Using embed token");
+    }
+  } else if (isLocalDev) {
     const token = await getLocalDevToken();
     (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
   }
 
   const method = options.method || "GET";
-  const fullUrl = `${API_BASE}${path}`;
+  const fullUrl = `${getApiBase()}${path}`;
   const start = performance.now();
 
   log.info(`${method} ${path}`);
@@ -70,6 +90,9 @@ async function apiRequest<T>(
 
   if (res.status === 401) {
     log.warn(`${method} ${path} → 401 Unauthorized (${duration}ms)`);
+    if (isEmbedMode()) {
+      throw new Error("Embed-token ugyldig eller utløpt");
+    }
     if (isLocalDev) {
       localDevToken = null;
       tokenPromise = null;
