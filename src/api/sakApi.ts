@@ -1,10 +1,12 @@
 import type { Sak, OpprettSakRequest, EndreSakRequest, UserInfo, Tilgang, GiTilgangRequest, LagreSensureringRequest, LagreSensureringResponse } from "./types";
 import { createLogger } from "../logger";
+import { isIframeMode, getIframeToken } from "./iframeAuth";
 
 const log = createLogger("API");
 const authLog = createLogger("Auth");
 
 const API_BASE = "/internal/v1";
+const EMBED_API_BASE = "/embed/api";
 
 const isLocalDev = window.location.hostname === "localhost";
 
@@ -41,14 +43,19 @@ async function apiRequest<T>(
     ...options.headers,
   };
 
-  // Add Authorization header for local dev
-  if (isLocalDev) {
+  if (isIframeMode()) {
+    const token = getIframeToken();
+    if (token) {
+      (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
+    }
+  } else if (isLocalDev) {
     const token = await getLocalDevToken();
     (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
   }
 
   const method = options.method || "GET";
-  const fullUrl = `${API_BASE}${path}`;
+  const base = isIframeMode() ? EMBED_API_BASE : API_BASE;
+  const fullUrl = `${base}${path}`;
   const start = performance.now();
 
   log.info(`${method} ${path}`);
@@ -70,6 +77,9 @@ async function apiRequest<T>(
 
   if (res.status === 401) {
     log.warn(`${method} ${path} → 401 Unauthorized (${duration}ms)`);
+    if (isIframeMode()) {
+      throw new Error("Ikke autentisert - token mangler eller er utløpt");
+    }
     if (isLocalDev) {
       localDevToken = null;
       tokenPromise = null;

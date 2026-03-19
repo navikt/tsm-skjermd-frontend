@@ -20,7 +20,13 @@ spec:
       allowAllUsers: true
       claims:
         extra:
-          - "NAVident"
+          - "          const iframe = document.getElementById("sensurering-iframe");
+          iframe.addEventListener("load", () => {
+            iframe.contentWindow.postMessage(
+              { type: "auth-token", token: "<entra-id-access-token>" },
+              "https://tsm-skjermd-frontend.intern.dev.nav.no"
+            );
+          });"
           - "azp_name"
       singlePageApplication: false
     sidecar:
@@ -28,6 +34,7 @@ spec:
         autoLogin: true
         autoLoginIgnorePaths:
           - /health/*
+          - /embed/*
   env:
     - name: BACKEND_URL
       value: "http://tsm-skjermd"

@@ -128,6 +128,80 @@ async function exchangeToken(userToken) {
     }
 }
 
+// Proxy for iframe embed API - uses token from iframe postMessage
+app.use('/embed/api', async (req, res) => {
+    const startTime = Date.now();
+    try {
+        const targetUrl = `${BACKEND_URL}/internal/v1${req.url}`;
+        log('EmbedProxy', `${req.method} ${targetUrl}`);
+
+        const authHeader = req.headers.authorization;
+        if (!authHeader) {
+            logError('EmbedProxy', 'No Authorization header');
+            return res.status(401).json({ error: 'Not authenticated' });
+        }
+
+        const userToken = authHeader.replace('Bearer ', '');
+        let backendToken;
+        try {
+            backendToken = await exchangeToken(userToken);
+        } catch (error) {
+            logError('EmbedProxy', 'Token exchange failed:', error);
+            return res.status(401).json({ error: 'Token exchange failed', message: error.message });
+        }
+
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${backendToken}`,
+        };
+
+        if (req.headers['x-correlation-id']) {
+            headers['X-Correlation-Id'] = req.headers['x-correlation-id'];
+        }
+
+        const options = {
+            method: req.method,
+            headers: headers,
+        };
+
+        if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
+            options.body = JSON.stringify(req.body);
+        }
+
+        log('EmbedProxy', `Forwarding to: ${targetUrl}`);
+        const response = await fetch(targetUrl, options);
+        const duration = Date.now() - startTime;
+
+        log('EmbedProxy', `Response: ${response.status} ${response.statusText} (${duration}ms)`);
+
+        res.status(response.status);
+
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            const data = await response.json();
+            if (response.status >= 400) {
+                logError('EmbedProxy', `Error response: ${JSON.stringify(data, null, 2)}`);
+            }
+            res.json(data);
+        } else if (response.status === 204) {
+            res.end();
+        } else {
+            const text = await response.text();
+            if (response.status >= 400) {
+                logError('EmbedProxy', `Error response (text): ${text}`);
+            }
+            res.send(text);
+        }
+    } catch (error) {
+        const duration = Date.now() - startTime;
+        logError('EmbedProxy', `Error (${duration}ms):`, error);
+        res.status(500).json({
+            error: 'Proxy request failed',
+            message: error.message,
+        });
+    }
+});
+
 // Proxy API requests til backend
 app.use('/internal', async (req, res) => {
     const startTime = Date.now();

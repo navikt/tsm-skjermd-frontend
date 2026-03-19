@@ -28,3 +28,4 @@ spec:
         autoLogin: true
         autoLoginIgnorePaths:
           - /health/*
+          - /embed/*
