@@ -29,7 +29,7 @@ log('Startup', `Token Exchange Endpoint: ${TOKEN_EXCHANGE_ENDPOINT || 'NOT SET (
 log('Startup', `Backend Target Audience: ${BACKEND_TARGET_AUDIENCE}`);
 log('Startup', `Embed API Key: ${EMBED_API_KEY ? 'SET' : 'NOT SET'}`);
 
-// Embed token store: Map<embedToken, { userToken, sakId, expiresAt }>
+// Embed token store: Map<embedToken, { email, sakId, expiresAt }>
 const embedTokenStore = new Map();
 const EMBED_TOKEN_TTL_MS = 3600 * 1000;
 
@@ -104,17 +104,17 @@ app.post('/api/generate-embed-token', (req, res) => {
         return res.status(403).json({ error: 'Invalid API key' });
     }
 
-    const { userToken, sakId } = req.body;
-    if (!userToken || !sakId) {
-        return res.status(400).json({ error: 'Missing userToken or sakId' });
+    const { email, sakId } = req.body;
+    if (!email || !sakId) {
+        return res.status(400).json({ error: 'Missing email or sakId' });
     }
 
     const embedToken = crypto.randomUUID();
     const expiresAt = Date.now() + EMBED_TOKEN_TTL_MS;
 
-    embedTokenStore.set(embedToken, { userToken, sakId, expiresAt });
+    embedTokenStore.set(embedToken, { email, sakId, expiresAt });
 
-    log('Embed', `Token generated for sak ${sakId}, expires in ${EMBED_TOKEN_TTL_MS / 1000}s`);
+    log('Embed', `Token generated for sak ${sakId}, user ${email}, expires in ${EMBED_TOKEN_TTL_MS / 1000}s`);
     res.json({ token: embedToken, expiresIn: EMBED_TOKEN_TTL_MS / 1000 });
 });
 
@@ -196,19 +196,11 @@ app.use('/embed/api', async (req, res) => {
         }
 
         const targetUrl = `${BACKEND_URL}/internal/v1${req.url}`;
-        log('EmbedProxy', `${req.method} ${targetUrl}`);
-
-        let backendToken;
-        try {
-            backendToken = await exchangeToken(stored.userToken);
-        } catch (error) {
-            logError('EmbedProxy', 'Token exchange failed:', error);
-            return res.status(401).json({ error: 'Token exchange failed', message: error.message });
-        }
+        log('EmbedProxy', `${req.method} ${targetUrl} (user: ${stored.email})`);
 
         const headers = {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${backendToken}`,
+            'X-User-Email': stored.email,
         };
 
         if (req.headers['x-correlation-id']) {
