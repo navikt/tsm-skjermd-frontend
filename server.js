@@ -2,6 +2,16 @@ import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 
+function log(category, message, ...args) {
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] [${category}] ${message}`, ...args);
+}
+
+function logError(category, message, ...args) {
+    const timestamp = new Date().toISOString();
+    console.error(`[${timestamp}] [${category}] ${message}`, ...args);
+}
+
 const app = express();
 const PORT = process.env.PORT || 8080;
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8080";
@@ -12,16 +22,16 @@ const BACKEND_TARGET_AUDIENCE = process.env.BACKEND_TARGET_AUDIENCE || "api://de
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-console.log(`[Startup] Backend URL: ${BACKEND_URL}`);
-console.log(`[Startup] Token Exchange Endpoint: ${TOKEN_EXCHANGE_ENDPOINT || 'NOT SET (local dev mode)'}`);
-console.log(`[Startup] Backend Target Audience: ${BACKEND_TARGET_AUDIENCE}`);
+log('Startup', `Backend URL: ${BACKEND_URL}`);
+log('Startup', `Token Exchange Endpoint: ${TOKEN_EXCHANGE_ENDPOINT || 'NOT SET (local dev mode)'}`);
+log('Startup', `Backend Target Audience: ${BACKEND_TARGET_AUDIENCE}`);
 
 // Parse JSON bodies
 app.use(express.json());
 
 // Log ALL incoming requests
 app.use((req, res, next) => {
-    console.log(`[Express] ${req.method} ${req.url}`);
+    log('Express', `${req.method} ${req.url}`);
     next();
 });
 
@@ -33,7 +43,7 @@ function decodeJwtPayload(token) {
         const payload = Buffer.from(parts[1], 'base64url').toString('utf8');
         return JSON.parse(payload);
     } catch (error) {
-        console.error('[JWT] Failed to decode token:', error);
+        logError('JWT', 'Failed to decode token:', error);
         return null;
     }
 }
@@ -59,7 +69,7 @@ app.get('/api/me', (req, res) => {
         email: payload.preferred_username || payload.email || null,
     };
 
-    console.log(`[User] Authenticated: ${userInfo.navIdent} (${userInfo.name})`);
+    log('User', `Authenticated: ${userInfo.navIdent} (${userInfo.name})`);
     res.json(userInfo);
 });
 
@@ -68,7 +78,7 @@ const tokenCache = new Map();
 
 async function exchangeToken(userToken) {
     if (!TOKEN_EXCHANGE_ENDPOINT) {
-        console.log(`[OBO] No token exchange endpoint - using original token (local dev)`);
+        log('OBO', 'No token exchange endpoint - using original token (local dev)');
         return userToken;
     }
 
@@ -76,11 +86,11 @@ async function exchangeToken(userToken) {
     const cacheKey = `${userToken.slice(-20)}_${BACKEND_TARGET_AUDIENCE}`;
     const cached = tokenCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
-        console.log(`[OBO] Using cached token`);
+        log('OBO', 'Using cached token');
         return cached.token;
     }
 
-    console.log(`[OBO] Exchanging token for audience: ${BACKEND_TARGET_AUDIENCE}`);
+    log('OBO', `Exchanging token for audience: ${BACKEND_TARGET_AUDIENCE}`);
 
     try {
         const response = await fetch(TOKEN_EXCHANGE_ENDPOINT, {
@@ -97,13 +107,13 @@ async function exchangeToken(userToken) {
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error(`[OBO] Token exchange failed: ${response.status} ${response.statusText}`);
-            console.error(`[OBO] Error body: ${errorText}`);
+            logError('OBO', `Token exchange failed: ${response.status} ${response.statusText}`);
+            logError('OBO', `Error body: ${errorText}`);
             throw new Error(`Token exchange failed: ${response.status}`);
         }
 
         const data = await response.json();
-        console.log(`[OBO] Token exchange successful, expires in ${data.expires_in}s`);
+        log('OBO', `Token exchange successful, expires in ${data.expires_in}s`);
 
         // Cache with buffer (subtract 60 seconds)
         tokenCache.set(cacheKey, {
@@ -113,7 +123,7 @@ async function exchangeToken(userToken) {
 
         return data.access_token;
     } catch (error) {
-        console.error(`[OBO] Token exchange error:`, error);
+        logError('OBO', 'Token exchange error:', error);
         throw error;
     }
 }
@@ -123,14 +133,14 @@ app.use('/internal', async (req, res) => {
     const startTime = Date.now();
     try {
         const targetUrl = `${BACKEND_URL}/internal${req.url}`;
-        console.log(`[Proxy] ${req.method} ${targetUrl}`);
+        log('Proxy', `${req.method} ${targetUrl}`);
 
         // Get user token from Wonderwall
         const authHeader = req.headers.authorization;
-        console.log(`[Proxy] Authorization header present: ${!!authHeader}`);
+        log('Proxy', `Authorization header present: ${!!authHeader}`);
 
         if (!authHeader) {
-            console.error(`[Proxy] No Authorization header - user not authenticated`);
+            logError('Proxy', 'No Authorization header - user not authenticated');
             return res.status(401).json({ error: 'Not authenticated' });
         }
 
@@ -140,7 +150,7 @@ app.use('/internal', async (req, res) => {
         try {
             backendToken = await exchangeToken(userToken);
         } catch (error) {
-            console.error(`[Proxy] Token exchange failed:`, error);
+            logError('Proxy', 'Token exchange failed:', error);
             return res.status(401).json({ error: 'Token exchange failed', message: error.message });
         }
 
@@ -163,14 +173,14 @@ app.use('/internal', async (req, res) => {
         // Include body for POST/PUT/PATCH requests
         if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
             options.body = JSON.stringify(req.body);
-            console.log(`[Proxy] Request body:`, JSON.stringify(req.body));
+            log('Proxy', `Request body: ${JSON.stringify(req.body)}`);
         }
 
-        console.log(`[Proxy] Forwarding to: ${targetUrl}`);
+        log('Proxy', `Forwarding to: ${targetUrl}`);
         const response = await fetch(targetUrl, options);
         const duration = Date.now() - startTime;
 
-        console.log(`[Proxy] Response: ${response.status} ${response.statusText} (${duration}ms)`);
+        log('Proxy', `Response: ${response.status} ${response.statusText} (${duration}ms)`);
 
         // Forward status code
         res.status(response.status);
@@ -180,7 +190,7 @@ app.use('/internal', async (req, res) => {
         if (contentType && contentType.includes('application/json')) {
             const data = await response.json();
             if (response.status >= 400) {
-                console.error(`[Proxy] Error response:`, JSON.stringify(data, null, 2));
+                logError('Proxy', `Error response: ${JSON.stringify(data, null, 2)}`);
             }
             res.json(data);
         } else if (response.status === 204) {
@@ -188,13 +198,13 @@ app.use('/internal', async (req, res) => {
         } else {
             const text = await response.text();
             if (response.status >= 400) {
-                console.error(`[Proxy] Error response (text):`, text);
+                logError('Proxy', `Error response (text): ${text}`);
             }
             res.send(text);
         }
     } catch (error) {
         const duration = Date.now() - startTime;
-        console.error(`[Proxy] Error (${duration}ms):`, error);
+        logError('Proxy', `Error (${duration}ms):`, error);
         res.status(500).json({
             error: 'Proxy request failed',
             message: error.message,
@@ -211,5 +221,5 @@ app.get("*", (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    log('Startup', `Server running on http://localhost:${PORT}`);
 });
