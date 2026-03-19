@@ -20,13 +20,7 @@ spec:
       allowAllUsers: true
       claims:
         extra:
-          - "          const iframe = document.getElementById("sensurering-iframe");
-          iframe.addEventListener("load", () => {
-            iframe.contentWindow.postMessage(
-              { type: "auth-token", token: "<entra-id-access-token>" },
-              "https://tsm-skjermd-frontend.intern.dev.nav.no"
-            );
-          });"
+          - "NAVident"
           - "azp_name"
       singlePageApplication: false
     sidecar:
