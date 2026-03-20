@@ -33,6 +33,6 @@ spec:
           - /assets/*
           - /favicon.svg
           - /embed/sensurering/*
-          - /embed/api/*
+          - /embed/api/saker/*/sensurering
           - /api/generate-embed-token
           - /api/validate-embed-token
