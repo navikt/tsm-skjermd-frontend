@@ -30,7 +30,8 @@ spec:
         autoLogin: true
         autoLoginIgnorePaths:
           - /health/*
-          - /embed/*
+          - /embed/sensurering/*
+          - /embed/api/*
           - /api/generate-embed-token
   env:
     - name: BACKEND_URL
