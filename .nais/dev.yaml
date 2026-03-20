@@ -30,6 +30,8 @@ spec:
         autoLogin: true
         autoLoginIgnorePaths:
           - /health/*
+          - /assets/*
+          - /favicon.svg
           - /embed/sensurering/*
           - /embed/api/*
           - /api/generate-embed-token
