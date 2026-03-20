@@ -118,6 +118,28 @@ app.post('/api/generate-embed-token', (req, res) => {
     res.json({ token: embedToken, expiresIn: EMBED_TOKEN_TTL_MS / 1000 });
 });
 
+app.get('/api/validate-embed-token', (req, res) => {
+    const token = req.query.token;
+    if (!token) {
+        return res.status(401).json({ valid: false, error: 'Missing token' });
+    }
+
+    const stored = embedTokenStore.get(token);
+    if (!stored) {
+        log('Embed', `Validation failed: unknown token`);
+        return res.status(401).json({ valid: false, error: 'Invalid token' });
+    }
+
+    if (stored.expiresAt < Date.now()) {
+        embedTokenStore.delete(token);
+        log('Embed', `Validation failed: expired token`);
+        return res.status(401).json({ valid: false, error: 'Token expired' });
+    }
+
+    log('Embed', `Token validated for sak ${stored.sakId}, user ${stored.email}`);
+    res.json({ valid: true, sakId: stored.sakId });
+});
+
 // Token cache for OBO tokens
 const tokenCache = new Map();
 

@@ -15,13 +15,12 @@ export const SensureringIframe = () => {
       return;
     }
 
-    fetch(`/embed/api/saker/${sakId}/sensurering`, {
-      headers: { Authorization: `Bearer ${token}` },
-    }).then((res) => {
-      setTilgang(res.ok ? "ok" : "denied");
-    }).catch(() => {
-      setTilgang("denied");
-    });
+    fetch(`/api/validate-embed-token?token=${encodeURIComponent(token)}`)
+      .then((res) => {
+        setTilgang(res.ok ? "ok" : "denied");
+      }).catch(() => {
+        setTilgang("denied");
+      });
   }, [token, sakId]);
 
   if (!sakId) {

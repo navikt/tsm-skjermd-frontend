@@ -35,3 +35,4 @@ spec:
           - /embed/sensurering/*
           - /embed/api/*
           - /api/generate-embed-token
+          - /api/validate-embed-token
