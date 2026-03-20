@@ -77,7 +77,7 @@ async function apiRequest<T>(
   try {
     res = await fetch(fullUrl, {
       ...options,
-      credentials: "include",
+      credentials: isEmbedMode() ? "omit" : "include",
       headers,
     });
   } catch (err) {
