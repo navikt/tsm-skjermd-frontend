@@ -10,6 +10,7 @@ spec:
     - secret: serviceaccounts-jira
   ingresses:
     - https://tsm-skjermd-frontend.intern.dev.nav.no
+    - https://tsm-skjermd-ekstern.intern.dev.nav.no
   image: {{image}}
   replicas:
     min: 1
