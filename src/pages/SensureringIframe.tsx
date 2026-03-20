@@ -44,6 +44,7 @@ export const SensureringIframe = () => {
       <SensureringEditor
         sakId={sakId}
         autoSave
+        onAuthError={() => setTilgang("denied")}
       />
     </div>
   );

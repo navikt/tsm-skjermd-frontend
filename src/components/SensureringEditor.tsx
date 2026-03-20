@@ -27,11 +27,12 @@ type SensurertItem = SensurertElement & { id: string };
 interface SensureringEditorProps {
   sakId: string;
   onLagreOgLukk?: () => void;
+  onAuthError?: () => void;
   autoSave?: boolean;
   readOnly?: boolean;
 }
 
-export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false, readOnly = false }: SensureringEditorProps) => {
+export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave = false, readOnly = false }: SensureringEditorProps) => {
   const [sensurertListe, setSensurertListe] = useState<SensurertItem[]>([]);
   const [originaltekst, setOriginaltekst] = useState("");
   const [lagrer, setLagrer] = useState(false);
@@ -73,6 +74,9 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, autoSave = false, read
       })
       .catch((err) => {
         log.warn(`Ingen eksisterende sensurering for sak ${sakId}`, err);
+        if (err.message?.includes('401') || err.message?.includes('Embed-token')) {
+          onAuthError?.();
+        }
       })
       .finally(() => setLaster(false));
   }, [sakId]);
