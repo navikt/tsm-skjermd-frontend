@@ -223,6 +223,7 @@ app.use('/embed/api', async (req, res) => {
         const headers = {
             'Content-Type': 'application/json',
             'X-User-Email': stored.email,
+            'X-API-Key': EMBED_API_KEY,
         };
 
         if (req.headers['x-correlation-id']) {
