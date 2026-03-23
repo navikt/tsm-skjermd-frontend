@@ -1,5 +1,5 @@
 import { useParams, useSearchParams } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Alert } from "@navikt/ds-react";
 import { SensureringEditor } from "../components/SensureringEditor";
 
@@ -8,6 +8,7 @@ export const SensureringIframe = () => {
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
   const [tilgang, setTilgang] = useState<"loading" | "ok" | "denied">("loading");
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!token || !sakId) {
@@ -22,6 +23,19 @@ export const SensureringIframe = () => {
         setTilgang("denied");
       });
   }, [token, sakId]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const observer = new ResizeObserver(() => {
+      const height = el.scrollHeight;
+      window.parent.postMessage({ type: "tsm-skjermd-resize", height }, "*");
+    });
+    observer.observe(el);
+
+    return () => observer.disconnect();
+  }, []);
 
   if (!sakId) {
     return <p>Mangler sakId</p>;
@@ -40,7 +54,7 @@ export const SensureringIframe = () => {
   }
 
   return (
-    <div className="p-4">
+    <div ref={containerRef} className="p-4">
       <SensureringEditor
         sakId={sakId}
         autoSave
