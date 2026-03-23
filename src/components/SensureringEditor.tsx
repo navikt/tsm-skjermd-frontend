@@ -174,11 +174,11 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave 
   return (
     <Box
       background="surface-default"
-      padding="5"
+      padding="3"
       borderRadius="large"
       shadow="xsmall"
     >
-      <VStack gap="4">
+      <VStack gap="2">
         {!autoSave && (
           <HStack gap="2" align="center">
             <FileTextIcon aria-hidden />
@@ -192,13 +192,6 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave 
             <BodyShort>Laster eksisterende sensurering...</BodyShort>
           </HStack>
         ) : null}
-
-        {!readOnly && (
-          <Alert variant="info" size="small">
-            Marker tekst du ønsker å sensurere, og klikk &quot;Marker som sensitiv&quot;.
-            Sensitiv informasjon vil bli erstattet med en placeholder.
-          </Alert>
-        )}
 
         {!readOnly && (
           <Button
@@ -216,7 +209,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave 
             <div
               ref={editableRef}
               contentEditable={!readOnly}
-              className={`min-h-[200px] p-4 border border-gray-300 rounded-lg
+              className={`min-h-[100px] p-3 border border-gray-300 rounded-lg
                          whitespace-pre-wrap font-mono text-sm
                          ${readOnly ? 'bg-gray-50 cursor-default' : 'bg-white focus:outline-none focus:ring-2 focus:ring-blue-500'}`}
               suppressContentEditableWarning
@@ -289,8 +282,8 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave 
           </HStack>
         )}
 
-        {lagreStatus && (
-          <Alert variant={lagreStatus.type} size="small">
+        {lagreStatus && lagreStatus.type === "error" && (
+          <Alert variant="error" size="small">
             {lagreStatus.message}
           </Alert>
         )}

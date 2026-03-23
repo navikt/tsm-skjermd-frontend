@@ -54,7 +54,7 @@ export const SensureringIframe = () => {
   }
 
   return (
-    <div ref={containerRef} className="p-4">
+    <div ref={containerRef} className="p-2">
       <SensureringEditor
         sakId={sakId}
         autoSave
