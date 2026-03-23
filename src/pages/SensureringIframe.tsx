@@ -25,14 +25,15 @@ export const SensureringIframe = () => {
   }, [token, sakId]);
 
   useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    const observer = new ResizeObserver(() => {
-      const height = el.scrollHeight;
+    const sendHeight = () => {
+      const height = document.documentElement.scrollHeight;
       window.parent.postMessage({ type: "tsm-skjermd-resize", height }, "*");
-    });
-    observer.observe(el);
+    };
+
+    sendHeight();
+
+    const observer = new ResizeObserver(sendHeight);
+    observer.observe(document.documentElement);
 
     return () => observer.disconnect();
   }, []);
