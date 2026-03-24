@@ -103,6 +103,12 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave 
       return;
     }
 
+    const fragment = range.cloneContents();
+    if (fragment.querySelector("[data-sensurert-id]")) {
+      selection.removeAllRanges();
+      return;
+    }
+
     if (sensurertListe.length === 0) {
       setOriginaltekst(editableRef.current?.innerText || "");
     }
