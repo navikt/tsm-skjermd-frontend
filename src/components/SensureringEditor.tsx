@@ -196,7 +196,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave 
         {!autoSave && (
           <HStack gap="2" align="center">
             <FileTextIcon aria-hidden />
-            <Heading size="xsmall">Sensitiv informasjon</Heading>
+            <Heading size="xsmall">Marker sensitiv informasjon:</Heading>
           </HStack>
         )}
 
