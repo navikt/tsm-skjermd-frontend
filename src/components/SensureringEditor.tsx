@@ -140,7 +140,18 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave 
       span.replaceWith(textNode);
     }
 
-    setSensurertListe((prev) => prev.filter((s) => s.id !== itemId));
+    const remaining = sensurertListe.filter((s) => s.id !== itemId);
+    const renumbered = remaining.map((s, i) => {
+      const newPlaceholder = `[SLADDET-${i + 1}]`;
+      if (s.placeholder !== newPlaceholder) {
+        const el = editableRef.current?.querySelector(`[data-sensurert-id="${s.id}"]`);
+        if (el) el.textContent = newPlaceholder;
+      }
+      return { ...s, placeholder: newPlaceholder };
+    });
+
+    nextPlaceholderIndex.current = renumbered.length;
+    setSensurertListe(renumbered);
   }, [sensurertListe]);
 
   const lagreSensurering = useCallback(async () => {
