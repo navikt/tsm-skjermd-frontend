@@ -93,6 +93,16 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave 
       return;
     }
 
+    const container = range.commonAncestorContainer;
+    const isInsideSensurert =
+      container instanceof HTMLElement
+        ? !!container.closest("[data-sensurert-id]")
+        : !!container.parentElement?.closest("[data-sensurert-id]");
+    if (isInsideSensurert) {
+      selection.removeAllRanges();
+      return;
+    }
+
     if (sensurertListe.length === 0) {
       setOriginaltekst(editableRef.current?.innerText || "");
     }
