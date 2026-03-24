@@ -94,11 +94,11 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave 
     }
 
     const container = range.commonAncestorContainer;
-    const isInsideSensurert =
-      container instanceof HTMLElement
-        ? !!container.closest("[data-sensurert-id]")
-        : !!container.parentElement?.closest("[data-sensurert-id]");
-    if (isInsideSensurert) {
+    const closestSensurert = (node: Node) => {
+      const el = node instanceof HTMLElement ? node : node.parentElement;
+      return el?.closest("[data-sensurert-id]");
+    };
+    if (closestSensurert(container) || closestSensurert(range.startContainer) || closestSensurert(range.endContainer)) {
       selection.removeAllRanges();
       return;
     }
