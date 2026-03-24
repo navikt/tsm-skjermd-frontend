@@ -11,7 +11,6 @@ import {
   Loader,
 } from "@navikt/ds-react";
 import {
-  EyeSlashIcon,
   FloppydiskIcon,
   FileTextIcon,
   XMarkIcon,
@@ -116,6 +115,21 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave 
     ]);
   }, [sensurertListe]);
 
+  useEffect(() => {
+    const el = editableRef.current;
+    if (!el || readOnly) return;
+
+    const handleMouseUp = () => {
+      const selection = window.getSelection();
+      if (selection && selection.toString().trim() !== "") {
+        markerSomSensitiv();
+      }
+    };
+
+    el.addEventListener("mouseup", handleMouseUp);
+    return () => el.removeEventListener("mouseup", handleMouseUp);
+  }, [markerSomSensitiv, readOnly]);
+
   const fjernSensurering = useCallback((itemId: string) => {
     const item = sensurertListe.find((s) => s.id === itemId);
     if (!item || !editableRef.current) return;
@@ -192,17 +206,6 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave 
             <BodyShort>Laster eksisterende sensurering...</BodyShort>
           </HStack>
         ) : null}
-
-        {!readOnly && (
-          <Button
-            variant="primary"
-            size="small"
-            icon={<EyeSlashIcon aria-hidden />}
-            onClick={markerSomSensitiv}
-          >
-            Marker som sensitiv
-          </Button>
-        )}
 
         <div className="flex gap-4">
           <div className="flex-1">
