@@ -5,6 +5,7 @@ import { SakDetail } from "./pages/SakDetail";
 import { NySak } from "./pages/NySak";
 import { RegistrerSak } from "./pages/RegistrerSak";
 import { SensureringIframe } from "./pages/SensureringIframe";
+import { SakIframe } from "./pages/SakIframe";
 
 const WithLayout = () => (
   <AppLayout>
@@ -16,7 +17,8 @@ export default function App() {
   return (
     <BrowserRouter basename="/">
       <Routes>
-        <Route path="/embed/sensurering/:sakId" element={<SensureringIframe />} />
+        <Route path="/embed/sensurering/:sakId" element={<SakIframe />} />
+        <Route path="/embed/sensurering-editor/:sakId" element={<SensureringIframe />} />
         <Route element={<WithLayout />}>
           <Route path="/" element={<SakerList />} />
           <Route path="/saker/ny" element={<NySak />} />
