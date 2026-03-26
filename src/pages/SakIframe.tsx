@@ -1,5 +1,5 @@
 import { useParams, useSearchParams } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Alert,
   Button,
@@ -12,15 +12,16 @@ import {
   Modal,
   BodyShort,
   Loader,
+  Box,
 } from "@navikt/ds-react";
 import {
   PersonIcon,
   PlusIcon,
   TrashIcon,
+  EyeSlashIcon,
 } from "@navikt/aksel-icons";
-import { sakApi } from "../api/sakApi";
-import { SensureringEditor } from "../components/SensureringEditor";
-import type { Sak } from "../api/types";
+import { sakApi, sensureringApi } from "../api/sakApi";
+import type { Sak, SensurertElement } from "../api/types";
 
 export const SakIframe = () => {
   const { sakId } = useParams<{ sakId: string }>();
@@ -32,6 +33,13 @@ export const SakIframe = () => {
   const [showTilgangModal, setShowTilgangModal] = useState(false);
   const [newNavIdent, setNewNavIdent] = useState("");
   const [tilgangLoading, setTilgangLoading] = useState(false);
+
+  const [sensurertElementer, setSensurertElementer] = useState<SensurertElement[]>([]);
+  const [originaltekst, setOriginaltekst] = useState("");
+  const [sensurertTekst, setSensurertTekst] = useState("");
+  const [sensureringLaster, setSensureringLaster] = useState(true);
+  const [nyVerdi, setNyVerdi] = useState("");
+  const [leggerTil, setLeggerTil] = useState(false);
 
   useEffect(() => {
     if (!token || !sakId) {
@@ -56,7 +64,40 @@ export const SakIframe = () => {
       .catch((err) => {
         setError(err instanceof Error ? err.message : "Kunne ikke hente sak");
       });
+
+    sensureringApi
+      .hent(sakId)
+      .then((data) => {
+        setOriginaltekst(data.originaltekst);
+        setSensurertTekst(data.sensurertTekst);
+        setSensurertElementer(data.sensurertElementer);
+      })
+      .catch(() => {})
+      .finally(() => setSensureringLaster(false));
   }, [tilgang, sakId]);
+
+  const handleLeggTilSensurering = useCallback(async () => {
+    if (!sakId || !nyVerdi.trim()) return;
+    setLeggerTil(true);
+    try {
+      const newIndex = sensurertElementer.length + 1;
+      const placeholder = `[SLADDET-${newIndex}]`;
+      const nyElementer = [...sensurertElementer, { placeholder, original: nyVerdi.trim() }];
+
+      await sensureringApi.lagre(sakId, {
+        originaltekst,
+        sensurertTekst,
+        sensurertElementer: nyElementer,
+      });
+
+      setSensurertElementer(nyElementer);
+      setNyVerdi("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Kunne ikke legge til sensurering");
+    } finally {
+      setLeggerTil(false);
+    }
+  }, [sakId, nyVerdi, sensurertElementer, sensurertTekst, originaltekst]);
 
   useEffect(() => {
     const sendHeight = () => {
@@ -147,11 +188,62 @@ export const SakIframe = () => {
           </Alert>
         )}
 
-        <SensureringEditor
-          sakId={sakId}
-          autoSave
-          onAuthError={() => setTilgang("denied")}
-        />
+        {sensureringLaster ? (
+          <HStack gap="2" align="center">
+            <Loader size="small" />
+            <BodyShort size="small">Laster sensurerte verdier...</BodyShort>
+          </HStack>
+        ) : (
+          <VStack gap="2">
+            <Detail weight="semibold">Sensurerte verdier</Detail>
+            {sensurertElementer.length === 0 ? (
+              <Detail className="text-gray-500">Ingen sensurerte verdier ennå.</Detail>
+            ) : (
+              <VStack gap="1">
+                {sensurertElementer.map((el, i) => (
+                  <Box
+                    key={i}
+                    background="surface-subtle"
+                    padding="2"
+                    borderRadius="medium"
+                    borderColor="border-subtle"
+                    borderWidth="1"
+                  >
+                    <HStack gap="2" align="center">
+                      <Tag variant="neutral" size="xsmall" className="font-mono">
+                        {el.placeholder}
+                      </Tag>
+                      <code className="text-xs bg-red-50 text-red-800 px-2 py-0.5 rounded break-all">
+                        {el.original}
+                      </code>
+                    </HStack>
+                  </Box>
+                ))}
+              </VStack>
+            )}
+
+            <HStack gap="2" align="end">
+              <TextField
+                label="Legg til ny sensurert verdi"
+                size="small"
+                value={nyVerdi}
+                onChange={(e) => setNyVerdi(e.target.value)}
+                placeholder="Tekst som skal sensureres"
+                className="flex-1"
+              />
+              <Button
+                variant="primary"
+                size="small"
+                icon={<EyeSlashIcon aria-hidden />}
+                onClick={handleLeggTilSensurering}
+                loading={leggerTil}
+                disabled={!nyVerdi.trim()}
+              >
+                Legg til
+              </Button>
+            </HStack>
+          </VStack>
+        )}
 
         {sak && (
           <VStack gap="2">
