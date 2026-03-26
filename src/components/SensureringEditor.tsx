@@ -116,7 +116,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave 
 
     let combinedOriginal = "";
     const walker = document.createTreeWalker(
-      range.commonAncestorContainer,
+      editableRef.current,
       NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
       {
         acceptNode: (node) => {
