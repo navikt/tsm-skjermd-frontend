@@ -39,6 +39,7 @@ export const SakIframe = () => {
   const [originaltekst, setOriginaltekst] = useState("");
   const [sensurertTekst, setSensurertTekst] = useState("");
   const [sensureringLaster, setSensureringLaster] = useState(true);
+  const [sensureringTilgang, setSensureringTilgang] = useState(true);
   const [nyVerdi, setNyVerdi] = useState("");
   const [leggerTil, setLeggerTil] = useState(false);
 
@@ -76,7 +77,9 @@ export const SakIframe = () => {
         setSensurertElementer(existing);
         setNyeElementer(nye);
       })
-      .catch(() => {})
+      .catch(() => {
+        setSensureringTilgang(false);
+      })
       .finally(() => setSensureringLaster(false));
   }, [tilgang, sakId]);
 
@@ -222,7 +225,9 @@ export const SakIframe = () => {
         ) : (
           <VStack gap="2">
             <Detail weight="semibold">Sensurerte verdier</Detail>
-            {alleElementer.length === 0 ? (
+            {!sensureringTilgang ? (
+              <Detail className="text-gray-500">Du har ikke tilgang til å se sensurerte verdier.</Detail>
+            ) : alleElementer.length === 0 ? (
               <Detail className="text-gray-500">Ingen sensurerte verdier ennå.</Detail>
             ) : (
               <VStack gap="1">
