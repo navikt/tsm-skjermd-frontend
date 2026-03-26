@@ -86,25 +86,76 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave 
       return;
     }
 
-    const selectedText = selection.toString();
     const range = selection.getRangeAt(0);
 
     if (!editableRef.current?.contains(range.commonAncestorContainer)) {
       return;
     }
 
-    const container = range.commonAncestorContainer;
-    const closestSensurert = (node: Node) => {
-      const el = node instanceof HTMLElement ? node : node.parentElement;
-      return el?.closest("[data-sensurert-id]");
-    };
-    if (closestSensurert(container) || closestSensurert(range.startContainer) || closestSensurert(range.endContainer)) {
-      selection.removeAllRanges();
-      return;
+    const overlappingSpans: HTMLElement[] = [];
+    editableRef.current.querySelectorAll("[data-sensurert-id]").forEach((span) => {
+      if (range.intersectsNode(span)) {
+        overlappingSpans.push(span as HTMLElement);
+      }
+    });
+
+    for (const s of overlappingSpans) {
+      const spanRange = document.createRange();
+      spanRange.selectNode(s);
+      if (range.compareBoundaryPoints(Range.START_TO_START, spanRange) > 0) {
+        range.setStartBefore(s);
+      }
+      if (range.compareBoundaryPoints(Range.END_TO_END, spanRange) < 0) {
+        range.setEndAfter(s);
+      }
     }
 
-    const fragment = range.cloneContents();
-    if (fragment.querySelector("[data-sensurert-id]")) {
+    const overlappingIds = new Set(
+      overlappingSpans.map((s) => s.dataset.sensurertId).filter(Boolean)
+    );
+
+    let combinedOriginal = "";
+    const walker = document.createTreeWalker(
+      range.commonAncestorContainer,
+      NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
+      {
+        acceptNode: (node) => {
+          if (!range.intersectsNode(node)) return NodeFilter.FILTER_REJECT;
+          if (node.nodeType === Node.TEXT_NODE) return NodeFilter.FILTER_ACCEPT;
+          if (node instanceof HTMLElement && node.dataset.sensurertId) return NodeFilter.FILTER_ACCEPT;
+          return NodeFilter.FILTER_SKIP;
+        },
+      }
+    );
+
+    let current = walker.nextNode();
+    while (current) {
+      if (current.nodeType === Node.TEXT_NODE) {
+        const parent = current.parentElement;
+        if (parent?.dataset.sensurertId) {
+          current = walker.nextNode();
+          continue;
+        }
+        let text = current.textContent || "";
+        if (current === range.startContainer && current === range.endContainer) {
+          text = text.slice(range.startOffset, range.endOffset);
+        } else if (current === range.startContainer) {
+          text = text.slice(range.startOffset);
+        } else if (current === range.endContainer) {
+          text = text.slice(0, range.endOffset);
+        }
+        combinedOriginal += text;
+      } else if (current instanceof HTMLElement && current.dataset.sensurertId) {
+        const itemId = current.dataset.sensurertId;
+        const item = sensurertListe.find((si) => si.id === itemId);
+        if (item) {
+          combinedOriginal += item.original;
+        }
+      }
+      current = walker.nextNode();
+    }
+
+    if (!combinedOriginal.trim()) {
       selection.removeAllRanges();
       return;
     }
@@ -125,10 +176,23 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave 
     range.insertNode(span);
     selection.removeAllRanges();
 
-    setSensurertListe((prev) => [
-      ...prev,
-      { original: selectedText, placeholder, id: nyId },
-    ]);
+    setSensurertListe((prev) => {
+      const filtered = prev.filter((s) => !overlappingIds.has(s.id));
+      const updated = [
+        ...filtered,
+        { original: combinedOriginal, placeholder, id: nyId },
+      ];
+      const renumbered = updated.map((s, i) => {
+        const newPlaceholder = `[SLADDET-${i + 1}]`;
+        if (s.placeholder !== newPlaceholder) {
+          const el = editableRef.current?.querySelector(`[data-sensurert-id="${s.id}"]`);
+          if (el) el.textContent = newPlaceholder;
+        }
+        return { ...s, placeholder: newPlaceholder };
+      });
+      nextPlaceholderIndex.current = renumbered.length;
+      return renumbered;
+    });
   }, [sensurertListe]);
 
   useEffect(() => {
