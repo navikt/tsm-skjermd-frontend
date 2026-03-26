@@ -180,7 +180,7 @@ export const SakIframe = () => {
   }
 
   return (
-    <div className="p-2">
+    <div className="p-4">
       <VStack gap="3">
         {error && (
           <Alert variant="error" size="small" closeButton onClose={() => setError(null)}>
