@@ -29,6 +29,7 @@ export const SakIframe = () => {
   const token = searchParams.get("token");
   const [tilgang, setTilgang] = useState<"loading" | "ok" | "denied">("loading");
   const [sak, setSak] = useState<Sak | null>(null);
+  const [sakTilgjengelig, setSakTilgjengelig] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showTilgangModal, setShowTilgangModal] = useState(false);
   const [newNavIdent, setNewNavIdent] = useState("");
@@ -63,8 +64,8 @@ export const SakIframe = () => {
     sakApi
       .hentPaId(sakId)
       .then(setSak)
-      .catch((err) => {
-        setError(err instanceof Error ? err.message : "Kunne ikke hente sak");
+      .catch(() => {
+        setSakTilgjengelig(false);
       });
 
     sensureringApi
@@ -370,11 +371,8 @@ export const SakIframe = () => {
           </VStack>
         )}
 
-        {!sak && !error && (
-          <HStack gap="2" align="center">
-            <Loader size="small" />
-            <BodyShort size="small">Laster tilganger...</BodyShort>
-          </HStack>
+        {!sak && !sakTilgjengelig && (
+          <Detail className="text-gray-500">Tilgangspanelet er ikke tilgjengelig i denne visningen.</Detail>
         )}
       </VStack>
 
