@@ -35,6 +35,7 @@ export const SakIframe = () => {
   const [tilgangLoading, setTilgangLoading] = useState(false);
 
   const [sensurertElementer, setSensurertElementer] = useState<SensurertElement[]>([]);
+  const [nyeElementer, setNyeElementer] = useState<SensurertElement[]>([]);
   const [originaltekst, setOriginaltekst] = useState("");
   const [sensurertTekst, setSensurertTekst] = useState("");
   const [sensureringLaster, setSensureringLaster] = useState(true);
@@ -70,34 +71,59 @@ export const SakIframe = () => {
       .then((data) => {
         setOriginaltekst(data.originaltekst);
         setSensurertTekst(data.sensurertTekst);
-        setSensurertElementer(data.sensurertElementer);
+        const existing = data.sensurertElementer.filter((el) => !el.placeholder.startsWith("[NY-"));
+        const nye = data.sensurertElementer.filter((el) => el.placeholder.startsWith("[NY-"));
+        setSensurertElementer(existing);
+        setNyeElementer(nye);
       })
       .catch(() => {})
       .finally(() => setSensureringLaster(false));
   }, [tilgang, sakId]);
 
+  const alleElementer = [...sensurertElementer, ...nyeElementer];
+
+  const lagreAlle = useCallback(async (elementer: SensurertElement[]) => {
+    if (!sakId) return;
+    await sensureringApi.lagre(sakId, {
+      originaltekst,
+      sensurertTekst,
+      sensurertElementer: elementer,
+    });
+  }, [sakId, originaltekst, sensurertTekst]);
+
   const handleLeggTilSensurering = useCallback(async () => {
     if (!sakId || !nyVerdi.trim()) return;
     setLeggerTil(true);
     try {
-      const newIndex = sensurertElementer.length + 1;
-      const placeholder = `[SLADDET-${newIndex}]`;
-      const nyElementer = [...sensurertElementer, { placeholder, original: nyVerdi.trim() }];
+      const newIndex = nyeElementer.length + 1;
+      const placeholder = `[NY-${newIndex}]`;
+      const oppdaterteNye = [...nyeElementer, { placeholder, original: nyVerdi.trim() }];
 
-      await sensureringApi.lagre(sakId, {
-        originaltekst,
-        sensurertTekst,
-        sensurertElementer: nyElementer,
-      });
+      await lagreAlle([...sensurertElementer, ...oppdaterteNye]);
 
-      setSensurertElementer(nyElementer);
+      setNyeElementer(oppdaterteNye);
       setNyVerdi("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Kunne ikke legge til sensurering");
     } finally {
       setLeggerTil(false);
     }
-  }, [sakId, nyVerdi, sensurertElementer, sensurertTekst, originaltekst]);
+  }, [sakId, nyVerdi, nyeElementer, sensurertElementer, lagreAlle]);
+
+  const handleFjernNySensurering = useCallback(async (index: number) => {
+    try {
+      const oppdaterteNye = nyeElementer.filter((_, i) => i !== index).map((el, i) => ({
+        ...el,
+        placeholder: `[NY-${i + 1}]`,
+      }));
+
+      await lagreAlle([...sensurertElementer, ...oppdaterteNye]);
+
+      setNyeElementer(oppdaterteNye);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Kunne ikke fjerne sensurering");
+    }
+  }, [nyeElementer, sensurertElementer, lagreAlle]);
 
   useEffect(() => {
     const sendHeight = () => {
@@ -196,13 +222,13 @@ export const SakIframe = () => {
         ) : (
           <VStack gap="2">
             <Detail weight="semibold">Sensurerte verdier</Detail>
-            {sensurertElementer.length === 0 ? (
+            {alleElementer.length === 0 ? (
               <Detail className="text-gray-500">Ingen sensurerte verdier ennå.</Detail>
             ) : (
               <VStack gap="1">
                 {sensurertElementer.map((el, i) => (
                   <Box
-                    key={i}
+                    key={`existing-${i}`}
                     background="surface-subtle"
                     padding="2"
                     borderRadius="medium"
@@ -216,6 +242,34 @@ export const SakIframe = () => {
                       <code className="text-xs bg-red-50 text-red-800 px-2 py-0.5 rounded break-all">
                         {el.original}
                       </code>
+                    </HStack>
+                  </Box>
+                ))}
+                {nyeElementer.map((el, i) => (
+                  <Box
+                    key={`new-${i}`}
+                    background="surface-alt-3-subtle"
+                    padding="2"
+                    borderRadius="medium"
+                    borderColor="border-alt-3"
+                    borderWidth="1"
+                  >
+                    <HStack gap="2" align="center" justify="space-between">
+                      <HStack gap="2" align="center">
+                        <Tag variant="alt3" size="xsmall" className="font-mono">
+                          {el.placeholder}
+                        </Tag>
+                        <code className="text-xs bg-purple-50 text-purple-800 px-2 py-0.5 rounded break-all">
+                          {el.original}
+                        </code>
+                      </HStack>
+                      <Button
+                        variant="tertiary-neutral"
+                        size="xsmall"
+                        icon={<TrashIcon aria-hidden />}
+                        onClick={() => handleFjernNySensurering(i)}
+                        title="Fjern sensurering"
+                      />
                     </HStack>
                   </Box>
                 ))}
