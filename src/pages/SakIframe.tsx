@@ -13,6 +13,7 @@ import {
   BodyShort,
   Loader,
   Box,
+  Accordion,
 } from "@navikt/ds-react";
 import {
   PersonIcon,
@@ -218,157 +219,201 @@ export const SakIframe = () => {
           </Alert>
         )}
 
-        {sensureringLaster ? (
-          <HStack gap="2" align="center">
-            <Loader size="small" />
-            <BodyShort size="small">Laster sensurerte verdier...</BodyShort>
-          </HStack>
-        ) : (
-          <VStack gap="2">
-            <Detail weight="semibold">Sensurerte verdier</Detail>
-            {!sensureringTilgang ? (
-              <Detail className="text-gray-500">Du har ikke tilgang til å se sensurerte verdier.</Detail>
-            ) : alleElementer.length === 0 ? (
-              <Detail className="text-gray-500">Ingen sensurerte verdier ennå.</Detail>
-            ) : (
-              <VStack gap="1">
-                {sensurertElementer.map((el, i) => (
-                  <Box
-                    key={`existing-${i}`}
-                    background="surface-subtle"
-                    padding="2"
-                    borderRadius="medium"
-                    borderColor="border-subtle"
-                    borderWidth="1"
-                  >
-                    <HStack gap="2" align="center">
-                      <Tag variant="neutral" size="xsmall" className="font-mono">
-                        {el.placeholder}
-                      </Tag>
-                      <code className="text-xs bg-red-50 text-red-800 px-2 py-0.5 rounded break-all">
-                        {el.original}
-                      </code>
-                    </HStack>
-                  </Box>
-                ))}
-                {nyeElementer.map((el, i) => (
-                  <Box
-                    key={`new-${i}`}
-                    background="surface-alt-3-subtle"
-                    padding="2"
-                    borderRadius="medium"
-                    borderColor="border-alt-3"
-                    borderWidth="1"
-                  >
-                    <HStack gap="2" align="center" justify="space-between">
-                      <HStack gap="2" align="center">
-                        <Tag variant="alt3" size="xsmall" className="font-mono">
-                          {el.placeholder}
-                        </Tag>
-                        <code className="text-xs bg-purple-50 text-purple-800 px-2 py-0.5 rounded break-all">
-                          {el.original}
-                        </code>
-                      </HStack>
-                      <Button
-                        variant="tertiary-neutral"
-                        size="xsmall"
-                        icon={<TrashIcon aria-hidden />}
-                        onClick={() => handleFjernNySensurering(i)}
-                        title="Fjern sensurering"
-                      />
-                    </HStack>
-                  </Box>
-                ))}
-              </VStack>
-            )}
-
-            <HStack gap="2" align="end">
-              <TextField
-                label="Legg til ny sensurert verdi"
-                size="small"
-                value={nyVerdi}
-                onChange={(e) => setNyVerdi(e.target.value)}
-                placeholder="Tekst som skal sensureres"
-                className="flex-1"
-              />
-              <Button
-                variant="primary"
-                size="small"
-                icon={<EyeSlashIcon aria-hidden />}
-                onClick={handleLeggTilSensurering}
-                loading={leggerTil}
-                disabled={!nyVerdi.trim()}
-              >
-                Legg til
-              </Button>
-            </HStack>
-          </VStack>
-        )}
-
-        {sak && (
-          <VStack gap="2">
-            <HStack justify="space-between" align="center">
-              <Detail weight="semibold">Tilganger</Detail>
-              <Button
-                variant="tertiary"
-                size="xsmall"
-                icon={<PlusIcon aria-hidden />}
-                onClick={() => setShowTilgangModal(true)}
-              >
-                Gi tilgang
-              </Button>
-            </HStack>
-
-            {sak.tilganger.length === 0 ? (
-              <Detail className="text-gray-500">
-                Ingen har tilgang ennå. Oppretteren ({sak.opprettetAv}) har alltid tilgang.
-              </Detail>
-            ) : (
-              <Table size="small">
-                <Table.Header>
-                  <Table.Row>
-                    <Table.HeaderCell>NAVident</Table.HeaderCell>
-                    <Table.HeaderCell>Gitt av</Table.HeaderCell>
-                    <Table.HeaderCell>Tidspunkt</Table.HeaderCell>
-                    <Table.HeaderCell />
-                  </Table.Row>
-                </Table.Header>
-                <Table.Body>
-                  {sak.tilganger.map((t) => (
-                    <Table.Row key={t.navIdent}>
-                      <Table.DataCell>
-                        <HStack gap="1" align="center">
-                          <PersonIcon aria-hidden fontSize="1rem" />
-                          {t.navIdent}
-                          {t.navIdent === sak.opprettetAv && (
-                            <Tag variant="neutral" size="xsmall">Oppretter</Tag>
-                          )}
+        <Box
+          background="surface-default"
+          borderRadius="large"
+          borderColor="border-subtle"
+          borderWidth="1"
+          padding="2"
+        >
+          <Accordion>
+            <Accordion.Item>
+              <Accordion.Header>Sensurerte verdier</Accordion.Header>
+              <Accordion.Content>
+                {sensureringLaster ? (
+                  <HStack gap="2" align="center">
+                    <Loader size="small" />
+                    <BodyShort size="small">Laster sensurerte verdier...</BodyShort>
+                  </HStack>
+                ) : !sensureringTilgang ? (
+                  <Detail className="text-gray-500">Du har ikke tilgang til å se sensurerte verdier.</Detail>
+                ) : alleElementer.length === 0 ? (
+                  <Detail className="text-gray-500">Ingen sensurerte verdier ennå.</Detail>
+                ) : (
+                  <VStack gap="1">
+                    {sensurertElementer.map((el, i) => (
+                      <Box
+                        key={`existing-${i}`}
+                        background="surface-subtle"
+                        padding="2"
+                        borderRadius="medium"
+                        borderColor="border-subtle"
+                        borderWidth="1"
+                      >
+                        <HStack gap="2" align="center">
+                          <Tag variant="neutral" size="xsmall" className="font-mono">
+                            {el.placeholder}
+                          </Tag>
+                          <code className="text-xs bg-red-50 text-red-800 px-2 py-0.5 rounded break-all">
+                            {el.original}
+                          </code>
                         </HStack>
-                      </Table.DataCell>
-                      <Table.DataCell>{t.gittAv}</Table.DataCell>
-                      <Table.DataCell>
-                        {formatDato(t.gittTidspunkt)} kl. {formatTid(t.gittTidspunkt)}
-                      </Table.DataCell>
-                      <Table.DataCell>
-                        {t.navIdent !== sak.opprettetAv && (
+                      </Box>
+                    ))}
+                    {nyeElementer.map((el, i) => (
+                      <Box
+                        key={`new-${i}`}
+                        background="surface-alt-3-subtle"
+                        padding="2"
+                        borderRadius="medium"
+                        borderColor="border-alt-3"
+                        borderWidth="1"
+                      >
+                        <HStack gap="2" align="center" justify="space-between">
+                          <HStack gap="2" align="center">
+                            <Tag variant="alt3" size="xsmall" className="font-mono">
+                              {el.placeholder}
+                            </Tag>
+                            <code className="text-xs bg-purple-50 text-purple-800 px-2 py-0.5 rounded break-all">
+                              {el.original}
+                            </code>
+                          </HStack>
                           <Button
                             variant="tertiary-neutral"
                             size="xsmall"
                             icon={<TrashIcon aria-hidden />}
-                            onClick={() => handleFjernTilgang(t.navIdent)}
-                            title="Fjern tilgang"
+                            onClick={() => handleFjernNySensurering(i)}
+                            title="Fjern sensurering"
                           />
-                        )}
-                      </Table.DataCell>
-                    </Table.Row>
-                  ))}
-                </Table.Body>
-              </Table>
-            )}
-            <Detail className="text-gray-500">
-              Oppretteren ({sak.opprettetAv}) har alltid tilgang og kan ikke fjernes.
-            </Detail>
-          </VStack>
+                        </HStack>
+                      </Box>
+                    ))}
+                  </VStack>
+                )}
+              </Accordion.Content>
+            </Accordion.Item>
+          </Accordion>
+        </Box>
+
+        <Box
+          background="surface-default"
+          borderRadius="large"
+          borderColor="border-subtle"
+          borderWidth="1"
+          padding="2"
+        >
+          <Accordion>
+            <Accordion.Item>
+              <Accordion.Header>Legg til ny sensurert verdi</Accordion.Header>
+              <Accordion.Content>
+                {!sensureringTilgang ? (
+                  <Detail className="text-gray-500">Du har ikke tilgang til å legge til sensurerte verdier.</Detail>
+                ) : (
+                  <HStack gap="2" align="end">
+                    <TextField
+                      label="Ny verdi"
+                      size="small"
+                      value={nyVerdi}
+                      onChange={(e) => setNyVerdi(e.target.value)}
+                      placeholder="Tekst som skal sensureres"
+                      className="flex-1"
+                    />
+                    <Button
+                      variant="primary"
+                      size="small"
+                      icon={<EyeSlashIcon aria-hidden />}
+                      onClick={handleLeggTilSensurering}
+                      loading={leggerTil}
+                      disabled={!nyVerdi.trim()}
+                    >
+                      Legg til
+                    </Button>
+                  </HStack>
+                )}
+              </Accordion.Content>
+            </Accordion.Item>
+          </Accordion>
+        </Box>
+
+        {sak && (
+          <Box
+            background="surface-default"
+            borderRadius="large"
+            borderColor="border-subtle"
+            borderWidth="1"
+            padding="2"
+          >
+            <Accordion>
+              <Accordion.Item>
+                <Accordion.Header>Tilganger</Accordion.Header>
+                <Accordion.Content>
+                  <VStack gap="2">
+                    <HStack justify="space-between" align="center">
+                      <Detail weight="semibold">Administrer tilganger</Detail>
+                      <Button
+                        variant="tertiary"
+                        size="xsmall"
+                        icon={<PlusIcon aria-hidden />}
+                        onClick={() => setShowTilgangModal(true)}
+                      >
+                        Gi tilgang
+                      </Button>
+                    </HStack>
+
+                    {sak.tilganger.length === 0 ? (
+                      <Detail className="text-gray-500">
+                        Ingen har tilgang ennå. Oppretteren ({sak.opprettetAv}) har alltid tilgang.
+                      </Detail>
+                    ) : (
+                      <Table size="small">
+                        <Table.Header>
+                          <Table.Row>
+                            <Table.HeaderCell>NAVident</Table.HeaderCell>
+                            <Table.HeaderCell>Gitt av</Table.HeaderCell>
+                            <Table.HeaderCell>Tidspunkt</Table.HeaderCell>
+                            <Table.HeaderCell />
+                          </Table.Row>
+                        </Table.Header>
+                        <Table.Body>
+                          {sak.tilganger.map((t) => (
+                            <Table.Row key={t.navIdent}>
+                              <Table.DataCell>
+                                <HStack gap="1" align="center">
+                                  <PersonIcon aria-hidden fontSize="1rem" />
+                                  {t.navIdent}
+                                  {t.navIdent === sak.opprettetAv && (
+                                    <Tag variant="neutral" size="xsmall">Oppretter</Tag>
+                                  )}
+                                </HStack>
+                              </Table.DataCell>
+                              <Table.DataCell>{t.gittAv}</Table.DataCell>
+                              <Table.DataCell>
+                                {formatDato(t.gittTidspunkt)} kl. {formatTid(t.gittTidspunkt)}
+                              </Table.DataCell>
+                              <Table.DataCell>
+                                {t.navIdent !== sak.opprettetAv && (
+                                  <Button
+                                    variant="tertiary-neutral"
+                                    size="xsmall"
+                                    icon={<TrashIcon aria-hidden />}
+                                    onClick={() => handleFjernTilgang(t.navIdent)}
+                                    title="Fjern tilgang"
+                                  />
+                                )}
+                              </Table.DataCell>
+                            </Table.Row>
+                          ))}
+                        </Table.Body>
+                      </Table>
+                    )}
+                    <Detail className="text-gray-500">
+                      Oppretteren ({sak.opprettetAv}) har alltid tilgang og kan ikke fjernes.
+                    </Detail>
+                  </VStack>
+                </Accordion.Content>
+              </Accordion.Item>
+            </Accordion>
+          </Box>
         )}
 
         {!sak && !sakTilgjengelig && (
