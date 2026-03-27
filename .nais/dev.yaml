@@ -33,6 +33,9 @@ spec:
           - /health/*
           - /assets/*
           - /favicon.svg
+          - /embed/api/saker/*
+          - /embed/api/saker/*/tilganger
+          - /embed/api/saker/*/tilganger/*
           - /embed/sensurering/*
           - /embed/api/saker/*/sensurering
           - /api/generate-embed-token
