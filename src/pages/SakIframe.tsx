@@ -1,5 +1,5 @@
 import { useParams, useSearchParams } from "react-router-dom";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Alert,
   Button,
@@ -39,13 +39,8 @@ export const SakIframe = () => {
   const [tilgangLoading, setTilgangLoading] = useState(false);
 
   const [sensurertElementer, setSensurertElementer] = useState<SensurertElement[]>([]);
-  const [nyeElementer, setNyeElementer] = useState<SensurertElement[]>([]);
-  const [originaltekst, setOriginaltekst] = useState("");
-  const [sensurertTekst, setSensurertTekst] = useState("");
   const [sensureringLaster, setSensureringLaster] = useState(true);
   const [sensureringTilgang, setSensureringTilgang] = useState(true);
-  const [nyVerdi, setNyVerdi] = useState("");
-  const [leggerTil, setLeggerTil] = useState(false);
   const [visning, setVisning] = useState<"default" | "sensurering" | "kommenter">("default");
 
   useEffect(() => {
@@ -64,7 +59,7 @@ export const SakIframe = () => {
   }, [token, sakId]);
 
   useEffect(() => {
-    if (tilgang !== "ok" || !sakId) return;
+    if (tilgang !== "ok" || !sakId || visning !== "default") return;
     sakApi
       .hentPaId(sakId)
       .then(setSak)
@@ -75,63 +70,13 @@ export const SakIframe = () => {
     sensureringApi
       .hent(sakId)
       .then((data) => {
-        setOriginaltekst(data.originaltekst);
-        setSensurertTekst(data.sensurertTekst);
-        const existing = data.sensurertElementer.filter((el) => !el.placeholder.startsWith("[NY-"));
-        const nye = data.sensurertElementer.filter((el) => el.placeholder.startsWith("[NY-"));
-        setSensurertElementer(existing);
-        setNyeElementer(nye);
+        setSensurertElementer(data.sensurertElementer);
       })
       .catch(() => {
         setSensureringTilgang(false);
       })
       .finally(() => setSensureringLaster(false));
-  }, [tilgang, sakId]);
-
-  const alleElementer = [...sensurertElementer, ...nyeElementer];
-
-  const lagreAlle = useCallback(async (elementer: SensurertElement[]) => {
-    if (!sakId) return;
-    await sensureringApi.lagre(sakId, {
-      originaltekst,
-      sensurertTekst,
-      sensurertElementer: elementer,
-    });
-  }, [sakId, originaltekst, sensurertTekst]);
-
-  const handleLeggTilSensurering = useCallback(async () => {
-    if (!sakId || !nyVerdi.trim()) return;
-    setLeggerTil(true);
-    try {
-      const newIndex = nyeElementer.length + 1;
-      const placeholder = `[NY-${newIndex}]`;
-      const oppdaterteNye = [...nyeElementer, { placeholder, original: nyVerdi.trim() }];
-
-      await lagreAlle([...sensurertElementer, ...oppdaterteNye]);
-
-      setNyeElementer(oppdaterteNye);
-      setNyVerdi("");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Kunne ikke legge til sensurering");
-    } finally {
-      setLeggerTil(false);
-    }
-  }, [sakId, nyVerdi, nyeElementer, sensurertElementer, lagreAlle]);
-
-  const handleFjernNySensurering = useCallback(async (index: number) => {
-    try {
-      const oppdaterteNye = nyeElementer.filter((_, i) => i !== index).map((el, i) => ({
-        ...el,
-        placeholder: `[NY-${i + 1}]`,
-      }));
-
-      await lagreAlle([...sensurertElementer, ...oppdaterteNye]);
-
-      setNyeElementer(oppdaterteNye);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Kunne ikke fjerne sensurering");
-    }
-  }, [nyeElementer, sensurertElementer, lagreAlle]);
+  }, [tilgang, sakId, visning]);
 
   useEffect(() => {
     const element = contentRef.current;
@@ -148,7 +93,7 @@ export const SakIframe = () => {
     observer.observe(element);
 
     return () => observer.disconnect();
-  }, [tilgang, sak, sensureringLaster, sensurertElementer, nyeElementer, nyVerdi, error]);
+  }, [tilgang, sak, sensureringLaster, sensurertElementer, error]);
 
   const handleGiTilgang = async () => {
     if (!sakId || !newNavIdent.trim()) return;
@@ -243,7 +188,7 @@ export const SakIframe = () => {
             <Accordion.Header>
               <HStack gap="2" align="center">
                 <BodyShort size="small" weight="semibold">Sensurerte verdier</BodyShort>
-                <Tag variant="neutral" size="xsmall">{alleElementer.length}</Tag>
+                <Tag variant="neutral" size="xsmall">{sensurertElementer.length}</Tag>
               </HStack>
             </Accordion.Header>
             <Accordion.Content>
@@ -255,7 +200,7 @@ export const SakIframe = () => {
                   </HStack>
                 ) : !sensureringTilgang ? (
                   <Detail className="text-gray-500">Du har ikke tilgang til å se sensurerte verdier.</Detail>
-                ) : alleElementer.length === 0 ? (
+                ) : sensurertElementer.length === 0 ? (
                   <Detail className="text-gray-500">Ingen sensurerte verdier ennå.</Detail>
                 ) : (
                   <VStack gap="1">
@@ -278,66 +223,7 @@ export const SakIframe = () => {
                         </HStack>
                       </Box>
                     ))}
-                    {nyeElementer.map((el, i) => (
-                      <Box
-                        key={`new-${i}`}
-                        background="surface-alt-3-subtle"
-                        padding="2"
-                        borderRadius="medium"
-                        borderColor="border-alt-3"
-                        borderWidth="1"
-                      >
-                        <HStack gap="2" align="center" justify="space-between">
-                          <HStack gap="2" align="center">
-                            <Tag variant="alt3" size="xsmall" className="font-mono">
-                              {el.placeholder}
-                            </Tag>
-                            <code className="text-xs bg-purple-50 text-purple-800 px-2 py-0.5 rounded break-all">
-                              {el.original}
-                            </code>
-                          </HStack>
-                          <Button
-                            variant="tertiary-neutral"
-                            size="xsmall"
-                            icon={<TrashIcon aria-hidden />}
-                            onClick={() => handleFjernNySensurering(i)}
-                            title="Fjern sensurering"
-                          />
-                        </HStack>
-                      </Box>
-                    ))}
                   </VStack>
-                )}
-
-                {!sensureringTilgang ? (
-                  <Detail className="text-gray-500">Du har ikke tilgang til å legge til sensurerte verdier.</Detail>
-                ) : (
-                  <Box
-                    paddingBlock="2 0"
-                    borderColor="border-subtle"
-                    borderWidth="1 0 0"
-                  >
-                    <HStack gap="2" align="end">
-                      <TextField
-                        label="Legg til ny sensurert verdi"
-                        size="small"
-                        value={nyVerdi}
-                        onChange={(e) => setNyVerdi(e.target.value)}
-                        placeholder="Tekst som skal sensureres"
-                        className="flex-1"
-                      />
-                      <Button
-                        variant="primary"
-                        size="small"
-                        icon={<EyeSlashIcon aria-hidden />}
-                        onClick={handleLeggTilSensurering}
-                        loading={leggerTil}
-                        disabled={!nyVerdi.trim()}
-                      >
-                        Legg til
-                      </Button>
-                    </HStack>
-                  </Box>
                 )}
               </VStack>
             </Accordion.Content>
