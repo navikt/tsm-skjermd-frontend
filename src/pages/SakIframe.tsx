@@ -237,15 +237,6 @@ export const SakIframe = () => {
           </Alert>
         )}
 
-        <Button
-          variant="secondary"
-          size="small"
-          icon={<EyeSlashIcon aria-hidden />}
-          onClick={() => setVisning("sensurering")}
-        >
-          Rediger sensurering
-        </Button>
-
         <Accordion>
           <Accordion.Item>
             <Accordion.Header>
@@ -433,6 +424,15 @@ export const SakIframe = () => {
         {!sak && !sakTilgjengelig && (
           <Detail className="text-gray-500">Tilgangspanelet er ikke tilgjengelig i denne visningen.</Detail>
         )}
+
+        <Button
+          variant="secondary"
+          size="small"
+          icon={<EyeSlashIcon aria-hidden />}
+          onClick={() => setVisning("sensurering")}
+        >
+          Rediger beskrivelse
+        </Button>
       </VStack>
 
       <Modal
