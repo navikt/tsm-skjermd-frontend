@@ -46,7 +46,7 @@ export const SakIframe = () => {
   const [sensureringTilgang, setSensureringTilgang] = useState(true);
   const [nyVerdi, setNyVerdi] = useState("");
   const [leggerTil, setLeggerTil] = useState(false);
-  const [visning, setVisning] = useState<"default" | "sensurering">("default");
+  const [visning, setVisning] = useState<"default" | "sensurering" | "kommenter">("default");
 
   useEffect(() => {
     if (!token || !sakId) {
@@ -216,12 +216,13 @@ export const SakIframe = () => {
     );
   }
 
-  if (visning === "sensurering") {
+  if (visning === "sensurering" || visning === "kommenter") {
     return (
       <div ref={contentRef} className="p-4">
         <SensureringEditor
           sakId={sakId!}
           singleSaveButton
+          kommentarModus={visning === "kommenter"}
           onLagreOgLukk={() => setVisning("default")}
         />
       </div>
@@ -425,14 +426,24 @@ export const SakIframe = () => {
           <Detail className="text-gray-500">Tilgangspanelet er ikke tilgjengelig i denne visningen.</Detail>
         )}
 
-        <Button
-          variant="secondary"
-          size="small"
-          icon={<EyeSlashIcon aria-hidden />}
-          onClick={() => setVisning("sensurering")}
-        >
-          Rediger beskrivelse
-        </Button>
+        <HStack gap="2">
+          <Button
+            variant="secondary"
+            size="small"
+            icon={<EyeSlashIcon aria-hidden />}
+            onClick={() => setVisning("sensurering")}
+          >
+            Rediger beskrivelse
+          </Button>
+          <Button
+            variant="secondary"
+            size="small"
+            icon={<EyeSlashIcon aria-hidden />}
+            onClick={() => setVisning("kommenter")}
+          >
+            Kommenter
+          </Button>
+        </HStack>
       </VStack>
 
       <Modal

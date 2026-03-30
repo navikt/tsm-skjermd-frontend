@@ -30,9 +30,10 @@ interface SensureringEditorProps {
   autoSave?: boolean;
   readOnly?: boolean;
   singleSaveButton?: boolean;
+  kommentarModus?: boolean;
 }
 
-export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave = false, readOnly = false, singleSaveButton = false }: SensureringEditorProps) => {
+export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave = false, readOnly = false, singleSaveButton = false, kommentarModus = false }: SensureringEditorProps) => {
   const [sensurertListe, setSensurertListe] = useState<SensurertItem[]>([]);
   const [originaltekst, setOriginaltekst] = useState("");
   const [lagrer, setLagrer] = useState(false);
@@ -40,6 +41,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave 
   const [lagreStatus, setLagreStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const editableRef = useRef<HTMLDivElement>(null);
   const nextPlaceholderIndex = useRef(0);
+  const existingDataRef = useRef<{ originaltekst: string; sensurertTekst: string; sensurertElementer: SensurertElement[] } | null>(null);
 
   const genererPlaceholder = () => {
     nextPlaceholderIndex.current += 1;
@@ -52,24 +54,33 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave 
     sensureringApi
       .hent(sakId)
       .then((data) => {
-        setOriginaltekst(data.originaltekst);
-        const liste = data.sensurertElementer.map((el, i) => ({
-          original: el.original,
-          placeholder: el.placeholder,
-          id: `loaded-${i}`,
-        }));
-        setSensurertListe(liste);
-        nextPlaceholderIndex.current = liste.length;
+        if (kommentarModus) {
+          existingDataRef.current = {
+            originaltekst: data.originaltekst,
+            sensurertTekst: data.sensurertTekst,
+            sensurertElementer: data.sensurertElementer,
+          };
+          nextPlaceholderIndex.current = data.sensurertElementer.length;
+        } else {
+          setOriginaltekst(data.originaltekst);
+          const liste = data.sensurertElementer.map((el, i) => ({
+            original: el.original,
+            placeholder: el.placeholder,
+            id: `loaded-${i}`,
+          }));
+          setSensurertListe(liste);
+          nextPlaceholderIndex.current = liste.length;
 
-        if (editableRef.current) {
-          let html = data.sensurertTekst;
-          liste.forEach((item) => {
-            html = html.replace(
-              item.placeholder,
-              `<span class="bg-gray-900 text-white px-1 rounded font-mono" data-sensurert-id="${item.id}">${item.placeholder}</span>`
-            );
-          });
-          editableRef.current.innerHTML = html;
+          if (editableRef.current) {
+            let html = data.sensurertTekst;
+            liste.forEach((item) => {
+              html = html.replace(
+                item.placeholder,
+                `<span class="bg-gray-900 text-white px-1 rounded font-mono" data-sensurert-id="${item.id}">${item.placeholder}</span>`
+              );
+            });
+            editableRef.current.innerHTML = html;
+          }
         }
       })
       .catch((err) => {
@@ -183,18 +194,19 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave 
         ...filtered,
         { original: combinedOriginal, placeholder, id: nyId },
       ];
+      const offset = kommentarModus ? (existingDataRef.current?.sensurertElementer.length ?? 0) : 0;
       const renumbered = updated.map((s, i) => {
-        const newPlaceholder = `[SLADDET-${i + 1}]`;
+        const newPlaceholder = `[SLADDET-${offset + i + 1}]`;
         if (s.placeholder !== newPlaceholder) {
           const el = editableRef.current?.querySelector(`[data-sensurert-id="${s.id}"]`);
           if (el) el.textContent = newPlaceholder;
         }
         return { ...s, placeholder: newPlaceholder };
       });
-      nextPlaceholderIndex.current = renumbered.length;
+      nextPlaceholderIndex.current = offset + renumbered.length;
       return renumbered;
     });
-  }, [sensurertListe]);
+  }, [sensurertListe, kommentarModus]);
 
   useEffect(() => {
     const el = editableRef.current;
@@ -222,8 +234,9 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave 
     }
 
     const remaining = sensurertListe.filter((s) => s.id !== itemId);
+    const offset = kommentarModus ? (existingDataRef.current?.sensurertElementer.length ?? 0) : 0;
     const renumbered = remaining.map((s, i) => {
-      const newPlaceholder = `[SLADDET-${i + 1}]`;
+      const newPlaceholder = `[SLADDET-${offset + i + 1}]`;
       if (s.placeholder !== newPlaceholder) {
         const el = editableRef.current?.querySelector(`[data-sensurert-id="${s.id}"]`);
         if (el) el.textContent = newPlaceholder;
@@ -231,7 +244,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave 
       return { ...s, placeholder: newPlaceholder };
     });
 
-    nextPlaceholderIndex.current = renumbered.length;
+    nextPlaceholderIndex.current = offset + renumbered.length;
     setSensurertListe(renumbered);
   }, [sensurertListe]);
 
@@ -241,13 +254,17 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave 
     setLagreStatus(null);
     try {
       const sensurertTekst = editableRef.current?.innerText || "";
+      const existing = existingDataRef.current;
+      const nyeElementer = sensurertListe.map(({ placeholder, original }) => ({
+        placeholder,
+        original,
+      }));
       await sensureringApi.lagre(sakId, {
-        originaltekst,
-        sensurertTekst,
-        sensurertElementer: sensurertListe.map(({ placeholder, original }) => ({
-          placeholder,
-          original,
-        })),
+        originaltekst: kommentarModus && existing ? existing.originaltekst : originaltekst,
+        sensurertTekst: kommentarModus && existing ? existing.sensurertTekst : sensurertTekst,
+        sensurertElementer: kommentarModus && existing
+          ? [...existing.sensurertElementer, ...nyeElementer]
+          : nyeElementer,
       });
       log.info(`Sensurering lagret for sak ${sakId}`);
       setLagreStatus({ type: "success", message: "Sensurering lagret!" });
