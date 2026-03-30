@@ -25,7 +25,7 @@ type SensurertItem = SensurertElement & { id: string };
 
 interface SensureringEditorProps {
   sakId: string;
-  onLagreOgLukk?: () => void;
+  onLagreOgLukk?: (sensurertTekst: string) => void;
   onAuthError?: () => void;
   autoSave?: boolean;
   readOnly?: boolean;
@@ -290,7 +290,8 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave 
   const handleLagreOgLukk = useCallback(async () => {
     const ok = await lagreSensurering();
     if (ok && onLagreOgLukk) {
-      onLagreOgLukk();
+      const sensurertTekst = editableRef.current?.innerText || "";
+      onLagreOgLukk(sensurertTekst);
     }
   }, [lagreSensurering, onLagreOgLukk]);
 

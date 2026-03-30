@@ -168,7 +168,26 @@ export const SakIframe = () => {
           sakId={sakId!}
           singleSaveButton
           kommentarModus={visning === "kommenter"}
-          onLagreOgLukk={() => setVisning("default")}
+          onLagreOgLukk={async (sensurertTekst) => {
+            if (visning === "sensurering" && sak?.jiraIssueKey) {
+              try {
+                await fetch("/embed/api/jira/update-description", {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    issueKey: sak.jiraIssueKey,
+                    text: sensurertTekst,
+                  }),
+                });
+              } catch (err) {
+                setError(err instanceof Error ? err.message : "Kunne ikke oppdatere Jira-beskrivelse");
+              }
+            }
+            setVisning("default");
+          }}
         />
       </div>
     );
