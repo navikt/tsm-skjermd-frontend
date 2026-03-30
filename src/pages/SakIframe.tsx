@@ -23,6 +23,7 @@ import {
 } from "@navikt/aksel-icons";
 import { sakApi, sensureringApi } from "../api/sakApi";
 import type { Sak, SensurertElement } from "../api/types";
+import { SensureringEditor } from "../components/SensureringEditor";
 
 export const SakIframe = () => {
   const contentRef = useRef<HTMLDivElement>(null);
@@ -45,6 +46,7 @@ export const SakIframe = () => {
   const [sensureringTilgang, setSensureringTilgang] = useState(true);
   const [nyVerdi, setNyVerdi] = useState("");
   const [leggerTil, setLeggerTil] = useState(false);
+  const [visning, setVisning] = useState<"default" | "sensurering">("default");
 
   useEffect(() => {
     if (!token || !sakId) {
@@ -214,6 +216,18 @@ export const SakIframe = () => {
     );
   }
 
+  if (visning === "sensurering") {
+    return (
+      <div ref={contentRef} className="p-4">
+        <SensureringEditor
+          sakId={sakId!}
+          singleSaveButton
+          onLagreOgLukk={() => setVisning("default")}
+        />
+      </div>
+    );
+  }
+
   return (
     <div ref={contentRef} className="p-4">
       <VStack gap="3">
@@ -222,6 +236,15 @@ export const SakIframe = () => {
             {error}
           </Alert>
         )}
+
+        <Button
+          variant="secondary"
+          size="small"
+          icon={<EyeSlashIcon aria-hidden />}
+          onClick={() => setVisning("sensurering")}
+        >
+          Rediger sensurering
+        </Button>
 
         <Accordion>
           <Accordion.Item>

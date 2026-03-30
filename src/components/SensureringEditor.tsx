@@ -29,9 +29,10 @@ interface SensureringEditorProps {
   onAuthError?: () => void;
   autoSave?: boolean;
   readOnly?: boolean;
+  singleSaveButton?: boolean;
 }
 
-export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave = false, readOnly = false }: SensureringEditorProps) => {
+export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave = false, readOnly = false, singleSaveButton = false }: SensureringEditorProps) => {
   const [sensurertListe, setSensurertListe] = useState<SensurertItem[]>([]);
   const [originaltekst, setOriginaltekst] = useState("");
   const [lagrer, setLagrer] = useState(false);
@@ -356,23 +357,37 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave 
 
         {!autoSave && !readOnly && (
           <HStack gap="2">
-            <Button
-              variant="primary"
-              size="small"
-              icon={<FloppydiskIcon aria-hidden />}
-              onClick={lagreSensurering}
-              loading={lagrer}
-            >
-              Lagre
-            </Button>
-            <Button
-              variant="secondary"
-              size="small"
-              onClick={handleLagreOgLukk}
-              loading={lagrer}
-            >
-              Lagre og lukk
-            </Button>
+            {singleSaveButton ? (
+              <Button
+                variant="primary"
+                size="small"
+                icon={<FloppydiskIcon aria-hidden />}
+                onClick={handleLagreOgLukk}
+                loading={lagrer}
+              >
+                Lagre
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="primary"
+                  size="small"
+                  icon={<FloppydiskIcon aria-hidden />}
+                  onClick={lagreSensurering}
+                  loading={lagrer}
+                >
+                  Lagre
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="small"
+                  onClick={handleLagreOgLukk}
+                  loading={lagrer}
+                >
+                  Lagre og lukk
+                </Button>
+              </>
+            )}
           </HStack>
         )}
 
