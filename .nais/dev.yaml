@@ -38,6 +38,7 @@ spec:
           - /embed/api/saker/*/tilganger/*
           - /embed/sensurering/*
           - /embed/api/saker/*/sensurering
+          - /embed/api/jira/update-description
           - /api/generate-embed-token
           - /api/validate-embed-token
   env:
