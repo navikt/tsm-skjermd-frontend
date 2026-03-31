@@ -169,9 +169,12 @@ export const SakIframe = () => {
           singleSaveButton
           kommentarModus={visning === "kommenter"}
           onLagreOgLukk={async (sensurertTekst) => {
-            if (visning === "sensurering" && sak?.jiraIssueKey) {
+            if (sak?.jiraIssueKey) {
+              const endpoint = visning === "kommenter"
+                ? "/embed/api/jira/add-comment"
+                : "/embed/api/jira/update-description";
               try {
-                await fetch("/embed/api/jira/update-description", {
+                await fetch(endpoint, {
                   method: "POST",
                   headers: {
                     Authorization: `Bearer ${token}`,
@@ -183,7 +186,7 @@ export const SakIframe = () => {
                   }),
                 });
               } catch (err) {
-                setError(err instanceof Error ? err.message : "Kunne ikke oppdatere Jira-beskrivelse");
+                setError(err instanceof Error ? err.message : "Kunne ikke oppdatere Jira");
               }
             }
             setVisning("default");

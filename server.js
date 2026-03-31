@@ -197,6 +197,7 @@ async function exchangeToken(userToken) {
 
 // Proxy for Jira description update via Forge
 const JIRA_FORGE_URL = 'https://96f81f54-9920-41c0-a6a1-f45bdbc548ad.hello.atlassian-dev.net/x1/WPJvDj6Vxt4N_owp0xJ1bz0HSYc';
+const JIRA_FORGE_COMMENT_URL = 'https://96f81f54-9920-41c0-a6a1-f45bdbc548ad.hello.atlassian-dev.net/x1/lsVk0jR_aCzx4T9pwD0TVRG3wVY';
 
 app.post('/embed/api/jira/update-description', async (req, res) => {
     try {
@@ -244,6 +245,55 @@ app.post('/embed/api/jira/update-description', async (req, res) => {
     } catch (error) {
         logError('JiraProxy', 'Error:', error);
         res.status(500).json({ error: 'Failed to update Jira description' });
+    }
+});
+
+app.post('/embed/api/jira/add-comment', async (req, res) => {
+    try {
+        const embedToken = req.headers.authorization?.replace('Bearer ', '');
+        if (!embedToken) {
+            return res.status(401).json({ error: 'No embed token' });
+        }
+
+        const stored = embedTokenStore.get(embedToken);
+        if (!stored || stored.expiresAt < Date.now()) {
+            if (stored) embedTokenStore.delete(embedToken);
+            return res.status(401).json({ error: 'Invalid or expired embed token' });
+        }
+
+        if (!EMBED_API_KEY) {
+            logError('JiraProxy', 'EMBED_API_KEY not configured');
+            return res.status(500).json({ error: 'API key not configured' });
+        }
+
+        const { issueKey, text } = req.body;
+        if (!issueKey || text == null) {
+            return res.status(400).json({ error: 'issueKey and text are required' });
+        }
+
+        log('JiraProxy', `Adding comment to ${issueKey} (user: ${stored.email})`);
+
+        const response = await fetch(JIRA_FORGE_COMMENT_URL, {
+            method: 'POST',
+            headers: {
+                'X-API-Key': EMBED_API_KEY,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ issueKey, text }),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            logError('JiraProxy', `Forge responded ${response.status}: ${errorText}`);
+            return res.status(response.status).json({ error: 'Forge request failed' });
+        }
+
+        const data = await response.json().catch(() => ({}));
+        log('JiraProxy', `Comment added to ${issueKey}`);
+        res.json(data);
+    } catch (error) {
+        logError('JiraProxy', 'Error:', error);
+        res.status(500).json({ error: 'Failed to add Jira comment' });
     }
 });
 
