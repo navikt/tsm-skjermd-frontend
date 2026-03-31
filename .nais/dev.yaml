@@ -50,3 +50,5 @@ spec:
     outbound:
       rules:
         - application: tsm-skjermd
+      external:
+        - host: 96f81f54-9920-41c0-a6a1-f45bdbc548ad.hello.atlassian-dev.net
