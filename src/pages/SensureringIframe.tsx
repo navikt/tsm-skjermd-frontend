@@ -48,14 +48,14 @@ export const SensureringIframe = () => {
 
   if (tilgang === "denied") {
     return (
-      <div className="p-4">
+      <div className="p-4 bg-pink-50">
         <Alert variant="warning">Ingen tilgang</Alert>
       </div>
     );
   }
 
   return (
-    <div ref={containerRef} className="p-2">
+    <div ref={containerRef} className="p-2 bg-pink-50">
       <SensureringEditor
         sakId={sakId}
         autoSave

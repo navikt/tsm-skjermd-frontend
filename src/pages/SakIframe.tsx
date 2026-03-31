@@ -155,7 +155,7 @@ export const SakIframe = () => {
 
   if (tilgang === "denied") {
     return (
-      <div className="p-4">
+      <div className="p-4 bg-pink-50">
         <Alert variant="warning">Ingen tilgang</Alert>
       </div>
     );
@@ -163,7 +163,7 @@ export const SakIframe = () => {
 
   if (visning === "sensurering" || visning === "kommenter") {
     return (
-      <div ref={contentRef} className="p-4">
+      <div ref={contentRef} className="p-4 bg-pink-50">
         <SensureringEditor
           sakId={sakId!}
           singleSaveButton
@@ -197,7 +197,7 @@ export const SakIframe = () => {
   }
 
   return (
-    <div ref={contentRef} className="p-4">
+    <div ref={contentRef} className="p-4 bg-pink-50">
       <VStack gap="3">
         {error && (
           <Alert variant="error" size="small" closeButton onClose={() => setError(null)}>
