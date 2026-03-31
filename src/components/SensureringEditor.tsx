@@ -186,6 +186,11 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave 
 
     range.deleteContents();
     range.insertNode(span);
+
+    if (!span.nextSibling || (span.nextSibling.nodeType !== Node.TEXT_NODE)) {
+      span.parentNode?.insertBefore(document.createTextNode("\u00A0"), span.nextSibling);
+    }
+
     selection.removeAllRanges();
 
     setSensurertListe((prev) => {
