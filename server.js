@@ -230,7 +230,7 @@ app.post('/embed/api/jira/update-description', async (req, res) => {
                 'X-API-Key': EMBED_API_KEY,
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ issueKey, text }),
+            body: JSON.stringify({ issueKey, text, email: stored.email }),
         });
 
         if (!response.ok) {
@@ -279,7 +279,7 @@ app.post('/embed/api/jira/add-comment', async (req, res) => {
                 'X-API-Key': EMBED_API_KEY,
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ issueKey, text }),
+            body: JSON.stringify({ issueKey, text, email: stored.email }),
         });
 
         if (!response.ok) {
