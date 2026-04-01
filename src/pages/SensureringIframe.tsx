@@ -48,14 +48,14 @@ export const SensureringIframe = () => {
 
   if (tilgang === "denied") {
     return (
-      <div className="p-4" style={{ backgroundColor: "var(--ax-bg-warning-soft)" }}>
+      <div className="p-4" style={{ backgroundColor: "var(--a-surface-warning-subtle)" }}>
         <Alert variant="warning">Ingen tilgang</Alert>
       </div>
     );
   }
 
   return (
-    <div ref={containerRef} className="p-2" style={{ backgroundColor: "var(--ax-bg-warning-soft)" }}>
+    <div ref={containerRef} className="p-2" style={{ backgroundColor: "var(--a-surface-warning-subtle)" }}>
       <SensureringEditor
         sakId={sakId}
         autoSave
