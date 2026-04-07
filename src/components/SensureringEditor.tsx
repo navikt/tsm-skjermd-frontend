@@ -326,9 +326,10 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave 
             <div
               ref={editableRef}
               contentEditable={!readOnly}
-              className={`min-h-[100px] p-3 border border-gray-300 rounded-lg
+              className={`min-h-[100px] p-3 border rounded-lg
                          whitespace-pre-wrap font-mono text-sm
-                         ${readOnly ? 'bg-gray-50 cursor-default' : 'bg-white focus:outline-none focus:ring-2 focus:ring-blue-500'}`}
+                         ${readOnly ? 'cursor-default' : 'focus:outline-none focus:ring-2'}`}
+              style={{ backgroundColor: readOnly ? 'var(--ax-bg-sunken)' : '#fff', borderColor: 'var(--ax-border-default)' }}
               suppressContentEditableWarning
             />
           </div>
