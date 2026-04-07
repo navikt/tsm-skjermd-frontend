@@ -302,21 +302,20 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave 
 
   return (
     <Box
-      background="surface-default"
-      padding="3"
-      borderRadius="large"
-      shadow="xsmall"
+      background="default"
+      padding="space-12"
+      borderRadius="8"
     >
-      <VStack gap="2">
+      <VStack gap="space-8">
         {!autoSave && (
-          <HStack gap="2" align="center">
+          <HStack gap="space-8" align="center">
             <FileTextIcon aria-hidden />
             <Heading size="xsmall">Marker sensitiv informasjon:</Heading>
           </HStack>
         )}
 
         {laster ? (
-          <HStack gap="2" align="center">
+          <HStack gap="space-8" align="center">
             <Loader size="small" />
             <BodyShort>Laster eksisterende sensurering...</BodyShort>
           </HStack>
@@ -336,8 +335,8 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave 
 
           {sensurertListe.length > 0 && (
             <div className="w-64 shrink-0">
-              <VStack gap="2">
-                <HStack gap="2" align="center">
+              <VStack gap="space-8">
+                <HStack gap="space-8" align="center">
                   <Heading size="xsmall">Sensurerte verdier</Heading>
                   <Tag variant="warning" size="xsmall">
                     {sensurertListe.length}
@@ -346,13 +345,13 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave 
                 {sensurertListe.map((item) => (
                   <Box
                     key={item.id}
-                    background="surface-subtle"
-                    padding="3"
-                    borderRadius="medium"
-                    borderColor="border-subtle"
+                    background="sunken"
+                    padding="space-12"
+                    borderRadius="4"
+                    borderColor="neutral-subtle"
                     borderWidth="1"
                   >
-                    <VStack gap="1">
+                    <VStack gap="space-4">
                       <HStack justify="space-between" align="center">
                         <Tag variant="neutral" size="xsmall" className="font-mono">
                           {item.placeholder}
@@ -379,7 +378,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave 
         </div>
 
         {!autoSave && !readOnly && (
-          <HStack gap="2">
+          <HStack gap="space-8">
             {singleSaveButton ? (
               <Button
                 variant="primary"

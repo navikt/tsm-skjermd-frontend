@@ -155,7 +155,7 @@ export const SakIframe = () => {
 
   if (tilgang === "denied") {
     return (
-      <div className="p-4" style={{ backgroundColor: "var(--a-surface-warning-subtle)" }}>
+      <div className="p-4" style={{ backgroundColor: "var(--ax-bg-warning-soft)" }}>
         <Alert variant="warning">Ingen tilgang</Alert>
       </div>
     );
@@ -163,7 +163,7 @@ export const SakIframe = () => {
 
   if (visning === "sensurering" || visning === "kommenter") {
     return (
-      <div ref={contentRef} className="p-4" style={{ backgroundColor: "var(--a-surface-warning-subtle)" }}>
+      <div ref={contentRef} className="p-4" style={{ backgroundColor: "var(--ax-bg-warning-soft)" }}>
         <SensureringEditor
           sakId={sakId!}
           singleSaveButton
@@ -197,8 +197,8 @@ export const SakIframe = () => {
   }
 
   return (
-    <div ref={contentRef} className="p-4" style={{ backgroundColor: "var(--a-surface-warning-subtle)" }}>
-      <VStack gap="3">
+    <div ref={contentRef} className="p-4" style={{ backgroundColor: "var(--ax-bg-warning-soft)" }}>
+      <VStack gap="space-12">
         {error && (
           <Alert variant="error" size="small" closeButton onClose={() => setError(null)}>
             {error}
@@ -208,15 +208,15 @@ export const SakIframe = () => {
         <Accordion>
           <Accordion.Item>
             <Accordion.Header>
-              <HStack gap="2" align="center">
+                <HStack gap="space-8" align="center">
                 <BodyShort size="small" weight="semibold">Sensurerte verdier</BodyShort>
                 <Tag variant="neutral" size="xsmall">{sensurertElementer.length}</Tag>
               </HStack>
             </Accordion.Header>
             <Accordion.Content>
-              <VStack gap="3">
+              <VStack gap="space-12">
                 {sensureringLaster ? (
-                  <HStack gap="2" align="center">
+                  <HStack gap="space-8" align="center">
                     <Loader size="small" />
                     <BodyShort size="small">Laster sensurerte verdier...</BodyShort>
                   </HStack>
@@ -225,17 +225,17 @@ export const SakIframe = () => {
                 ) : sensurertElementer.length === 0 ? (
                   <Detail className="text-gray-500">Ingen sensurerte verdier ennå.</Detail>
                 ) : (
-                  <VStack gap="1">
+                  <VStack gap="space-4">
                     {sensurertElementer.map((el, i) => (
                       <Box
                         key={`existing-${i}`}
-                        background="surface-subtle"
-                        padding="2"
-                        borderRadius="medium"
-                        borderColor="border-subtle"
+                        background="sunken"
+                        padding="space-8"
+                        borderRadius="4"
+                        borderColor="neutral-subtle"
                         borderWidth="1"
                       >
-                        <HStack gap="2" align="center">
+                        <HStack gap="space-8" align="center">
                           <Tag variant="neutral" size="xsmall" className="font-mono">
                             {el.placeholder}
                           </Tag>
@@ -256,13 +256,13 @@ export const SakIframe = () => {
           <Accordion>
             <Accordion.Item>
               <Accordion.Header>
-                <HStack gap="2" align="center">
+                <HStack gap="space-8" align="center">
                   <BodyShort size="small" weight="semibold">Tilganger</BodyShort>
                   <Tag variant="neutral" size="xsmall">{sak.tilganger.length}</Tag>
                 </HStack>
               </Accordion.Header>
               <Accordion.Content>
-                <VStack gap="2">
+                <VStack gap="space-8">
                   <HStack justify="space-between" align="center">
                     <Detail weight="semibold">Administrer tilganger</Detail>
                     <Button
@@ -293,7 +293,7 @@ export const SakIframe = () => {
                         {sak.tilganger.map((t) => (
                           <Table.Row key={t.navIdent}>
                             <Table.DataCell>
-                              <HStack gap="1" align="center">
+                              <HStack gap="space-4" align="center">
                                 <PersonIcon aria-hidden fontSize="1rem" />
                                 {t.navIdent}
                                 {t.navIdent === sak.opprettetAv && (
@@ -334,7 +334,7 @@ export const SakIframe = () => {
           <Detail className="text-gray-500">Tilgangspanelet er ikke tilgjengelig i denne visningen.</Detail>
         )}
 
-        <HStack gap="2">
+        <HStack gap="space-8">
           <Button
             variant="secondary"
             size="small"
@@ -363,7 +363,7 @@ export const SakIframe = () => {
         header={{ heading: "Gi tilgang", closeButton: true }}
       >
         <Modal.Body>
-          <VStack gap="4">
+          <VStack gap="space-16">
             <BodyShort>
               Gi en bruker tilgang til saken <strong>{sak?.jiraIssueKey ?? sakId}</strong>.
             </BodyShort>

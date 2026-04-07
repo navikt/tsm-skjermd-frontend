@@ -167,12 +167,12 @@ export const SakDetail = () => {
   if (!sak) {
     return (
       <Box
-        background="surface-subtle"
-        padding="8"
-        borderRadius="large"
+        background="sunken"
+        padding="space-32"
+        borderRadius="8"
         className="text-center"
       >
-        <VStack gap="4" align="center">
+        <VStack gap="space-16" align="center">
           <FileTextIcon className="text-gray-400" style={{ fontSize: "3rem" }} />
           <Heading size="small">Sak ikke funnet</Heading>
           <BodyShort className="text-gray-500">
@@ -188,17 +188,16 @@ export const SakDetail = () => {
 
   return (
     <>
-      <VStack gap="6">
+      <VStack gap="space-24">
         {/* Header */}
         <Box
-          background="surface-default"
-          padding="5"
-          borderRadius="large"
-          shadow="xsmall"
+          background="default"
+          padding="space-20"
+          borderRadius="8"
         >
-          <HStack justify="space-between" align="start" wrap gap="4">
-            <VStack gap="3">
-              <HStack gap="2" align="center">
+          <HStack justify="space-between" align="start" wrap gap="space-16">
+            <VStack gap="space-12">
+              <HStack gap="space-8" align="center">
                 <Button
                   as={Link}
                   to="/"
@@ -209,7 +208,7 @@ export const SakDetail = () => {
                   Tilbake
                 </Button>
               </HStack>
-              <HStack gap="3" align="center">
+              <HStack gap="space-12" align="center">
                 <Heading size="large">{sak.jiraIssueKey ?? "Uten Jira-kobling"}</Heading>
                 {sak.endretTidspunkt ? (
                   <Tag variant="warning" size="small">
@@ -221,7 +220,7 @@ export const SakDetail = () => {
                   </Tag>
                 )}
               </HStack>
-              <HStack gap="1" align="center" className="text-gray-500">
+              <HStack gap="space-4" align="center" className="text-gray-500">
                 <Detail>ID: {sak.id}</Detail>
                 <CopyButton
                   size="xsmall"
@@ -230,7 +229,7 @@ export const SakDetail = () => {
                 />
               </HStack>
             </VStack>
-            <HStack gap="2">
+            <HStack gap="space-8">
               {!editing && (
                 <>
                   <Button
@@ -263,24 +262,24 @@ export const SakDetail = () => {
 
         {/* Metadata */}
         <Box
-          background="surface-subtle"
-          padding="5"
-          borderRadius="large"
+          background="sunken"
+          padding="space-20"
+          borderRadius="8"
         >
-          <VStack gap="4">
+          <VStack gap="space-16">
             <Heading size="xsmall" className="text-gray-600">
               Saksinformasjon
             </Heading>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <VStack gap="1">
-                <HStack gap="1" align="center" className="text-gray-500">
+              <VStack gap="space-4">
+                <HStack gap="space-4" align="center" className="text-gray-500">
                   <PersonIcon aria-hidden fontSize="1rem" />
                   <Detail>Opprettet av</Detail>
                 </HStack>
                 <BodyShort weight="semibold">{sak.opprettetAv}</BodyShort>
               </VStack>
-              <VStack gap="1">
-                <HStack gap="1" align="center" className="text-gray-500">
+              <VStack gap="space-4">
+                <HStack gap="space-4" align="center" className="text-gray-500">
                   <ClockIcon aria-hidden fontSize="1rem" />
                   <Detail>Opprettet</Detail>
                 </HStack>
@@ -291,8 +290,8 @@ export const SakDetail = () => {
                   kl. {formatTid(sak.opprettetTidspunkt)}
                 </Detail>
               </VStack>
-              <VStack gap="1">
-                <HStack gap="1" align="center" className="text-gray-500">
+              <VStack gap="space-4">
+                <HStack gap="space-4" align="center" className="text-gray-500">
                   <PersonIcon aria-hidden fontSize="1rem" />
                   <Detail>Endret av</Detail>
                 </HStack>
@@ -300,8 +299,8 @@ export const SakDetail = () => {
                   {sak.endretAv || "-"}
                 </BodyShort>
               </VStack>
-              <VStack gap="1">
-                <HStack gap="1" align="center" className="text-gray-500">
+              <VStack gap="space-4">
+                <HStack gap="space-4" align="center" className="text-gray-500">
                   <ClockIcon aria-hidden fontSize="1rem" />
                   <Detail>Sist endret</Detail>
                 </HStack>
@@ -324,14 +323,13 @@ export const SakDetail = () => {
 
         {/* Sensitiv data */}
         <Box
-          background="surface-default"
-          padding="5"
-          borderRadius="large"
-          shadow="xsmall"
+          background="default"
+          padding="space-20"
+          borderRadius="8"
         >
-          <VStack gap="4">
+          <VStack gap="space-16">
             <HStack justify="space-between" align="center">
-              <HStack gap="2" align="center">
+              <HStack gap="space-8" align="center">
                 <FileTextIcon aria-hidden />
                 <Heading size="xsmall">Sensitiv informasjon</Heading>
               </HStack>
@@ -345,7 +343,7 @@ export const SakDetail = () => {
             </HStack>
 
             {editing ? (
-              <VStack gap="4">
+              <VStack gap="space-16">
                 <Textarea
                   label="Sensitiv informasjon"
                   hideLabel
@@ -354,7 +352,7 @@ export const SakDetail = () => {
                   rows={12}
                   className="font-mono"
                 />
-                <HStack gap="2">
+                <HStack gap="space-8">
                   <Button
                     icon={<FloppydiskIcon aria-hidden />}
                     onClick={handleSave}
@@ -373,9 +371,9 @@ export const SakDetail = () => {
               </VStack>
             ) : (
               <Box
-                background="surface-subtle"
-                padding="4"
-                borderRadius="medium"
+                background="sunken"
+                padding="space-16"
+                borderRadius="4"
                 className="overflow-auto"
               >
                 <pre className="whitespace-pre-wrap font-mono text-sm m-0">
@@ -388,14 +386,13 @@ export const SakDetail = () => {
 
         {/* Tilganger */}
         <Box
-          background="surface-default"
-          padding="5"
-          borderRadius="large"
-          shadow="xsmall"
+          background="default"
+          padding="space-20"
+          borderRadius="8"
         >
-          <VStack gap="4">
+          <VStack gap="space-16">
             <HStack justify="space-between" align="center">
-              <HStack gap="2" align="center">
+              <HStack gap="space-8" align="center">
                 <PersonGroupIcon aria-hidden />
                 <Heading size="xsmall">Tilganger</Heading>
               </HStack>
@@ -427,7 +424,7 @@ export const SakDetail = () => {
                   {sak.tilganger.map((tilgang) => (
                     <Table.Row key={tilgang.navIdent}>
                       <Table.DataCell>
-                        <HStack gap="2" align="center">
+                        <HStack gap="space-8" align="center">
                           <PersonIcon aria-hidden fontSize="1rem" />
                           {tilgang.navIdent}
                           {tilgang.navIdent === sak.opprettetAv && (
@@ -466,12 +463,12 @@ export const SakDetail = () => {
         {/* Jira-lenke */}
         {sak.jiraIssueKey && (
           <Box
-            background="surface-action-subtle"
-            padding="4"
-            borderRadius="large"
+            background="accent-soft"
+            padding="space-16"
+            borderRadius="8"
           >
             <HStack justify="space-between" align="center">
-              <VStack gap="1">
+              <VStack gap="space-4">
                 <Detail className="text-gray-600">Koblet til Jira-sak</Detail>
                 <BodyShort weight="semibold">{sak.jiraIssueKey}</BodyShort>
               </VStack>
@@ -502,7 +499,7 @@ export const SakDetail = () => {
         header={{ heading: "Slett sak", closeButton: true }}
       >
         <Modal.Body>
-          <VStack gap="4">
+          <VStack gap="space-16">
             <BodyShort>
               Er du sikker på at du vil slette saken{" "}
               <strong>{sak.jiraIssueKey ?? sak.id}</strong>? Dette kan ikke angres.
@@ -544,7 +541,7 @@ export const SakDetail = () => {
         header={{ heading: "Gi tilgang", closeButton: true }}
       >
         <Modal.Body>
-          <VStack gap="4">
+          <VStack gap="space-16">
             <BodyShort>
               Gi en bruker tilgang til saken <strong>{sak.jiraIssueKey ?? sak.id}</strong>.
             </BodyShort>

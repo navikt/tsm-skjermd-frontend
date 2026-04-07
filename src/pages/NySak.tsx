@@ -65,16 +65,15 @@ export const NySak = () => {
   };
 
   return (
-    <VStack gap="6">
+    <VStack gap="space-24">
       {/* Header */}
       <Box
-        background="surface-default"
-        padding="5"
-        borderRadius="large"
-        shadow="xsmall"
+        background="default"
+        padding="space-20"
+        borderRadius="8"
       >
-        <VStack gap="3">
-          <HStack gap="2" align="center">
+        <VStack gap="space-12">
+          <HStack gap="space-8" align="center">
             <Button
               as={Link}
               to="/"
@@ -85,7 +84,7 @@ export const NySak = () => {
               Tilbake
             </Button>
           </HStack>
-          <HStack gap="3" align="center">
+          <HStack gap="space-12" align="center">
             <PlusCircleIcon fontSize="1.5rem" className="text-blue-600" />
             <Heading size="large">Opprett ny sak</Heading>
           </HStack>
@@ -103,7 +102,7 @@ export const NySak = () => {
 
       {/* Info panel */}
       <GuidePanel>
-        <VStack gap="2">
+        <VStack gap="space-8">
           <BodyShort weight="semibold">Om skjermede saker</BodyShort>
           <BodyShort>
             Sensitiv informasjon du legger inn her blir lagret sikkert og vil
@@ -117,13 +116,12 @@ export const NySak = () => {
       <Box
         as="form"
         onSubmit={handleSubmit}
-        background="surface-default"
-        padding="6"
-        borderRadius="large"
-        shadow="xsmall"
+        background="default"
+        padding="space-24"
+        borderRadius="8"
       >
-        <VStack gap="6">
-          <VStack gap="2">
+        <VStack gap="space-24">
+          <VStack gap="space-8">
             <TextField
               label="Jira-nøkkel (valgfritt)"
               description="Nøkkelen til Jira-saken som skal kobles til (f.eks. TSM-1234). Kan legges til senere."
@@ -153,11 +151,11 @@ export const NySak = () => {
 
           {sensitivData && (
             <Box
-              background="surface-subtle"
-              padding="3"
-              borderRadius="medium"
+              background="sunken"
+              padding="space-12"
+              borderRadius="4"
             >
-              <HStack gap="2" align="center">
+              <HStack gap="space-8" align="center">
                 <InformationSquareIcon className="text-gray-500" />
                 <Detail className="text-gray-600">
                   {sensitivData.length} tegn ·{" "}
@@ -167,7 +165,7 @@ export const NySak = () => {
             </Box>
           )}
 
-          <HStack gap="3" className="pt-4 border-t border-gray-200">
+          <HStack gap="space-12" className="pt-4 border-t border-gray-200">
             <Button
               type="submit"
               icon={<FloppydiskIcon aria-hidden />}

@@ -104,9 +104,9 @@ export const SakerList = () => {
   }
 
   return (
-    <VStack gap="6">
-      <HStack justify="space-between" align="center" wrap gap="4">
-        <VStack gap="1">
+    <VStack gap="space-24">
+      <HStack justify="space-between" align="center" wrap gap="space-16">
+        <VStack gap="space-4">
           <Heading size="large">Skjermede saker</Heading>
           <BodyShort className="text-gray-500">
             {saker.length} {saker.length === 1 ? "sak" : "saker"} totalt
@@ -129,11 +129,11 @@ export const SakerList = () => {
       )}
 
       <Box
-        background="surface-subtle"
-        padding="4"
-        borderRadius="large"
+        background="sunken"
+        padding="space-16"
+        borderRadius="8"
       >
-        <VStack gap="4">
+        <VStack gap="space-16">
           <Search
             label="Søk i saker"
             hideLabel
@@ -167,12 +167,12 @@ export const SakerList = () => {
 
       {filteredSaker.length === 0 ? (
         <Box
-          background="surface-subtle"
-          padding="8"
-          borderRadius="large"
+          background="sunken"
+          padding="space-32"
+          borderRadius="8"
           className="text-center"
         >
-          <VStack gap="2" align="center">
+          <VStack gap="space-8" align="center">
             <MagnifyingGlassIcon
               className="text-gray-400"
               style={{ fontSize: "3rem" }}
@@ -190,7 +190,7 @@ export const SakerList = () => {
           </VStack>
         </Box>
       ) : (
-        <VStack gap="3">
+        <VStack gap="space-12">
           {filteredSaker.map((sak) => (
             <Link
               key={sak.id}
@@ -198,15 +198,14 @@ export const SakerList = () => {
               className="no-underline"
             >
               <Box
-                background="surface-default"
-                padding="4"
-                borderRadius="large"
-                shadow="xsmall"
+                background="default"
+                padding="space-16"
+                borderRadius="8"
                 className="hover:shadow-medium transition-shadow cursor-pointer border border-transparent hover:border-blue-300"
               >
-                <HStack justify="space-between" align="center" gap="4">
-                  <VStack gap="2" className="flex-1">
-                    <HStack gap="3" align="center">
+                <HStack justify="space-between" align="center" gap="space-16">
+                  <VStack gap="space-8" className="flex-1">
+                    <HStack gap="space-12" align="center">
                       <Heading size="small" className="text-blue-600">
                         {sak.jiraIssueKey ?? "Uten Jira-kobling"}
                       </Heading>
@@ -220,12 +219,12 @@ export const SakerList = () => {
                         </Tag>
                       )}
                     </HStack>
-                    <HStack gap="4" className="text-gray-500">
-                      <HStack gap="1" align="center">
+                    <HStack gap="space-16" className="text-gray-500">
+                      <HStack gap="space-4" align="center">
                         <PersonIcon aria-hidden fontSize="1rem" />
                         <Detail>{sak.opprettetAv}</Detail>
                       </HStack>
-                      <HStack gap="1" align="center">
+                      <HStack gap="space-4" align="center">
                         <ClockIcon aria-hidden fontSize="1rem" />
                         <Detail>
                           {formatDato(sak.opprettetTidspunkt)} kl.{" "}
@@ -234,7 +233,7 @@ export const SakerList = () => {
                       </HStack>
                     </HStack>
                   </VStack>
-                  <HStack gap="2" align="center">
+                  <HStack gap="space-8" align="center">
                     <Button
                       variant="tertiary-neutral"
                       size="small"

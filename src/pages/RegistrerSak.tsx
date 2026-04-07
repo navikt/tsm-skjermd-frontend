@@ -122,12 +122,12 @@ export const RegistrerSak = () => {
   if (!sak) {
     return (
       <Box
-        background="surface-subtle"
-        padding="8"
-        borderRadius="large"
+        background="sunken"
+        padding="space-32"
+        borderRadius="8"
         className="text-center"
       >
-        <VStack gap="4" align="center">
+        <VStack gap="space-16" align="center">
           <FileTextIcon className="text-gray-400" style={{ fontSize: "3rem" }} />
           <Heading size="small">Sak ikke funnet</Heading>
           <BodyShort className="text-gray-500">
@@ -143,7 +143,7 @@ export const RegistrerSak = () => {
 
   return (
     <>
-      <VStack gap="6">
+      <VStack gap="space-24">
         {error && (
           <Alert variant="error" closeButton onClose={() => setError(null)}>
             {error}
@@ -153,7 +153,7 @@ export const RegistrerSak = () => {
         {/* Lesemodus-varsling */}
         {sak.jiraIssueKey && (
           <Alert variant="info">
-            <HStack gap="2" align="center">
+            <HStack gap="space-8" align="center">
               <ShieldLockIcon aria-hidden />
               Saken er knyttet til Jira-sak {sak.jiraIssueKey} og kan ikke redigeres. Tilganger kan fortsatt endres.
             </HStack>
@@ -167,13 +167,13 @@ export const RegistrerSak = () => {
         <Accordion>
           <Accordion.Item>
             <Accordion.Header>
-              <HStack gap="2" align="center">
+              <HStack gap="space-8" align="center">
                 <PersonGroupIcon aria-hidden />
                 Tilganger
               </HStack>
             </Accordion.Header>
             <Accordion.Content>
-              <VStack gap="4">
+              <VStack gap="space-16">
                 <HStack justify="end">
                   <Button
                     variant="tertiary"
@@ -203,7 +203,7 @@ export const RegistrerSak = () => {
                       {sak.tilganger.map((tilgang) => (
                         <Table.Row key={tilgang.navIdent}>
                           <Table.DataCell>
-                            <HStack gap="2" align="center">
+                            <HStack gap="space-8" align="center">
                               <PersonIcon aria-hidden fontSize="1rem" />
                               {tilgang.navIdent}
                               {tilgang.navIdent === sak.opprettetAv && (
@@ -247,15 +247,15 @@ export const RegistrerSak = () => {
             <Accordion.Header>Saksinformasjon</Accordion.Header>
             <Accordion.Content>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <VStack gap="1">
-                  <HStack gap="1" align="center" className="text-gray-500">
+                <VStack gap="space-4">
+                  <HStack gap="space-4" align="center" className="text-gray-500">
                     <PersonIcon aria-hidden fontSize="1rem" />
                     <Detail>Opprettet av</Detail>
                   </HStack>
                   <BodyShort weight="semibold">{sak.opprettetAv}</BodyShort>
                 </VStack>
-                <VStack gap="1">
-                  <HStack gap="1" align="center" className="text-gray-500">
+                <VStack gap="space-4">
+                  <HStack gap="space-4" align="center" className="text-gray-500">
                     <ClockIcon aria-hidden fontSize="1rem" />
                     <Detail>Opprettet</Detail>
                   </HStack>
@@ -266,8 +266,8 @@ export const RegistrerSak = () => {
                     kl. {formatTid(sak.opprettetTidspunkt)}
                   </Detail>
                 </VStack>
-                <VStack gap="1">
-                  <HStack gap="1" align="center" className="text-gray-500">
+                <VStack gap="space-4">
+                  <HStack gap="space-4" align="center" className="text-gray-500">
                     <PersonIcon aria-hidden fontSize="1rem" />
                     <Detail>Endret av</Detail>
                   </HStack>
@@ -275,8 +275,8 @@ export const RegistrerSak = () => {
                     {sak.endretAv || "-"}
                   </BodyShort>
                 </VStack>
-                <VStack gap="1">
-                  <HStack gap="1" align="center" className="text-gray-500">
+                <VStack gap="space-4">
+                  <HStack gap="space-4" align="center" className="text-gray-500">
                     <ClockIcon aria-hidden fontSize="1rem" />
                     <Detail>Sist endret</Detail>
                   </HStack>
@@ -295,7 +295,7 @@ export const RegistrerSak = () => {
                 </VStack>
               </div>
               {sak.jiraIssueKey && (
-                <HStack gap="2" align="center" className="mt-4">
+                <HStack gap="space-8" align="center" className="mt-4">
                   <Detail className="text-gray-500">Jira-sak:</Detail>
                   <Button
                     as="a"
@@ -326,7 +326,7 @@ export const RegistrerSak = () => {
         header={{ heading: "Gi tilgang", closeButton: true }}
       >
         <Modal.Body>
-          <VStack gap="4">
+          <VStack gap="space-16">
             <BodyShort>
               Gi en bruker tilgang til saken <strong>{sak.jiraIssueKey ?? sak.id}</strong>.
             </BodyShort>
