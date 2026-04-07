@@ -7,6 +7,9 @@ export default {
     "./node_modules/@navikt/**/dist/*.js"
   ],
   presets: [dsTailwind],
+  corePlugins: {
+    preflight: false,
+  },
   theme: {
     extend: {},
   },
