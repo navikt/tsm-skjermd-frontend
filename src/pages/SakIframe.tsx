@@ -154,7 +154,7 @@ export const SakIframe = () => {
 
   if (tilgang === "denied") {
     return (
-      <div className="p-4" style={{ backgroundColor: "var(--ax-bg-warning-soft)" }}>
+      <div className="p-4" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
         <Alert variant="warning">Ingen tilgang</Alert>
       </div>
     );
@@ -162,7 +162,7 @@ export const SakIframe = () => {
 
   if (visning === "sensurering" || visning === "kommenter") {
     return (
-      <div ref={contentRef} className="p-4" style={{ backgroundColor: "var(--ax-bg-warning-soft)" }}>
+      <div ref={contentRef} className="p-4" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
         <SensureringEditor
           sakId={sakId!}
           singleSaveButton
@@ -197,7 +197,7 @@ export const SakIframe = () => {
   }
 
   return (
-    <div ref={contentRef} className="p-4" style={{ backgroundColor: "var(--ax-bg-warning-soft)" }}>
+    <div ref={contentRef} className="p-4" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
       <VStack gap="space-12">
         {error && (
           <Alert variant="error" size="small" closeButton onClose={() => setError(null)}>
