@@ -337,7 +337,6 @@ export const SakIframe = () => {
         <HStack gap="space-8">
           <Button
             variant="secondary"
-            size="small"
             icon={<EyeSlashIcon aria-hidden />}
             onClick={() => setVisning("sensurering")}
           >
@@ -345,7 +344,6 @@ export const SakIframe = () => {
           </Button>
           <Button
             variant="secondary"
-            size="small"
             icon={<EyeSlashIcon aria-hidden />}
             onClick={() => setVisning("kommenter")}
           >

@@ -302,7 +302,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave 
 
   return (
     <Box
-      background="default"
+      background="warning-soft"
       padding="space-12"
       borderRadius="8"
     >
