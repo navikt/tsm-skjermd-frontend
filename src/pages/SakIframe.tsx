@@ -19,7 +19,6 @@ import {
   PersonIcon,
   PlusIcon,
   TrashIcon,
-  EyeSlashIcon,
 } from "@navikt/aksel-icons";
 import { sakApi, sensureringApi } from "../api/sakApi";
 import type { Sak, SensurertElement } from "../api/types";
@@ -336,15 +335,13 @@ export const SakIframe = () => {
 
         <HStack gap="space-8">
           <Button
-            variant="secondary"
-            icon={<EyeSlashIcon aria-hidden />}
+            variant="primary"
             onClick={() => setVisning("sensurering")}
           >
             Rediger beskrivelse
           </Button>
           <Button
-            variant="secondary"
-            icon={<EyeSlashIcon aria-hidden />}
+            variant="primary"
             onClick={() => setVisning("kommenter")}
           >
             Kommenter
