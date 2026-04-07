@@ -336,12 +336,14 @@ export const SakIframe = () => {
         <HStack gap="space-8">
           <Button
             variant="primary"
+            size="small"
             onClick={() => setVisning("sensurering")}
           >
             Rediger beskrivelse
           </Button>
           <Button
             variant="primary"
+            size="small"
             onClick={() => setVisning("kommenter")}
           >
             Kommenter
