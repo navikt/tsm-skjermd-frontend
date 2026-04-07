@@ -1,4 +1,5 @@
 import dsTailwind from "@navikt/ds-tailwind";
+import colors from "tailwindcss/colors";
 
 export default {
   content: [
@@ -11,7 +12,15 @@ export default {
     preflight: false,
   },
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        white: colors.white,
+        black: colors.black,
+        gray: colors.gray,
+        red: colors.red,
+        blue: colors.blue,
+      },
+    },
   },
   plugins: [],
 };
