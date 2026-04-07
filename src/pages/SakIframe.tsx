@@ -167,6 +167,7 @@ export const SakIframe = () => {
           sakId={sakId!}
           singleSaveButton
           kommentarModus={visning === "kommenter"}
+          onAvbryt={() => setVisning("default")}
           onLagreOgLukk={async (sensurertTekst) => {
             if (sak?.jiraIssueKey) {
               const endpoint = visning === "kommenter"

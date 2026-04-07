@@ -26,6 +26,7 @@ type SensurertItem = SensurertElement & { id: string };
 interface SensureringEditorProps {
   sakId: string;
   onLagreOgLukk?: (sensurertTekst: string) => void;
+  onAvbryt?: () => void;
   onAuthError?: () => void;
   autoSave?: boolean;
   readOnly?: boolean;
@@ -33,7 +34,7 @@ interface SensureringEditorProps {
   kommentarModus?: boolean;
 }
 
-export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave = false, readOnly = false, singleSaveButton = false, kommentarModus = false }: SensureringEditorProps) => {
+export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError, autoSave = false, readOnly = false, singleSaveButton = false, kommentarModus = false }: SensureringEditorProps) => {
   const [sensurertListe, setSensurertListe] = useState<SensurertItem[]>([]);
   const [originaltekst, setOriginaltekst] = useState("");
   const [lagrer, setLagrer] = useState(false);
@@ -380,15 +381,26 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAuthError, autoSave 
         {!autoSave && !readOnly && (
           <HStack gap="space-8">
             {singleSaveButton ? (
-              <Button
-                variant="primary"
-                size="small"
-                icon={<FloppydiskIcon aria-hidden />}
-                onClick={handleLagreOgLukk}
-                loading={lagrer}
-              >
-                Lagre
-              </Button>
+              <>
+                <Button
+                  variant="primary"
+                  size="small"
+                  icon={<FloppydiskIcon aria-hidden />}
+                  onClick={handleLagreOgLukk}
+                  loading={lagrer}
+                >
+                  Lagre
+                </Button>
+                {onAvbryt && (
+                  <Button
+                    variant="tertiary"
+                    size="small"
+                    onClick={onAvbryt}
+                  >
+                    Avbryt
+                  </Button>
+                )}
+              </>
             ) : (
               <>
                 <Button
