@@ -16,7 +16,7 @@ export const SensureringIframe = () => {
       return;
     }
 
-    fetch(`/api/validate-embed-token?token=${encodeURIComponent(token)}`)
+    fetch(`/api/validate-embed-token?token=${encodeURIComponent(token)}&sakId=${encodeURIComponent(sakId)}`)
       .then((res) => {
         setTilgang(res.ok ? "ok" : "denied");
       }).catch(() => {

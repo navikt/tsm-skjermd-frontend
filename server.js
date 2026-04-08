@@ -136,6 +136,12 @@ app.get('/api/validate-embed-token', (req, res) => {
         return res.status(401).json({ valid: false, error: 'Token expired' });
     }
 
+    const requestedSakId = req.query.sakId;
+    if (requestedSakId && requestedSakId !== stored.sakId) {
+        log('Embed', `Validation failed: token for sak ${stored.sakId}, requested sak ${requestedSakId}`);
+        return res.status(403).json({ valid: false, error: 'Token not valid for this sak' });
+    }
+
     log('Embed', `Token validated for sak ${stored.sakId}, user ${stored.email}`);
     res.json({ valid: true, sakId: stored.sakId });
 });
@@ -317,6 +323,12 @@ app.use('/embed/api', async (req, res) => {
             embedTokenStore.delete(embedToken);
             logError('EmbedProxy', 'Expired embed token');
             return res.status(401).json({ error: 'Embed token expired' });
+        }
+
+        const requestedSakId = req.url.match(/\/saker\/([^/]+)/)?.[1];
+        if (requestedSakId && requestedSakId !== stored.sakId) {
+            logError('EmbedProxy', `Token for sak ${stored.sakId} used against sak ${requestedSakId}`);
+            return res.status(403).json({ error: 'Token not valid for this sak' });
         }
 
         const targetUrl = `${BACKEND_URL}/embed/v1${req.url}`;
