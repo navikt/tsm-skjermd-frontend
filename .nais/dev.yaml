@@ -37,6 +37,7 @@ spec:
           - /embed/api/saker/*/tilganger
           - /embed/api/saker/*/tilganger/*
           - /embed/sensurering/*
+          - /embed/sensurering-editor/*
           - /embed/api/saker/*/sensurering
           - /embed/api/jira/update-description
           - /embed/api/jira/add-comment
