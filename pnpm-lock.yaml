@@ -6,6 +6,7 @@ settings:
 
 overrides:
   minimatch@>=9.0.0 <9.0.7: '>=9.0.7'
+  picomatch@>=4.0.0 <4.0.3: '>=4.0.3'
 
 importers:
 
@@ -984,7 +985,7 @@ packages:
   fdir@6.4.4:
     resolution: {integrity: sha512-1NZP+GK4GfuAv3PqKvxQRDMjdSRZjnkq7KfhlNrCNNlZ0ygQFpebfrnfnq/W7fpUnAv9aGWmY1zKx7FYL3gwhg==}
     peerDependencies:
-      picomatch: ^3 || ^4
+      picomatch: '>=4.0.3'
     peerDependenciesMeta:
       picomatch:
         optional: true
@@ -1351,8 +1352,8 @@ packages:
     resolution: {integrity: sha512-JU3teHTNjmE2VCGFzuY8EXzCDVwEqB2a8fsIvwaStHhAWJEeVd1o1QD80CU6+ZdEXXSLbSsuLwJjkCBWqRQUVA==}
     engines: {node: '>=8.6'}
 
-  picomatch@4.0.2:
-    resolution: {integrity: sha512-M7BAV6Rlcy5u+m6oPhAPFgJTzAioX/6B0DxyvDlo9l8+T3nLKbrczg2WLUyzd45L8RqfUMyGPzekbMvX2Ldkwg==}
+  picomatch@4.0.4:
+    resolution: {integrity: sha512-QP88BAKvMam/3NxH6vj2o21R6MjxZUAd6nlwAS/pnGvN9IVLocLHxGYIzFhg6fUQ+5th6P4dv4eW9jX3DSIj7A==}
     engines: {node: '>=12'}
 
   pify@2.3.0:
@@ -2649,9 +2650,9 @@ snapshots:
     dependencies:
       reusify: 1.1.0
 
-  fdir@6.4.4(picomatch@4.0.2):
+  fdir@6.4.4(picomatch@4.0.4):
     optionalDependencies:
-      picomatch: 4.0.2
+      picomatch: 4.0.4
 
   file-entry-cache@8.0.0:
     dependencies:
@@ -2966,7 +2967,7 @@ snapshots:
 
   picomatch@2.3.1: {}
 
-  picomatch@4.0.2: {}
+  picomatch@4.0.4: {}
 
   pify@2.3.0: {}
 
@@ -3277,8 +3278,8 @@ snapshots:
 
   tinyglobby@0.2.13:
     dependencies:
-      fdir: 6.4.4(picomatch@4.0.2)
-      picomatch: 4.0.2
+      fdir: 6.4.4(picomatch@4.0.4)
+      picomatch: 4.0.4
 
   to-regex-range@5.0.1:
     dependencies:
@@ -3335,8 +3336,8 @@ snapshots:
   vite@6.4.1(@types/node@22.15.19)(jiti@1.21.7)(yaml@2.8.0):
     dependencies:
       esbuild: 0.25.4
-      fdir: 6.4.4(picomatch@4.0.2)
-      picomatch: 4.0.2
+      fdir: 6.4.4(picomatch@4.0.4)
+      picomatch: 4.0.4
       postcss: 8.5.3
       rollup: 4.41.0
       tinyglobby: 0.2.13
