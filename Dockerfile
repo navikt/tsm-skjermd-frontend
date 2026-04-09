@@ -1,5 +1,5 @@
 # --- STAGE 1: Build ---
-FROM europe-north1-docker.pkg.dev/cgr-nav/pull-through/nav.no/node:latest-dev AS builder
+FROM europe-north1-docker.pkg.dev/cgr-nav/pull-through/nav.no/node:25-dev AS builder
 USER root
 RUN corepack enable && corepack prepare pnpm@10.5.2 --activate
 WORKDIR /app
@@ -18,7 +18,7 @@ RUN pnpm run build
 
 
 # --- STAGE 2: Runtime ---
-FROM europe-north1-docker.pkg.dev/cgr-nav/pull-through/nav.no/node:latest-slim
+FROM europe-north1-docker.pkg.dev/cgr-nav/pull-through/nav.no/node:25-slim
 WORKDIR /app
 
 COPY --from=builder --chown=node:node /app/node_modules ./node_modules
