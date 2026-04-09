@@ -1,23 +1,36 @@
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { Header } from "./components/Header";
 import { Footer } from "./components/Footer";
+import { userApi } from "./api/sakApi";
+import type { UserInfo } from "./api/types";
+import { createLogger } from "./logger";
+
+const log = createLogger("Layout");
 
 type Props = {
-    children: ReactNode;
-    title?: string;
+  children: ReactNode;
 };
 
-export const AppLayout = ({ children, title = "Jira Widget" }: Props) => {
-    return (
-        <div className="min-h-screen flex flex-col">
-            <Header title={title} userName={"userName"} />
+export const AppLayout = ({ children }: Props) => {
+  const [user, setUser] = useState<UserInfo | null>(null);
 
-            {/* Main-innhold sentrert */}
-            <main className="flex-1 flex items-center justify-center bg-gray-50">
-                <div className="w-full max-w-2xl p-6">{children}</div>
-            </main>
+  useEffect(() => {
+    userApi.hentBruker()
+      .then(setUser)
+      .catch((err) => log.error("Kunne ikke hente bruker", err));
+  }, []);
 
-            <Footer />
+  return (
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      <Header userName={user?.navIdent} />
+
+      <main className="flex-1 py-8">
+        <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          {children}
         </div>
-    );
+      </main>
+
+      <Footer />
+    </div>
+  );
 };

@@ -1,18 +1,21 @@
 apiVersion: nais.io/v1alpha1
 kind: Application
 metadata:
-    name: jira-secret-display
+    name: tsm-skjermd-frontend
     namespace: team-service-management
     labels:
         team: team-service-management
 spec:
+  envFrom:
+    - secret: serviceaccounts-jira
   ingresses:
-    - https://jira-secret-display.intern.dev.nav.no
+    - https://tsm-skjermd-frontend.intern.dev.nav.no
+    - https://tsm-skjermd-frontend.ekstern.dev.nav.no
   image: {{image}}
   replicas:
     min: 1
     max: 1
-  port: 3000
+  port: 8080
   azure:
     application:
       enabled: true
@@ -25,4 +28,29 @@ spec:
       singlePageApplication: false
     sidecar:
         enabled: true
-        autoLogin: false
+        autoLogin: true
+        autoLoginIgnorePaths:
+          - /health/*
+          - /assets/*
+          - /favicon.svg
+          - /embed/api/saker/*
+          - /embed/api/saker/*/tilganger
+          - /embed/api/saker/*/tilganger/*
+          - /embed/sensurering/*
+          - /embed/sensurering-editor/*
+          - /embed/api/saker/*/sensurering
+          - /embed/api/jira/update-description
+          - /embed/api/jira/add-comment
+          - /api/generate-embed-token
+          - /api/validate-embed-token
+  env:
+    - name: BACKEND_URL
+      value: "http://tsm-skjermd"
+    - name: BACKEND_TARGET_AUDIENCE
+      value: "api://dev-gcp.team-service-management.tsm-skjermd/.default"
+  accessPolicy:
+    outbound:
+      rules:
+        - application: tsm-skjermd
+      external:
+        - host: 96f81f54-9920-41c0-a6a1-f45bdbc548ad.hello.atlassian-dev.net

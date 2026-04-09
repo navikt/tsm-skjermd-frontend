@@ -6,17 +6,23 @@ import {
 import {
     MenuGridIcon,
     ExternalLinkIcon,
+    LeaveIcon,
+    BriefcaseIcon,
 } from "@navikt/aksel-icons";
+import { Link } from "react-router-dom";
 
 interface Props {
-    title: string;
+    title?: string;
     userName?: string;
 }
 
-export const Header = ({ title, userName = "Ukjent bruker" }: Props) => {
+export const Header = ({ title = "Skjermd", userName }: Props) => {
+    const displayName = userName || "Laster...";
     return (
         <InternalHeader>
-            <InternalHeader.Title as="h1">{title}</InternalHeader.Title>
+            <InternalHeader.Title as={Link} to="/">
+                {title}
+            </InternalHeader.Title>
             <Spacer />
 
             {/* Systemmeny */}
@@ -27,21 +33,34 @@ export const Header = ({ title, userName = "Ukjent bruker" }: Props) => {
                 <Dropdown.Menu>
                     <Dropdown.Menu.GroupedList>
                         <Dropdown.Menu.GroupedList.Heading>
-                            Lenker
+                            Systemer
                         </Dropdown.Menu.GroupedList.Heading>
                         <Dropdown.Menu.GroupedList.Item
                             as="a"
-                            href=""
+                            href="https://jira.adeo.no"
                             target="_blank"
                         >
-                            Lenke 1 <ExternalLinkIcon aria-hidden />
+                            <BriefcaseIcon aria-hidden />
+                            Jira <ExternalLinkIcon aria-hidden />
                         </Dropdown.Menu.GroupedList.Item>
                     </Dropdown.Menu.GroupedList>
                 </Dropdown.Menu>
             </Dropdown>
 
             {/* Bruker */}
-            <InternalHeader.User name={userName} />
+            <Dropdown>
+                <InternalHeader.Button as={Dropdown.Toggle}>
+                    {displayName}
+                </InternalHeader.Button>
+                <Dropdown.Menu>
+                    <Dropdown.Menu.List>
+                        <Dropdown.Menu.List.Item as="a" href="/oauth2/logout">
+                            <LeaveIcon aria-hidden />
+                            Logg ut
+                        </Dropdown.Menu.List.Item>
+                    </Dropdown.Menu.List>
+                </Dropdown.Menu>
+            </Dropdown>
         </InternalHeader>
     );
 };

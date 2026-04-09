@@ -6,8 +6,10 @@ metadata:
     labels:
         team: team-service-management
 spec:
+  envFrom:
+    - secret: serviceaccounts-jira
   ingresses:
-    - https://jira-secret-display.intern.nav.no
+    - https://tsm-skjermd-frontend.intern.nav.no
   image: {{image}}
   replicas:
     min: 1
@@ -25,4 +27,18 @@ spec:
       singlePageApplication: false
     sidecar:
         enabled: true
-        autoLogin: false
+        autoLogin: true
+        autoLoginIgnorePaths:
+          - /health/*
+          - /assets/*
+          - /favicon.svg
+          - /embed/api/saker/*
+          - /embed/api/saker/*/tilganger
+          - /embed/api/saker/*/tilganger/*
+          - /embed/sensurering/*
+          - /embed/sensurering-editor/*
+          - /embed/api/saker/*/sensurering
+          - /embed/api/jira/update-description
+          - /embed/api/jira/add-comment
+          - /api/generate-embed-token
+          - /api/validate-embed-token

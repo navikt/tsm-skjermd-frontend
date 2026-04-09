@@ -1,0 +1,398 @@
+import { useParams, useSearchParams } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import {
+  Alert,
+  Button,
+  TextField,
+  VStack,
+  HStack,
+  Table,
+  Tag,
+  Detail,
+  Modal,
+  BodyShort,
+  Loader,
+  Box,
+  Accordion,
+} from "@navikt/ds-react";
+import {
+  PersonIcon,
+  PlusIcon,
+  TrashIcon,
+} from "@navikt/aksel-icons";
+import { sakApi, sensureringApi } from "../api/sakApi";
+import type { Sak, SensurertElement } from "../api/types";
+import { SensureringEditor } from "../components/SensureringEditor";
+
+export const SakIframe = () => {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const { sakId } = useParams<{ sakId: string }>();
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get("token");
+  const [tilgang, setTilgang] = useState<"loading" | "ok" | "denied">("loading");
+  const [sak, setSak] = useState<Sak | null>(null);
+  const [sakTilgjengelig, setSakTilgjengelig] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showTilgangModal, setShowTilgangModal] = useState(false);
+  const [newNavIdent, setNewNavIdent] = useState("");
+  const [tilgangLoading, setTilgangLoading] = useState(false);
+
+  const [sensurertElementer, setSensurertElementer] = useState<SensurertElement[]>([]);
+  const [sensureringLaster, setSensureringLaster] = useState(true);
+  const [sensureringTilgang, setSensureringTilgang] = useState(true);
+  const [visning, setVisning] = useState<"default" | "sensurering" | "kommenter">("default");
+
+  useEffect(() => {
+    if (!token || !sakId) {
+      setTilgang("denied");
+      return;
+    }
+
+    fetch(`/api/validate-embed-token?token=${encodeURIComponent(token)}&sakId=${encodeURIComponent(sakId)}`)
+      .then((res) => {
+        setTilgang(res.ok ? "ok" : "denied");
+      })
+      .catch(() => {
+        setTilgang("denied");
+      });
+  }, [token, sakId]);
+
+  useEffect(() => {
+    if (tilgang !== "ok" || !sakId || visning !== "default") return;
+    sakApi
+      .hentPaId(sakId)
+      .then(setSak)
+      .catch(() => {
+        setSakTilgjengelig(false);
+      });
+
+    sensureringApi
+      .hent(sakId)
+      .then((data) => {
+        setSensurertElementer(data.sensurertElementer);
+      })
+      .catch(() => {
+        setSensureringTilgang(false);
+      })
+      .finally(() => setSensureringLaster(false));
+  }, [tilgang, sakId, visning]);
+
+  useEffect(() => {
+    const element = contentRef.current;
+    if (!element) return;
+
+    const sendHeight = () => {
+      const height = Math.ceil(element.getBoundingClientRect().height);
+      window.parent.postMessage({ type: "tsm-skjermd-resize", height }, "*");
+    };
+
+    sendHeight();
+
+    const observer = new ResizeObserver(sendHeight);
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, [tilgang, sak, sensureringLaster, sensurertElementer, error]);
+
+  const handleGiTilgang = async () => {
+    if (!sakId || !newNavIdent.trim()) return;
+    try {
+      setTilgangLoading(true);
+      const nyTilgang = await sakApi.giTilgang(sakId, {
+        navIdent: newNavIdent.trim().toUpperCase(),
+      });
+      setSak((prev) =>
+        prev ? { ...prev, tilganger: [...prev.tilganger, nyTilgang] } : prev
+      );
+      setNewNavIdent("");
+      setShowTilgangModal(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Kunne ikke gi tilgang");
+    } finally {
+      setTilgangLoading(false);
+    }
+  };
+
+  const handleFjernTilgang = async (navIdent: string) => {
+    if (!sakId) return;
+    try {
+      await sakApi.fjernTilgang(sakId, navIdent);
+      setSak((prev) =>
+        prev
+          ? { ...prev, tilganger: prev.tilganger.filter((t) => t.navIdent !== navIdent) }
+          : prev
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Kunne ikke fjerne tilgang");
+    }
+  };
+
+  const formatDato = (dato: string | null) => {
+    if (!dato) return "-";
+    return new Date(dato).toLocaleDateString("nb-NO", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+  };
+
+  const formatTid = (dato: string | null) => {
+    if (!dato) return "";
+    return new Date(dato).toLocaleTimeString("nb-NO", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  if (!sakId) {
+    return <p>Mangler sakId</p>;
+  }
+
+  if (tilgang === "loading") {
+    return null;
+  }
+
+  if (tilgang === "denied") {
+    return (
+      <div className="p-4" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
+        <Alert variant="warning">Ingen tilgang</Alert>
+      </div>
+    );
+  }
+
+  if (visning === "sensurering" || visning === "kommenter") {
+    return (
+      <div ref={contentRef} className="p-4" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
+        <SensureringEditor
+          sakId={sakId!}
+          singleSaveButton
+          kommentarModus={visning === "kommenter"}
+          onAvbryt={() => setVisning("default")}
+          onLagreOgLukk={async (sensurertTekst) => {
+            if (sak?.jiraIssueKey) {
+              const endpoint = visning === "kommenter"
+                ? "/embed/api/jira/add-comment"
+                : "/embed/api/jira/update-description";
+              try {
+                await fetch(endpoint, {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    issueKey: sak.jiraIssueKey,
+                    text: sensurertTekst,
+                  }),
+                });
+              } catch (err) {
+                setError(err instanceof Error ? err.message : "Kunne ikke oppdatere Jira");
+              }
+            }
+            setVisning("default");
+          }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div ref={contentRef} className="p-4" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
+      <VStack gap="space-12">
+        {error && (
+          <Alert variant="error" size="small" closeButton onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
+
+        <Accordion>
+          <Accordion.Item>
+            <Accordion.Header>
+                <HStack gap="space-8" align="center">
+                <BodyShort size="small" weight="semibold">Sensurerte verdier</BodyShort>
+                <Tag variant="neutral" size="xsmall">{sensurertElementer.length}</Tag>
+              </HStack>
+            </Accordion.Header>
+            <Accordion.Content>
+              <VStack gap="space-12">
+                {sensureringLaster ? (
+                  <HStack gap="space-8" align="center">
+                    <Loader size="small" />
+                    <BodyShort size="small">Laster sensurerte verdier...</BodyShort>
+                  </HStack>
+                ) : !sensureringTilgang ? (
+                  <Detail className="text-gray-500">Du har ikke tilgang til å se sensurerte verdier.</Detail>
+                ) : sensurertElementer.length === 0 ? (
+                  <Detail className="text-gray-500">Ingen sensurerte verdier ennå.</Detail>
+                ) : (
+                  <VStack gap="space-4">
+                    {sensurertElementer.map((el, i) => (
+                      <Box
+                        key={`existing-${i}`}
+                        background="sunken"
+                        padding="space-8"
+                        borderRadius="4"
+                        borderColor="neutral-subtle"
+                        borderWidth="1"
+                      >
+                        <HStack gap="space-8" align="center">
+                          <Tag variant="neutral" size="xsmall" className="font-mono">
+                            {el.placeholder}
+                          </Tag>
+                          <code className="text-xs bg-red-50 text-red-800 px-2 py-0.5 rounded break-all">
+                            {el.original}
+                          </code>
+                        </HStack>
+                      </Box>
+                    ))}
+                  </VStack>
+                )}
+              </VStack>
+            </Accordion.Content>
+          </Accordion.Item>
+        </Accordion>
+
+        {sak && (
+          <Accordion>
+            <Accordion.Item>
+              <Accordion.Header>
+                <HStack gap="space-8" align="center">
+                  <BodyShort size="small" weight="semibold">Tilganger</BodyShort>
+                  <Tag variant="neutral" size="xsmall">{sak.tilganger.length}</Tag>
+                </HStack>
+              </Accordion.Header>
+              <Accordion.Content>
+                <VStack gap="space-8">
+                  <HStack justify="space-between" align="center">
+                    <Detail weight="semibold">Administrer tilganger</Detail>
+                    <Button
+                      variant="tertiary"
+                      size="xsmall"
+                      icon={<PlusIcon aria-hidden />}
+                      onClick={() => setShowTilgangModal(true)}
+                    >
+                      Gi tilgang
+                    </Button>
+                  </HStack>
+
+                  {sak.tilganger.length === 0 ? (
+                    <Detail className="text-gray-500">
+                      Ingen har tilgang ennå. Oppretteren ({sak.opprettetAv}) har alltid tilgang.
+                    </Detail>
+                  ) : (
+                    <Table size="small">
+                      <Table.Header>
+                        <Table.Row>
+                          <Table.HeaderCell>NAVident</Table.HeaderCell>
+                          <Table.HeaderCell>Gitt av</Table.HeaderCell>
+                          <Table.HeaderCell>Tidspunkt</Table.HeaderCell>
+                          <Table.HeaderCell />
+                        </Table.Row>
+                      </Table.Header>
+                      <Table.Body>
+                        {sak.tilganger.map((t) => (
+                          <Table.Row key={t.navIdent}>
+                            <Table.DataCell>
+                              <HStack gap="space-4" align="center">
+                                <PersonIcon aria-hidden fontSize="1rem" />
+                                {t.navIdent}
+                                {t.navIdent === sak.opprettetAv && (
+                                  <Tag variant="neutral" size="xsmall">Oppretter</Tag>
+                                )}
+                              </HStack>
+                            </Table.DataCell>
+                            <Table.DataCell>{t.gittAv}</Table.DataCell>
+                            <Table.DataCell>
+                              {formatDato(t.gittTidspunkt)} kl. {formatTid(t.gittTidspunkt)}
+                            </Table.DataCell>
+                            <Table.DataCell>
+                              {t.navIdent !== sak.opprettetAv && (
+                                <Button
+                                  variant="tertiary-neutral"
+                                  size="xsmall"
+                                  icon={<TrashIcon aria-hidden />}
+                                  onClick={() => handleFjernTilgang(t.navIdent)}
+                                  title="Fjern tilgang"
+                                />
+                              )}
+                            </Table.DataCell>
+                          </Table.Row>
+                        ))}
+                      </Table.Body>
+                    </Table>
+                  )}
+                  <Detail className="text-gray-500">
+                    Oppretteren ({sak.opprettetAv}) har alltid tilgang og kan ikke fjernes.
+                  </Detail>
+                </VStack>
+              </Accordion.Content>
+            </Accordion.Item>
+          </Accordion>
+        )}
+
+        {!sak && !sakTilgjengelig && (
+          <Detail className="text-gray-500">Tilgangspanelet er ikke tilgjengelig i denne visningen.</Detail>
+        )}
+
+        <HStack gap="space-8">
+          <Button
+            variant="primary"
+            size="small"
+            onClick={() => setVisning("sensurering")}
+          >
+            Rediger beskrivelse
+          </Button>
+          <Button
+            variant="primary"
+            size="small"
+            onClick={() => setVisning("kommenter")}
+          >
+            Kommenter
+          </Button>
+        </HStack>
+      </VStack>
+
+      <Modal
+        open={showTilgangModal}
+        onClose={() => {
+          setShowTilgangModal(false);
+          setNewNavIdent("");
+        }}
+        header={{ heading: "Gi tilgang", closeButton: true }}
+      >
+        <Modal.Body>
+          <VStack gap="space-16">
+            <BodyShort>
+              Gi en bruker tilgang til saken <strong>{sak?.jiraIssueKey ?? sakId}</strong>.
+            </BodyShort>
+            <TextField
+              label="NAVident"
+              description="Skriv inn NAVident (f.eks. Z123456)"
+              value={newNavIdent}
+              onChange={(e) => setNewNavIdent(e.target.value)}
+              placeholder="Z123456"
+            />
+          </VStack>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            onClick={handleGiTilgang}
+            loading={tilgangLoading}
+            disabled={!newNavIdent.trim()}
+          >
+            Gi tilgang
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setShowTilgangModal(false);
+              setNewNavIdent("");
+            }}
+          >
+            Avbryt
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    </div>
+  );
+};

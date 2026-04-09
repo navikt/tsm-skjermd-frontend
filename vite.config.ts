@@ -9,8 +9,18 @@ export default defineConfig({
     port: 3000,        // Dev-server
     host: "0.0.0.0",   // Tillat tilgang utenfra, f.eks. fra Docker
     cors: {
-      origin: ["https://jira-secret-display.intern.nav.no"],     // Endre dette hvis du trenger strengere CORS-regler
+      origin: ["https://tsm-skjermd-frontend.intern.nav.no"],     // Endre dette hvis du trenger strengere CORS-regler
       credentials: true,
+    },
+    proxy: {
+      "/api": {
+        target: "http://localhost:8080",
+        changeOrigin: true,
+      },
+      "/v1": {
+        target: "http://localhost:8080",
+        changeOrigin: true,
+      },
     },
   },
   plugins: [react()],
@@ -22,6 +32,9 @@ export default defineConfig({
     emptyOutDir: true,
     sourcemap: false,
     rollupOptions: {
+      input: [
+        path.resolve(__dirname, 'index.html'),
+      ],
       output: {
         // Bruk standard navngivning hvis du ikke har spesielle grunner til custom dir
         entryFileNames: `assets/[name].[hash].js`,
