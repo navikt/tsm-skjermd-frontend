@@ -462,7 +462,7 @@ app.use('/internal', async (req, res) => {
 app.use(express.static(path.join(__dirname, "dist")));
 
 // Håndter SPA-routing ved å alltid returnere index.html
-app.get("*", (req, res) => {
+app.get("/{*path}", (req, res) => {
     res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
 
