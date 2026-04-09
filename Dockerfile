@@ -5,15 +5,15 @@ RUN corepack enable && corepack prepare pnpm@10.5.2 --activate
 USER node
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml .npmrc ./
+COPY --chown=node:node package.json pnpm-lock.yaml .npmrc ./
 RUN --mount=type=secret,id=NODE_AUTH_TOKEN \
     sh -c 'echo "//npm.pkg.github.com/:_authToken=$(cat /run/secrets/NODE_AUTH_TOKEN)" >> .npmrc && pnpm install --frozen-lockfile && sed -i "/authToken/d" .npmrc'
 
-COPY public ./public
-COPY src ./src
-COPY tsconfig*.json ./
-COPY vite.config.ts tailwind.config.js postcss.config.js index.html ./
-COPY server.js ./
+COPY --chown=node:node public ./public
+COPY --chown=node:node src ./src
+COPY --chown=node:node tsconfig*.json ./
+COPY --chown=node:node vite.config.ts tailwind.config.js postcss.config.js index.html ./
+COPY --chown=node:node server.js ./
 
 RUN pnpm run build
 
