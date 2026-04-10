@@ -5,13 +5,11 @@ import {
   VStack,
   HStack,
   Alert,
-  Heading,
   BodyShort,
   Loader,
 } from "@navikt/ds-react";
 import {
   FloppydiskIcon,
-  FileTextIcon,
 } from "@navikt/aksel-icons";
 import { sensureringApi } from "../api/sakApi";
 import type { SensurertElement } from "../api/types";
@@ -327,12 +325,6 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
       borderRadius="8"
     >
       <VStack gap="space-8">
-        {!autoSave && (
-          <HStack gap="space-8" align="center">
-            <FileTextIcon aria-hidden />
-            <Heading size="xsmall">Marker sensitiv informasjon:</Heading>
-          </HStack>
-        )}
 
         {laster ? (
           <HStack gap="space-8" align="center">
@@ -348,7 +340,9 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
             className={`editable-placeholder min-h-[100px] p-3 border border-gray-300 rounded-lg
                        whitespace-pre-wrap font-mono text-sm
                        ${readOnly ? 'bg-gray-50 cursor-default' : 'bg-white focus:outline-none focus:ring-2 focus:ring-blue-500'}`}
-            data-placeholder="Lim inn eller skriv teksten som skal sensureres. Marker tekst for å markere sensitiv informasjon. For å fjerne markering, klikk på krysset ved siden av den markerte teksten."
+            data-placeholder={kommentarModus
+              ? "Skriv kommentaren din her. Marker tekst for å sensurere sensitiv informasjon før den sendes."
+              : "Lim inn eller skriv teksten som skal sensureres. Marker tekst for å markere sensitiv informasjon."}
             suppressContentEditableWarning
             onMouseOver={(e) => {
               if (readOnly) return;
