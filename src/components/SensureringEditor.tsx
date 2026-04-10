@@ -345,9 +345,10 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
           <div
             ref={editableRef}
             contentEditable={!readOnly}
-            className={`min-h-[100px] p-3 border border-gray-300 rounded-lg
+            className={`editable-placeholder min-h-[100px] p-3 border border-gray-300 rounded-lg
                        whitespace-pre-wrap font-mono text-sm
                        ${readOnly ? 'bg-gray-50 cursor-default' : 'bg-white focus:outline-none focus:ring-2 focus:ring-blue-500'}`}
+            data-placeholder="Lim inn eller skriv teksten som skal sensureres. Marker tekst for å markere sensitiv informasjon. For å fjerne markering, klikk på krysset ved siden av den markerte teksten."
             suppressContentEditableWarning
             onMouseOver={(e) => {
               if (readOnly) return;

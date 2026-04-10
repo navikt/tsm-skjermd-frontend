@@ -3,6 +3,16 @@
 @import "tailwindcss/components";
 @import "tailwindcss/utilities";
 
+.editable-placeholder:empty:before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+.editable-placeholder:focus:before {
+  content: none;
+}
+
 .sensurert-span {
   background: #1a1a1a;
   color: #fff;
