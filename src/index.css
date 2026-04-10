@@ -2,3 +2,13 @@
 @import "@navikt/ds-css";
 @import "tailwindcss/components";
 @import "tailwindcss/utilities";
+
+.sensurert-span {
+  background: #1a1a1a;
+  color: #fff;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  font-family: ui-monospace, monospace;
+  cursor: default;
+  white-space: nowrap;
+}

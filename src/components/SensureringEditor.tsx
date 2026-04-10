@@ -5,7 +5,6 @@ import {
   VStack,
   HStack,
   Alert,
-  Tag,
   Heading,
   BodyShort,
   Loader,
@@ -13,7 +12,6 @@ import {
 import {
   FloppydiskIcon,
   FileTextIcon,
-  XMarkIcon,
 } from "@navikt/aksel-icons";
 import { sensureringApi } from "../api/sakApi";
 import type { SensurertElement } from "../api/types";
@@ -41,6 +39,8 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
   const [laster, setLaster] = useState(true);
   const [lagreStatus, setLagreStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const editableRef = useRef<HTMLDivElement>(null);
+  const removeButtonRef = useRef<HTMLButtonElement>(null);
+  const hoveredSpanRef = useRef<HTMLElement | null>(null);
   const nextPlaceholderIndex = useRef(0);
   const existingDataRef = useRef<{ originaltekst: string; sensurertTekst: string; sensurertElementer: SensurertElement[] } | null>(null);
 
@@ -48,6 +48,24 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
     nextPlaceholderIndex.current += 1;
     return `[SLADDET-${nextPlaceholderIndex.current}]`;
   };
+
+  const buildSensurertTekst = useCallback(() => {
+    if (!editableRef.current) return "";
+    let result = "";
+    const walk = (node: Node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        result += node.textContent || "";
+      } else if (node instanceof HTMLElement && node.dataset.sensurertId) {
+        result += node.dataset.placeholder || "";
+      } else {
+        for (const child of node.childNodes) {
+          walk(child);
+        }
+      }
+    };
+    walk(editableRef.current);
+    return result;
+  }, []);
 
   useEffect(() => {
     if (!sakId) return;
@@ -77,7 +95,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
             liste.forEach((item) => {
               html = html.replace(
                 item.placeholder,
-                `<span class="bg-gray-900 text-white px-1 rounded font-mono" data-sensurert-id="${item.id}">${item.placeholder}</span>`
+                `<span class="sensurert-span" data-sensurert-id="${item.id}" data-placeholder="${item.placeholder}">${item.original}</span>`
               );
             });
             editableRef.current.innerHTML = html;
@@ -181,9 +199,10 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
     const placeholder = genererPlaceholder();
 
     const span = document.createElement("span");
-    span.className = "bg-gray-900 text-white px-1 rounded font-mono";
+    span.className = "sensurert-span";
     span.dataset.sensurertId = nyId;
-    span.textContent = placeholder;
+    span.dataset.placeholder = placeholder;
+    span.textContent = combinedOriginal;
 
     range.deleteContents();
     range.insertNode(span);
@@ -205,7 +224,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
         const newPlaceholder = `[SLADDET-${offset + i + 1}]`;
         if (s.placeholder !== newPlaceholder) {
           const el = editableRef.current?.querySelector(`[data-sensurert-id="${s.id}"]`);
-          if (el) el.textContent = newPlaceholder;
+          if (el) (el as HTMLElement).dataset.placeholder = newPlaceholder;
         }
         return { ...s, placeholder: newPlaceholder };
       });
@@ -245,7 +264,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
       const newPlaceholder = `[SLADDET-${offset + i + 1}]`;
       if (s.placeholder !== newPlaceholder) {
         const el = editableRef.current?.querySelector(`[data-sensurert-id="${s.id}"]`);
-        if (el) el.textContent = newPlaceholder;
+        if (el) (el as HTMLElement).dataset.placeholder = newPlaceholder;
       }
       return { ...s, placeholder: newPlaceholder };
     });
@@ -259,7 +278,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
     setLagrer(true);
     setLagreStatus(null);
     try {
-      const sensurertTekst = editableRef.current?.innerText || "";
+      const sensurertTekst = buildSensurertTekst();
       const existing = existingDataRef.current;
       const nyeElementer = sensurertListe.map(({ placeholder, original }) => ({
         placeholder,
@@ -296,7 +315,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
   const handleLagreOgLukk = useCallback(async () => {
     const ok = await lagreSensurering();
     if (ok && onLagreOgLukk) {
-      const sensurertTekst = editableRef.current?.innerText || "";
+      const sensurertTekst = buildSensurertTekst();
       onLagreOgLukk(sensurertTekst);
     }
   }, [lagreSensurering, onLagreOgLukk]);
@@ -322,59 +341,61 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
           </HStack>
         ) : null}
 
-        <div className="flex gap-4">
-          <div className="flex-1">
-            <div
-              ref={editableRef}
-              contentEditable={!readOnly}
-              className={`min-h-[100px] p-3 border border-gray-300 rounded-lg
-                         whitespace-pre-wrap font-mono text-sm
-                         ${readOnly ? 'bg-gray-50 cursor-default' : 'bg-white focus:outline-none focus:ring-2 focus:ring-blue-500'}`}
-              suppressContentEditableWarning
-            />
-          </div>
-
-          {sensurertListe.length > 0 && (
-            <div className="w-64 shrink-0">
-              <VStack gap="space-8">
-                <HStack gap="space-8" align="center">
-                  <Heading size="xsmall">Sensurerte verdier</Heading>
-                  <Tag variant="warning" size="xsmall">
-                    {sensurertListe.length}
-                  </Tag>
-                </HStack>
-                {sensurertListe.map((item) => (
-                  <Box
-                    key={item.id}
-                    background="sunken"
-                    padding="space-12"
-                    borderRadius="4"
-                    borderColor="neutral-subtle"
-                    borderWidth="1"
-                  >
-                    <VStack gap="space-4">
-                      <HStack justify="space-between" align="center">
-                        <Tag variant="neutral" size="xsmall" className="font-mono">
-                          {item.placeholder}
-                        </Tag>
-                        {!readOnly && (
-                          <Button
-                            variant="tertiary-neutral"
-                            size="xsmall"
-                            icon={<XMarkIcon aria-hidden />}
-                            onClick={() => fjernSensurering(item.id)}
-                            title="Fjern sensurering"
-                          />
-                        )}
-                      </HStack>
-                      <code className="text-xs bg-red-50 text-red-800 px-2 py-1 rounded break-all">
-                        {item.original}
-                      </code>
-                    </VStack>
-                  </Box>
-                ))}
-              </VStack>
-            </div>
+        <div className="relative">
+          <div
+            ref={editableRef}
+            contentEditable={!readOnly}
+            className={`min-h-[100px] p-3 border border-gray-300 rounded-lg
+                       whitespace-pre-wrap font-mono text-sm
+                       ${readOnly ? 'bg-gray-50 cursor-default' : 'bg-white focus:outline-none focus:ring-2 focus:ring-blue-500'}`}
+            suppressContentEditableWarning
+            onMouseOver={(e) => {
+              if (readOnly) return;
+              const target = (e.target as HTMLElement).closest('[data-sensurert-id]') as HTMLElement | null;
+              if (target && removeButtonRef.current) {
+                hoveredSpanRef.current = target;
+                const containerRect = editableRef.current!.getBoundingClientRect();
+                const spanRect = target.getBoundingClientRect();
+                const btn = removeButtonRef.current;
+                btn.style.top = `${spanRect.top - containerRect.top - 8}px`;
+                btn.style.left = `${spanRect.right - containerRect.left - 4}px`;
+                btn.style.display = 'flex';
+              }
+            }}
+            onMouseOut={(e) => {
+              const related = e.relatedTarget as HTMLElement | null;
+              if (
+                related &&
+                (related === removeButtonRef.current ||
+                  removeButtonRef.current?.contains(related) ||
+                  related.closest('[data-sensurert-id]'))
+              ) return;
+              if (removeButtonRef.current) removeButtonRef.current.style.display = 'none';
+              hoveredSpanRef.current = null;
+            }}
+          />
+          {!readOnly && (
+            <button
+              ref={removeButtonRef}
+              type="button"
+              style={{ display: 'none', position: 'absolute', zIndex: 10 }}
+              className="items-center justify-center w-5 h-5 rounded-full bg-red-600 text-white text-xs leading-none hover:bg-red-700"
+              onMouseLeave={() => {
+                if (removeButtonRef.current) removeButtonRef.current.style.display = 'none';
+                hoveredSpanRef.current = null;
+              }}
+              onClick={() => {
+                const span = hoveredSpanRef.current;
+                if (span) {
+                  const id = span.dataset.sensurertId;
+                  if (id) fjernSensurering(id);
+                }
+                if (removeButtonRef.current) removeButtonRef.current.style.display = 'none';
+                hoveredSpanRef.current = null;
+              }}
+            >
+              ✕
+            </button>
           )}
         </div>
 
