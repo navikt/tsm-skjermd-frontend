@@ -11,8 +11,6 @@ import {
   Detail,
   Modal,
   BodyShort,
-  Loader,
-  Box,
   Accordion,
 } from "@navikt/ds-react";
 import {
@@ -20,8 +18,8 @@ import {
   PlusIcon,
   TrashIcon,
 } from "@navikt/aksel-icons";
-import { sakApi, sensureringApi } from "../api/sakApi";
-import type { Sak, SensurertElement } from "../api/types";
+import { sakApi } from "../api/sakApi";
+import type { Sak } from "../api/types";
 import { SensureringEditor } from "../components/SensureringEditor";
 
 export const SakIframe = () => {
@@ -37,9 +35,6 @@ export const SakIframe = () => {
   const [newNavIdent, setNewNavIdent] = useState("");
   const [tilgangLoading, setTilgangLoading] = useState(false);
 
-  const [sensurertElementer, setSensurertElementer] = useState<SensurertElement[]>([]);
-  const [sensureringLaster, setSensureringLaster] = useState(true);
-  const [sensureringTilgang, setSensureringTilgang] = useState(true);
   const [visning, setVisning] = useState<"default" | "sensurering" | "kommenter">("default");
 
   useEffect(() => {
@@ -65,16 +60,6 @@ export const SakIframe = () => {
       .catch(() => {
         setSakTilgjengelig(false);
       });
-
-    sensureringApi
-      .hent(sakId)
-      .then((data) => {
-        setSensurertElementer(data.sensurertElementer);
-      })
-      .catch(() => {
-        setSensureringTilgang(false);
-      })
-      .finally(() => setSensureringLaster(false));
   }, [tilgang, sakId, visning]);
 
   useEffect(() => {
@@ -92,7 +77,7 @@ export const SakIframe = () => {
     observer.observe(element);
 
     return () => observer.disconnect();
-  }, [tilgang, sak, sensureringLaster, sensurertElementer, error]);
+  }, [tilgang, sak, error]);
 
   const handleGiTilgang = async () => {
     if (!sakId || !newNavIdent.trim()) return;
@@ -205,52 +190,10 @@ export const SakIframe = () => {
           </Alert>
         )}
 
-        <Accordion>
-          <Accordion.Item>
-            <Accordion.Header>
-                <HStack gap="space-8" align="center">
-                <BodyShort size="small" weight="semibold">Sensurerte verdier</BodyShort>
-                <Tag variant="neutral" size="xsmall">{sensurertElementer.length}</Tag>
-              </HStack>
-            </Accordion.Header>
-            <Accordion.Content>
-              <VStack gap="space-12">
-                {sensureringLaster ? (
-                  <HStack gap="space-8" align="center">
-                    <Loader size="small" />
-                    <BodyShort size="small">Laster sensurerte verdier...</BodyShort>
-                  </HStack>
-                ) : !sensureringTilgang ? (
-                  <Detail className="text-gray-500">Du har ikke tilgang til å se sensurerte verdier.</Detail>
-                ) : sensurertElementer.length === 0 ? (
-                  <Detail className="text-gray-500">Ingen sensurerte verdier ennå.</Detail>
-                ) : (
-                  <VStack gap="space-4">
-                    {sensurertElementer.map((el, i) => (
-                      <Box
-                        key={`existing-${i}`}
-                        background="sunken"
-                        padding="space-8"
-                        borderRadius="4"
-                        borderColor="neutral-subtle"
-                        borderWidth="1"
-                      >
-                        <HStack gap="space-8" align="center">
-                          <Tag variant="neutral" size="xsmall" className="font-mono">
-                            {el.placeholder}
-                          </Tag>
-                          <code className="text-xs bg-red-50 text-red-800 px-2 py-0.5 rounded break-all">
-                            {el.original}
-                          </code>
-                        </HStack>
-                      </Box>
-                    ))}
-                  </VStack>
-                )}
-              </VStack>
-            </Accordion.Content>
-          </Accordion.Item>
-        </Accordion>
+        <SensureringEditor
+          sakId={sakId!}
+          autoSave
+        />
 
         {sak && (
           <Accordion>
@@ -335,13 +278,6 @@ export const SakIframe = () => {
         )}
 
         <HStack gap="space-8">
-          <Button
-            variant="primary"
-            size="small"
-            onClick={() => setVisning("sensurering")}
-          >
-            Rediger beskrivelse
-          </Button>
           <Button
             variant="primary"
             size="small"
