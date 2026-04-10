@@ -121,6 +121,26 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
       return;
     }
 
+    const trimRange = (r: Range) => {
+      while (r.startContainer.nodeType === Node.TEXT_NODE) {
+        const text = r.startContainer.textContent || "";
+        if (r.startOffset < text.length && /\s/.test(text[r.startOffset])) {
+          r.setStart(r.startContainer, r.startOffset + 1);
+        } else break;
+      }
+      while (r.endContainer.nodeType === Node.TEXT_NODE) {
+        if (r.endOffset > 0 && /\s/.test((r.endContainer.textContent || "")[r.endOffset - 1])) {
+          r.setEnd(r.endContainer, r.endOffset - 1);
+        } else break;
+      }
+    };
+    trimRange(range);
+
+    if (range.collapsed || range.toString().trim() === "") {
+      selection.removeAllRanges();
+      return;
+    }
+
     const overlappingSpans: HTMLElement[] = [];
     editableRef.current.querySelectorAll("[data-sensurert-id]").forEach((span) => {
       if (range.intersectsNode(span)) {
