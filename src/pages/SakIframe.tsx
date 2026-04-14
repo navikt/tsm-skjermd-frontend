@@ -23,7 +23,6 @@ import type { Sak } from "../api/types";
 import { SensureringEditor } from "../components/SensureringEditor";
 
 export const SakIframe = () => {
-  const contentRef = useRef<HTMLDivElement>(null);
   const { sakId } = useParams<{ sakId: string }>();
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
@@ -63,21 +62,18 @@ export const SakIframe = () => {
   }, [tilgang, sakId, visning]);
 
   useEffect(() => {
-    const element = contentRef.current;
-    if (!element) return;
-
     const sendHeight = () => {
-      const height = Math.ceil(element.getBoundingClientRect().height);
+      const height = document.documentElement.scrollHeight;
       window.parent.postMessage({ type: "tsm-skjermd-resize", height }, "*");
     };
 
     sendHeight();
 
     const observer = new ResizeObserver(sendHeight);
-    observer.observe(element);
+    observer.observe(document.documentElement);
 
     return () => observer.disconnect();
-  }, [tilgang, sak, error]);
+  }, []);
 
   const handleGiTilgang = async () => {
     if (!sakId || !newNavIdent.trim()) return;
@@ -147,7 +143,7 @@ export const SakIframe = () => {
 
   if (visning === "sensurering" || visning === "kommenter") {
     return (
-      <div ref={contentRef} className="p-4" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
+      <div className="p-4" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
         <SensureringEditor
           sakId={sakId!}
           singleSaveButton
@@ -182,7 +178,7 @@ export const SakIframe = () => {
   }
 
   return (
-    <div ref={contentRef} className="p-4" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
+    <div className="p-4" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
       <VStack gap="space-12">
         {error && (
           <Alert variant="error" size="small" closeButton onClose={() => setError(null)}>
