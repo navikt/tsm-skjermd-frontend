@@ -25,17 +25,52 @@ export const SensureringIframe = () => {
   }, [token, sakId]);
 
   useEffect(() => {
+    let frameId = 0;
+
     const sendHeight = () => {
-      const height = document.documentElement.scrollHeight;
+      const body = document.body;
+      const doc = document.documentElement;
+      const height = Math.max(
+        body?.scrollHeight ?? 0,
+        body?.offsetHeight ?? 0,
+        doc.scrollHeight,
+        doc.offsetHeight,
+        doc.clientHeight
+      );
       window.parent.postMessage({ type: "tsm-skjermd-resize", height }, "*");
     };
 
-    sendHeight();
+    const scheduleHeightSync = () => {
+      cancelAnimationFrame(frameId);
+      frameId = requestAnimationFrame(sendHeight);
+    };
 
-    const observer = new ResizeObserver(sendHeight);
-    observer.observe(document.documentElement);
+    scheduleHeightSync();
 
-    return () => observer.disconnect();
+    const resizeObserver = new ResizeObserver(scheduleHeightSync);
+    if (document.body) {
+      resizeObserver.observe(document.body);
+    }
+    resizeObserver.observe(document.documentElement);
+
+    const mutationObserver = new MutationObserver(scheduleHeightSync);
+    if (document.body) {
+      mutationObserver.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        characterData: true,
+      });
+    }
+
+    window.addEventListener("resize", scheduleHeightSync);
+
+    return () => {
+      cancelAnimationFrame(frameId);
+      resizeObserver.disconnect();
+      mutationObserver.disconnect();
+      window.removeEventListener("resize", scheduleHeightSync);
+    };
   }, []);
 
   if (!sakId) {
