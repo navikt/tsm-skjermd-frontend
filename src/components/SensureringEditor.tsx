@@ -33,6 +33,7 @@ interface SensureringEditorProps {
 export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError, autoSave = false, readOnly = false, singleSaveButton = false, kommentarModus = false }: SensureringEditorProps) => {
   const [sensurertListe, setSensurertListe] = useState<SensurertItem[]>([]);
   const [originaltekst, setOriginaltekst] = useState("");
+  const [changeCounter, setChangeCounter] = useState(0);
   const [lagrer, setLagrer] = useState(false);
   const [laster, setLaster] = useState(true);
   const [lagreStatus, setLagreStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
@@ -63,6 +64,10 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
     };
     walk(editableRef.current);
     return result;
+  }, []);
+
+  const markContentChanged = useCallback(() => {
+    setChangeCounter((prev) => prev + 1);
   }, []);
 
   useEffect(() => {
@@ -249,7 +254,8 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
       nextPlaceholderIndex.current = offset + renumbered.length;
       return renumbered;
     });
-  }, [sensurertListe, kommentarModus]);
+    markContentChanged();
+  }, [sensurertListe, kommentarModus, markContentChanged]);
 
   useEffect(() => {
     const el = editableRef.current;
@@ -289,7 +295,8 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
 
     nextPlaceholderIndex.current = offset + renumbered.length;
     setSensurertListe(renumbered);
-  }, [sensurertListe]);
+    markContentChanged();
+  }, [sensurertListe, markContentChanged]);
 
   const lagreSensurering = useCallback(async () => {
     if (!sakId) return;
@@ -303,7 +310,11 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
         original,
       }));
       await sensureringApi.lagre(sakId, {
-        originaltekst: kommentarModus && existing ? existing.originaltekst : originaltekst,
+        originaltekst: kommentarModus && existing
+          ? existing.originaltekst
+          : sensurertListe.length === 0
+            ? sensurertTekst
+            : originaltekst,
         sensurertTekst: kommentarModus && existing ? existing.sensurertTekst : sensurertTekst,
         sensurertElementer: kommentarModus && existing
           ? [...existing.sensurertElementer, ...nyeElementer]
@@ -322,13 +333,19 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
     } finally {
       setLagrer(false);
     }
-  }, [sakId, originaltekst, sensurertListe]);
+  }, [sakId, originaltekst, sensurertListe, buildSensurertTekst, kommentarModus]);
 
   useEffect(() => {
-    if (autoSave && sensurertListe.length > 0 && !laster) {
+    if (!autoSave || laster || changeCounter === 0) return;
+
+    const timeout = window.setTimeout(() => {
       lagreSensurering();
-    }
-  }, [autoSave, sensurertListe, laster, lagreSensurering]);
+    }, 500);
+
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [autoSave, laster, changeCounter, lagreSensurering]);
 
   const handleLagreOgLukk = useCallback(async () => {
     const ok = await lagreSensurering();
@@ -364,6 +381,11 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
               ? "Skriv kommentaren din her. Marker tekst for å sensurere sensitiv informasjon før den sendes."
               : "Lim inn eller skriv teksten som skal sensureres. Marker tekst for å markere sensitiv informasjon."}
             suppressContentEditableWarning
+            onInput={() => {
+              if (!readOnly) {
+                markContentChanged();
+              }
+            }}
             onMouseOver={(e) => {
               if (readOnly) return;
               const target = (e.target as HTMLElement).closest('[data-sensurert-id]') as HTMLElement | null;

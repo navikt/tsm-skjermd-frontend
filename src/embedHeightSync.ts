@@ -17,6 +17,7 @@ function sendHeightToParent() {
   const height = measureContentHeight();
   if (Math.abs(height - lastHeightSent) > 10) {
     window.parent.postMessage({ type: "EMBED_CONTENT_HEIGHT", height }, "*");
+    window.parent.postMessage({ type: "tsm-skjermd-resize", height }, "*");
     lastHeightSent = height;
   }
 }
