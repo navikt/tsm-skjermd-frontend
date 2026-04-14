@@ -62,51 +62,27 @@ export const SakIframe = () => {
   }, [tilgang, sakId, visning]);
 
   useEffect(() => {
-    let frameId = 0;
+    let lastHeight = 0;
 
-    const sendHeight = () => {
-      const body = document.body;
-      const doc = document.documentElement;
-      const height = Math.max(
-        body?.scrollHeight ?? 0,
-        body?.offsetHeight ?? 0,
-        doc.scrollHeight,
-        doc.offsetHeight,
-        doc.clientHeight
-      );
-      window.parent.postMessage({ type: "tsm-skjermd-resize", height }, "*");
+    const reportHeight = () => {
+      const root = document.getElementById("root");
+      const height = root ? root.scrollHeight : document.body?.scrollHeight ?? 0;
+      if (height > 0 && height !== lastHeight) {
+        lastHeight = height;
+        window.parent.postMessage({ type: "tsm-skjermd-resize", height }, "*");
+      }
     };
 
-    const scheduleHeightSync = () => {
-      cancelAnimationFrame(frameId);
-      frameId = requestAnimationFrame(sendHeight);
-    };
+    reportHeight();
 
-    scheduleHeightSync();
+    const resizeObserver = new ResizeObserver(reportHeight);
+    if (document.body) resizeObserver.observe(document.body);
 
-    const resizeObserver = new ResizeObserver(scheduleHeightSync);
-    if (document.body) {
-      resizeObserver.observe(document.body);
-    }
-    resizeObserver.observe(document.documentElement);
-
-    const mutationObserver = new MutationObserver(scheduleHeightSync);
-    if (document.body) {
-      mutationObserver.observe(document.body, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        characterData: true,
-      });
-    }
-
-    window.addEventListener("resize", scheduleHeightSync);
+    const interval = setInterval(reportHeight, 200);
 
     return () => {
-      cancelAnimationFrame(frameId);
       resizeObserver.disconnect();
-      mutationObserver.disconnect();
-      window.removeEventListener("resize", scheduleHeightSync);
+      clearInterval(interval);
     };
   }, []);
 
