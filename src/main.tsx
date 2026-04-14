@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 import './index.css';
+import './embedHeightSync';
 
 // Import dev mocks early when running in Vite dev mode
 if ((import.meta as any).env.DEV) {
