@@ -120,6 +120,19 @@ export const SakIframe = () => {
     }
   };
 
+  const createCommentInJira = (issueKey: string, text: string) => {
+    const requestId = crypto.randomUUID();
+
+    window.parent.postMessage({
+      type: 'CREATE_JIRA_COMMENT',
+      requestId,
+      issueKey,
+      text
+    }, '*');
+
+    return requestId;
+  };
+
   const handleOppdaterBeskrivelse = async () => {
     if (!sakId || !sak?.jiraIssueKey || !token) return;
 
@@ -190,21 +203,7 @@ export const SakIframe = () => {
           onAvbryt={() => setVisning("default")}
           onLagreOgLukk={async (sensurertTekst) => {
             if (sak?.jiraIssueKey) {
-              try {
-                await fetch("/embed/api/jira/add-comment", {
-                  method: "POST",
-                  headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    issueKey: sak.jiraIssueKey,
-                    text: sensurertTekst,
-                  }),
-                });
-              } catch (err) {
-                setError(err instanceof Error ? err.message : "Kunne ikke oppdatere Jira");
-              }
+              createCommentInJira(sak.jiraIssueKey, sensurertTekst);
             }
             setVisning("default");
           }}
