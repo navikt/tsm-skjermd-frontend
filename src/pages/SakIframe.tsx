@@ -18,7 +18,7 @@ import {
   PlusIcon,
   TrashIcon,
 } from "@navikt/aksel-icons";
-import { sakApi } from "../api/sakApi";
+import { sakApi, sensureringApi } from "../api/sakApi";
 import type { Sak } from "../api/types";
 import { SensureringEditor } from "../components/SensureringEditor";
 
@@ -33,8 +33,9 @@ export const SakIframe = () => {
   const [showTilgangModal, setShowTilgangModal] = useState(false);
   const [newNavIdent, setNewNavIdent] = useState("");
   const [tilgangLoading, setTilgangLoading] = useState(false);
+  const [oppdaterBeskrivelseLoading, setOppdaterBeskrivelseLoading] = useState(false);
 
-  const [visning, setVisning] = useState<"default" | "sensurering" | "kommenter">("default");
+  const [visning, setVisning] = useState<"default" | "kommenter">("default");
 
   useEffect(() => {
     if (!token || !sakId) {
@@ -119,6 +120,33 @@ export const SakIframe = () => {
     }
   };
 
+  const handleOppdaterBeskrivelse = async () => {
+    if (!sakId || !sak?.jiraIssueKey || !token) return;
+
+    try {
+      setOppdaterBeskrivelseLoading(true);
+      setError(null);
+
+      const sensurering = await sensureringApi.hent(sakId);
+
+      await fetch("/embed/api/jira/update-description", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          issueKey: sak.jiraIssueKey,
+          text: sensurering.sensurertTekst,
+        }),
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Kunne ikke oppdatere Jira-beskrivelse");
+    } finally {
+      setOppdaterBeskrivelseLoading(false);
+    }
+  };
+
   const formatDato = (dato: string | null) => {
     if (!dato) return "-";
     return new Date(dato).toLocaleDateString("nb-NO", {
@@ -152,21 +180,18 @@ export const SakIframe = () => {
     );
   }
 
-  if (visning === "sensurering" || visning === "kommenter") {
+  if (visning === "kommenter") {
     return (
       <div className="p-4" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
         <SensureringEditor
           sakId={sakId!}
           singleSaveButton
-          kommentarModus={visning === "kommenter"}
+          kommentarModus
           onAvbryt={() => setVisning("default")}
           onLagreOgLukk={async (sensurertTekst) => {
             if (sak?.jiraIssueKey) {
-              const endpoint = visning === "kommenter"
-                ? "/embed/api/jira/add-comment"
-                : "/embed/api/jira/update-description";
               try {
-                await fetch(endpoint, {
+                await fetch("/embed/api/jira/add-comment", {
                   method: "POST",
                   headers: {
                     Authorization: `Bearer ${token}`,
@@ -201,6 +226,18 @@ export const SakIframe = () => {
           sakId={sakId!}
           autoSave
         />
+
+        <HStack gap="space-8">
+          <Button
+            variant="secondary"
+            size="small"
+            onClick={handleOppdaterBeskrivelse}
+            loading={oppdaterBeskrivelseLoading}
+            disabled={!sak?.jiraIssueKey || !token}
+          >
+            Oppdater Beskrivelse
+          </Button>
+        </HStack>
 
         {sak && (
           <Accordion>
