@@ -237,7 +237,7 @@ export const SakIframe = () => {
   }
 
   return (
-    <div className="p-4" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
+    <div className="p-4">
       <VStack gap="space-12">
         {error && (
           <Alert variant="error" size="small" closeButton onClose={() => setError(null)}>
@@ -245,156 +245,171 @@ export const SakIframe = () => {
           </Alert>
         )}
 
-        <SensureringEditor
-          sakId={sakId!}
-          autoSave
-        />
+        <BodyShort size="small" weight="semibold">Beskrivelse</BodyShort>
+        <div className="p-4 rounded" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
+          <VStack gap="space-12">
+            <SensureringEditor
+              sakId={sakId!}
+              autoSave
+            />
 
-        <HStack gap="space-8">
-          <Button
-            variant="secondary"
-            size="small"
-            onClick={handleOppdaterBeskrivelse}
-            loading={oppdaterBeskrivelseLoading}
-            disabled={!sak?.jiraIssueKey || !token}
-          >
-            Oppdater Beskrivelse
-          </Button>
-        </HStack>
+            <HStack gap="space-8">
+              <Button
+                variant="secondary"
+                size="small"
+                onClick={handleOppdaterBeskrivelse}
+                loading={oppdaterBeskrivelseLoading}
+                disabled={!sak?.jiraIssueKey || !token}
+              >
+                Oppdater Beskrivelse
+              </Button>
+            </HStack>
 
-        {sak && (
-          <Accordion>
-            <Accordion.Item>
-              <Accordion.Header>
-                <HStack gap="space-8" align="center">
-                  <BodyShort size="small" weight="semibold">Tilganger</BodyShort>
-                  <Tag variant="neutral" size="xsmall">{sak.tilganger.length}</Tag>
-                </HStack>
-              </Accordion.Header>
-              <Accordion.Content>
-                <VStack gap="space-8">
-                  <HStack justify="space-between" align="center">
-                    <Detail weight="semibold">Administrer tilganger</Detail>
-                    <Button
-                      variant="tertiary"
-                      size="xsmall"
-                      icon={<PlusIcon aria-hidden />}
-                      onClick={() => setShowTilgangModal(true)}
-                    >
-                      Gi tilgang
-                    </Button>
-                  </HStack>
+            {sak && (
+              <Accordion>
+                <Accordion.Item>
+                  <Accordion.Header>
+                    <HStack gap="space-8" align="center">
+                      <BodyShort size="small" weight="semibold">Tilganger</BodyShort>
+                      <Tag variant="neutral" size="xsmall">{sak.tilganger.length}</Tag>
+                    </HStack>
+                  </Accordion.Header>
+                  <Accordion.Content>
+                    <VStack gap="space-8">
+                      <HStack justify="space-between" align="center">
+                        <Detail weight="semibold">Administrer tilganger</Detail>
+                        <Button
+                          variant="tertiary"
+                          size="xsmall"
+                          icon={<PlusIcon aria-hidden />}
+                          onClick={() => setShowTilgangModal(true)}
+                        >
+                          Gi tilgang
+                        </Button>
+                      </HStack>
 
-                  {sak.tilganger.length === 0 ? (
-                    <Detail className="text-gray-500">
-                      Ingen har tilgang ennå. Oppretteren ({sak.opprettetAv}) har alltid tilgang.
-                    </Detail>
-                  ) : (
-                    <Table size="small">
-                      <Table.Header>
-                        <Table.Row>
-                          <Table.HeaderCell>NAVident</Table.HeaderCell>
-                          <Table.HeaderCell>Gitt av</Table.HeaderCell>
-                          <Table.HeaderCell>Tidspunkt</Table.HeaderCell>
-                          <Table.HeaderCell />
-                        </Table.Row>
-                      </Table.Header>
-                      <Table.Body>
-                        {sak.tilganger.map((t) => (
-                          <Table.Row key={t.navIdent}>
-                            <Table.DataCell>
-                              <HStack gap="space-4" align="center">
-                                <PersonIcon aria-hidden fontSize="1rem" />
-                                {t.navIdent}
-                                {t.navIdent === sak.opprettetAv && (
-                                  <Tag variant="neutral" size="xsmall">Oppretter</Tag>
-                                )}
-                              </HStack>
-                            </Table.DataCell>
-                            <Table.DataCell>{t.gittAv}</Table.DataCell>
-                            <Table.DataCell>
-                              {formatDato(t.gittTidspunkt)} kl. {formatTid(t.gittTidspunkt)}
-                            </Table.DataCell>
-                            <Table.DataCell>
-                              {t.navIdent !== sak.opprettetAv && (
-                                <Button
-                                  variant="tertiary-neutral"
-                                  size="xsmall"
-                                  icon={<TrashIcon aria-hidden />}
-                                  onClick={() => handleFjernTilgang(t.navIdent)}
-                                  title="Fjern tilgang"
-                                />
-                              )}
-                            </Table.DataCell>
-                          </Table.Row>
-                        ))}
-                      </Table.Body>
-                    </Table>
-                  )}
-                  <Detail className="text-gray-500">
-                    Oppretteren ({sak.opprettetAv}) har alltid tilgang og kan ikke fjernes.
-                  </Detail>
-                </VStack>
-              </Accordion.Content>
-            </Accordion.Item>
-            <Accordion.Item>
-              <Accordion.Header>
-                <HStack gap="space-8" align="center">
-                  <BodyShort size="small" weight="semibold">Kommentarer</BodyShort>
-                  <Tag variant="neutral" size="xsmall">{kommentarer.length}</Tag>
-                </HStack>
-              </Accordion.Header>
-              <Accordion.Content>
-                <VStack gap="space-8">
-                  {kommentarerLoading ? (
-                    <Detail className="text-gray-500">Laster kommentarer...</Detail>
-                  ) : kommentarer.length === 0 ? (
-                    <Detail className="text-gray-500">Ingen kommentarer registrert ennå.</Detail>
-                  ) : (
-                    <Table size="small">
-                      <Table.Header>
-                        <Table.Row>
-                          <Table.HeaderCell>Tidspunkt</Table.HeaderCell>
-                          <Table.HeaderCell>Skrevet av</Table.HeaderCell>
-                          <Table.HeaderCell>Kommentar</Table.HeaderCell>
-                        </Table.Row>
-                      </Table.Header>
-                      <Table.Body>
-                        {kommentarer.map((kommentar) => (
-                          <Table.Row key={kommentar.id}>
-                            <Table.DataCell>
-                              {formatDato(kommentar.opprettetTidspunkt)} kl. {formatTid(kommentar.opprettetTidspunkt)}
-                            </Table.DataCell>
-                            <Table.DataCell>{kommentar.opprettetAv}</Table.DataCell>
-                            <Table.DataCell>
-                              <BodyShort size="small" className="whitespace-pre-wrap">
-                                {kommentar.originalTekst}
-                              </BodyShort>
-                            </Table.DataCell>
-                          </Table.Row>
-                        ))}
-                      </Table.Body>
-                    </Table>
-                  )}
-                </VStack>
-              </Accordion.Content>
-            </Accordion.Item>
-          </Accordion>
-        )}
+                      {sak.tilganger.length === 0 ? (
+                        <Detail className="text-gray-500">
+                          Ingen har tilgang ennå. Oppretteren ({sak.opprettetAv}) har alltid tilgang.
+                        </Detail>
+                      ) : (
+                        <Table size="small">
+                          <Table.Header>
+                            <Table.Row>
+                              <Table.HeaderCell>NAVident</Table.HeaderCell>
+                              <Table.HeaderCell>Gitt av</Table.HeaderCell>
+                              <Table.HeaderCell>Tidspunkt</Table.HeaderCell>
+                              <Table.HeaderCell />
+                            </Table.Row>
+                          </Table.Header>
+                          <Table.Body>
+                            {sak.tilganger.map((t) => (
+                              <Table.Row key={t.navIdent}>
+                                <Table.DataCell>
+                                  <HStack gap="space-4" align="center">
+                                    <PersonIcon aria-hidden fontSize="1rem" />
+                                    {t.navIdent}
+                                    {t.navIdent === sak.opprettetAv && (
+                                      <Tag variant="neutral" size="xsmall">Oppretter</Tag>
+                                    )}
+                                  </HStack>
+                                </Table.DataCell>
+                                <Table.DataCell>{t.gittAv}</Table.DataCell>
+                                <Table.DataCell>
+                                  {formatDato(t.gittTidspunkt)} kl. {formatTid(t.gittTidspunkt)}
+                                </Table.DataCell>
+                                <Table.DataCell>
+                                  {t.navIdent !== sak.opprettetAv && (
+                                    <Button
+                                      variant="tertiary-neutral"
+                                      size="xsmall"
+                                      icon={<TrashIcon aria-hidden />}
+                                      onClick={() => handleFjernTilgang(t.navIdent)}
+                                      title="Fjern tilgang"
+                                    />
+                                  )}
+                                </Table.DataCell>
+                              </Table.Row>
+                            ))}
+                          </Table.Body>
+                        </Table>
+                      )}
+                      <Detail className="text-gray-500">
+                        Oppretteren ({sak.opprettetAv}) har alltid tilgang og kan ikke fjernes.
+                      </Detail>
+                    </VStack>
+                  </Accordion.Content>
+                </Accordion.Item>
+              </Accordion>
+            )}
 
-        {!sak && !sakTilgjengelig && (
-          <Detail className="text-gray-500">Tilgangspanelet er ikke tilgjengelig i denne visningen.</Detail>
-        )}
+            {!sak && !sakTilgjengelig && (
+              <Detail className="text-gray-500">Tilgangspanelet er ikke tilgjengelig i denne visningen.</Detail>
+            )}
+          </VStack>
+        </div>
 
-        <HStack gap="space-8">
-          <Button
-            variant="primary"
-            size="small"
-            onClick={() => setVisning("kommenter")}
-          >
-            Kommenter
-          </Button>
-        </HStack>
+        <BodyShort size="small" weight="semibold">Kommentar</BodyShort>
+        <div className="p-4 rounded" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
+          <VStack gap="space-12">
+            {sak && (
+              <Accordion>
+                <Accordion.Item>
+                  <Accordion.Header>
+                    <HStack gap="space-8" align="center">
+                      <BodyShort size="small" weight="semibold">Kommentarer</BodyShort>
+                      <Tag variant="neutral" size="xsmall">{kommentarer.length}</Tag>
+                    </HStack>
+                  </Accordion.Header>
+                  <Accordion.Content>
+                    <VStack gap="space-8">
+                      {kommentarerLoading ? (
+                        <Detail className="text-gray-500">Laster kommentarer...</Detail>
+                      ) : kommentarer.length === 0 ? (
+                        <Detail className="text-gray-500">Ingen kommentarer registrert ennå.</Detail>
+                      ) : (
+                        <Table size="small">
+                          <Table.Header>
+                            <Table.Row>
+                              <Table.HeaderCell>Tidspunkt</Table.HeaderCell>
+                              <Table.HeaderCell>Skrevet av</Table.HeaderCell>
+                              <Table.HeaderCell>Kommentar</Table.HeaderCell>
+                            </Table.Row>
+                          </Table.Header>
+                          <Table.Body>
+                            {kommentarer.map((kommentar) => (
+                              <Table.Row key={kommentar.id}>
+                                <Table.DataCell>
+                                  {formatDato(kommentar.opprettetTidspunkt)} kl. {formatTid(kommentar.opprettetTidspunkt)}
+                                </Table.DataCell>
+                                <Table.DataCell>{kommentar.opprettetAv}</Table.DataCell>
+                                <Table.DataCell>
+                                  <BodyShort size="small" className="whitespace-pre-wrap">
+                                    {kommentar.originalTekst}
+                                  </BodyShort>
+                                </Table.DataCell>
+                              </Table.Row>
+                            ))}
+                          </Table.Body>
+                        </Table>
+                      )}
+                    </VStack>
+                  </Accordion.Content>
+                </Accordion.Item>
+              </Accordion>
+            )}
+
+            <HStack gap="space-8">
+              <Button
+                variant="primary"
+                size="small"
+                onClick={() => setVisning("kommenter")}
+              >
+                Kommenter
+              </Button>
+            </HStack>
+          </VStack>
+        </div>
       </VStack>
 
       <Modal
