@@ -98,7 +98,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
             liste.forEach((item) => {
               html = html.replace(
                 item.placeholder,
-                `<span class="sensurert-span" data-sensurert-id="${item.id}" data-placeholder="${item.placeholder}">${item.original}</span>`
+                `<span class="sensurert-span" contenteditable="false" data-sensurert-id="${item.id}" data-placeholder="${item.placeholder}">${item.original}</span>`
               );
             });
             editableRef.current.innerHTML = html;
@@ -223,6 +223,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
 
     const span = document.createElement("span");
     span.className = "sensurert-span";
+    span.contentEditable = "false";
     span.dataset.sensurertId = nyId;
     span.dataset.placeholder = placeholder;
     span.textContent = combinedOriginal;
