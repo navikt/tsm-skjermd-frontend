@@ -1,4 +1,4 @@
-import type { Sak, OpprettSakRequest, EndreSakRequest, UserInfo, Tilgang, GiTilgangRequest, LagreSensureringRequest, LagreSensureringResponse } from "./types";
+import type { Sak, OpprettSakRequest, EndreSakRequest, UserInfo, Tilgang, GiTilgangRequest, LagreSensureringRequest, LagreSensureringResponse, OpprettKommentarRequest, Kommentar } from "./types";
 import { createLogger } from "../logger";
 
 const log = createLogger("API");
@@ -165,6 +165,17 @@ export const sensureringApi = {
 
   lagre: (sakId: string, request: LagreSensureringRequest): Promise<LagreSensureringResponse> =>
     apiRequest(`/saker/${sakId}/sensurering`, {
+      method: "POST",
+      body: JSON.stringify(request),
+    }),
+};
+
+export const kommentarApi = {
+  hentAlle: (sakId: string): Promise<Kommentar[]> =>
+    apiRequest(`/saker/${sakId}/kommentarer`),
+
+  opprett: (sakId: string, request: OpprettKommentarRequest): Promise<Kommentar> =>
+    apiRequest(`/saker/${sakId}/kommentarer`, {
       method: "POST",
       body: JSON.stringify(request),
     }),

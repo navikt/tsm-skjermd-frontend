@@ -18,8 +18,8 @@ import {
   PlusIcon,
   TrashIcon,
 } from "@navikt/aksel-icons";
-import { sakApi, sensureringApi } from "../api/sakApi";
-import type { Sak } from "../api/types";
+import { kommentarApi, sakApi, sensureringApi } from "../api/sakApi";
+import type { Kommentar, Sak } from "../api/types";
 import { SensureringEditor } from "../components/SensureringEditor";
 
 export const SakIframe = () => {
@@ -34,6 +34,8 @@ export const SakIframe = () => {
   const [newNavIdent, setNewNavIdent] = useState("");
   const [tilgangLoading, setTilgangLoading] = useState(false);
   const [oppdaterBeskrivelseLoading, setOppdaterBeskrivelseLoading] = useState(false);
+  const [kommentarer, setKommentarer] = useState<Kommentar[]>([]);
+  const [kommentarerLoading, setKommentarerLoading] = useState(false);
 
   const [visning, setVisning] = useState<"default" | "kommenter">("default");
 
@@ -59,6 +61,21 @@ export const SakIframe = () => {
       .then(setSak)
       .catch(() => {
         setSakTilgjengelig(false);
+      });
+  }, [tilgang, sakId, visning]);
+
+  useEffect(() => {
+    if (tilgang !== "ok" || !sakId || visning !== "default") return;
+
+    setKommentarerLoading(true);
+    kommentarApi
+      .hentAlle(sakId)
+      .then(setKommentarer)
+      .catch(() => {
+        setError("Kunne ikke hente kommentarer");
+      })
+      .finally(() => {
+        setKommentarerLoading(false);
       });
   }, [tilgang, sakId, visning]);
 
@@ -203,7 +220,14 @@ export const SakIframe = () => {
           onAvbryt={() => setVisning("default")}
           onLagreOgLukk={async (sensurertTekst) => {
             if (sak?.jiraIssueKey) {
-              createCommentInJira(sak.jiraIssueKey, sensurertTekst);
+              try {
+                const nyKommentar = await kommentarApi.opprett(sakId, { tekst: sensurertTekst });
+                setKommentarer((prev) => [nyKommentar, ...prev]);
+                createCommentInJira(sak.jiraIssueKey, sensurertTekst);
+              } catch (err) {
+                setError(err instanceof Error ? err.message : "Kunne ikke opprette kommentar");
+                return;
+              }
             }
             setVisning("default");
           }}
@@ -310,6 +334,48 @@ export const SakIframe = () => {
                   <Detail className="text-gray-500">
                     Oppretteren ({sak.opprettetAv}) har alltid tilgang og kan ikke fjernes.
                   </Detail>
+                </VStack>
+              </Accordion.Content>
+            </Accordion.Item>
+            <Accordion.Item>
+              <Accordion.Header>
+                <HStack gap="space-8" align="center">
+                  <BodyShort size="small" weight="semibold">Kommentarer</BodyShort>
+                  <Tag variant="neutral" size="xsmall">{kommentarer.length}</Tag>
+                </HStack>
+              </Accordion.Header>
+              <Accordion.Content>
+                <VStack gap="space-8">
+                  {kommentarerLoading ? (
+                    <Detail className="text-gray-500">Laster kommentarer...</Detail>
+                  ) : kommentarer.length === 0 ? (
+                    <Detail className="text-gray-500">Ingen kommentarer registrert ennå.</Detail>
+                  ) : (
+                    <Table size="small">
+                      <Table.Header>
+                        <Table.Row>
+                          <Table.HeaderCell>Tidspunkt</Table.HeaderCell>
+                          <Table.HeaderCell>Skrevet av</Table.HeaderCell>
+                          <Table.HeaderCell>Kommentar (originaltekst)</Table.HeaderCell>
+                        </Table.Row>
+                      </Table.Header>
+                      <Table.Body>
+                        {kommentarer.map((kommentar) => (
+                          <Table.Row key={kommentar.id}>
+                            <Table.DataCell>
+                              {formatDato(kommentar.opprettetTidspunkt)} kl. {formatTid(kommentar.opprettetTidspunkt)}
+                            </Table.DataCell>
+                            <Table.DataCell>{kommentar.opprettetAv}</Table.DataCell>
+                            <Table.DataCell>
+                              <BodyShort size="small" className="whitespace-pre-wrap">
+                                {kommentar.originalTekst}
+                              </BodyShort>
+                            </Table.DataCell>
+                          </Table.Row>
+                        ))}
+                      </Table.Body>
+                    </Table>
+                  )}
                 </VStack>
               </Accordion.Content>
             </Accordion.Item>

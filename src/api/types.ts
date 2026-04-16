@@ -48,6 +48,18 @@ export interface LagreSensureringResponse {
   opprettetTidspunkt: string;
 }
 
+export interface OpprettKommentarRequest {
+  tekst: string;
+}
+
+export interface Kommentar {
+  id: string;
+  sensurertTekst: string;
+  originalTekst: string;
+  opprettetAv: string;
+  opprettetTidspunkt: string;
+}
+
 export interface UserInfo {
   navIdent: string;
   name: string;
