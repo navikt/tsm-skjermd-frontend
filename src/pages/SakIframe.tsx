@@ -356,7 +356,7 @@ export const SakIframe = () => {
                         <Table.Row>
                           <Table.HeaderCell>Tidspunkt</Table.HeaderCell>
                           <Table.HeaderCell>Skrevet av</Table.HeaderCell>
-                          <Table.HeaderCell>Kommentar (originaltekst)</Table.HeaderCell>
+                          <Table.HeaderCell>Kommentar</Table.HeaderCell>
                         </Table.Row>
                       </Table.Header>
                       <Table.Body>
