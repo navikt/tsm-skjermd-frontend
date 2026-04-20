@@ -127,9 +127,6 @@ export const sakApi = {
 
   hentPaId: (id: string): Promise<Sak> => apiRequest(`/saker/${id}`),
 
-  hentPaJiraKey: (jiraIssueKey: string): Promise<Sak> =>
-    apiRequest(`/saker/jira/${jiraIssueKey}`),
-
   opprett: (sak: OpprettSakRequest): Promise<Sak> =>
     apiRequest("/saker", {
       method: "POST",
