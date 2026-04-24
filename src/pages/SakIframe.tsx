@@ -58,7 +58,11 @@ export const SakIframe = () => {
     sakApi
       .hentPaId(sakId)
       .then(setSak)
-      .catch(() => {
+      .catch((err) => {
+        if (err instanceof Error && /403|404/.test(err.message)) {
+          setTilgang("denied");
+          return;
+        }
         setSakTilgjengelig(false);
       });
   }, [tilgang, sakId]);
@@ -70,7 +74,11 @@ export const SakIframe = () => {
     kommentarApi
       .hentAlle(sakId)
       .then(setKommentarer)
-      .catch(() => {
+      .catch((err) => {
+        if (err instanceof Error && /403|404/.test(err.message)) {
+          setTilgang("denied");
+          return;
+        }
         setError("Kunne ikke hente kommentarer");
       })
       .finally(() => {
