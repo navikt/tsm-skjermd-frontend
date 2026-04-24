@@ -40,12 +40,10 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
   const editableRef = useRef<HTMLDivElement>(null);
   const removeButtonRef = useRef<HTMLButtonElement>(null);
   const hoveredSpanRef = useRef<HTMLElement | null>(null);
-  const nextPlaceholderIndex = useRef(0);
   const existingDataRef = useRef<{ originaltekst: string; sensurertTekst: string; sensurertElementer: SensurertElement[] } | null>(null);
 
-  const genererPlaceholder = () => {
-    nextPlaceholderIndex.current += 1;
-    return `[SLADDET-${nextPlaceholderIndex.current}]`;
+  const genererPlaceholder = (original: string) => {
+    return "*".repeat(original.length);
   };
 
   const buildSensurertTekst = useCallback(() => {
@@ -82,7 +80,6 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
             sensurertTekst: data.sensurertTekst,
             sensurertElementer: data.sensurertElementer,
           };
-          nextPlaceholderIndex.current = data.sensurertElementer.length;
         } else {
           setOriginaltekst(data.originaltekst);
           const liste = data.sensurertElementer.map((el, i) => ({
@@ -91,7 +88,6 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
             id: `loaded-${i}`,
           }));
           setSensurertListe(liste);
-          nextPlaceholderIndex.current = liste.length;
 
           if (editableRef.current) {
             let html = data.sensurertTekst;
@@ -219,7 +215,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
     }
 
     const nyId = crypto.randomUUID();
-    const placeholder = genererPlaceholder();
+    const placeholder = genererPlaceholder(combinedOriginal);
 
     const span = document.createElement("span");
     span.className = "sensurert-span";
@@ -243,17 +239,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
         ...filtered,
         { original: combinedOriginal, placeholder, id: nyId },
       ];
-      const offset = kommentarModus ? (existingDataRef.current?.sensurertElementer.length ?? 0) : 0;
-      const renumbered = updated.map((s, i) => {
-        const newPlaceholder = `[SLADDET-${offset + i + 1}]`;
-        if (s.placeholder !== newPlaceholder) {
-          const el = editableRef.current?.querySelector(`[data-sensurert-id="${s.id}"]`);
-          if (el) (el as HTMLElement).dataset.placeholder = newPlaceholder;
-        }
-        return { ...s, placeholder: newPlaceholder };
-      });
-      nextPlaceholderIndex.current = offset + renumbered.length;
-      return renumbered;
+      return updated;
     });
     markContentChanged();
   }, [sensurertListe, kommentarModus, markContentChanged]);
@@ -284,18 +270,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
     }
 
     const remaining = sensurertListe.filter((s) => s.id !== itemId);
-    const offset = kommentarModus ? (existingDataRef.current?.sensurertElementer.length ?? 0) : 0;
-    const renumbered = remaining.map((s, i) => {
-      const newPlaceholder = `[SLADDET-${offset + i + 1}]`;
-      if (s.placeholder !== newPlaceholder) {
-        const el = editableRef.current?.querySelector(`[data-sensurert-id="${s.id}"]`);
-        if (el) (el as HTMLElement).dataset.placeholder = newPlaceholder;
-      }
-      return { ...s, placeholder: newPlaceholder };
-    });
-
-    nextPlaceholderIndex.current = offset + renumbered.length;
-    setSensurertListe(renumbered);
+    setSensurertListe(remaining);
     markContentChanged();
   }, [sensurertListe, markContentChanged]);
 
@@ -380,7 +355,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
                        ${readOnly ? 'bg-gray-50 cursor-default' : 'bg-white focus:outline-none focus:ring-2 focus:ring-blue-500'}`}
             data-placeholder={kommentarModus
               ? "Skriv kommentaren din her. Marker tekst for å sensurere sensitiv informasjon før den sendes."
-              : "Lim inn eller skriv teksten som skal sensureres. Marker tekst for å markere sensitiv informasjon."}
+              : "Her kan du skrive tekst som inneholder sensitiv informasjon. Marker de delene av teksten som er sensitiv. Hvis du ikke markerer noe blir hele teksten anset som sensitiv"}
             suppressContentEditableWarning
             onInput={() => {
               if (!readOnly) {
