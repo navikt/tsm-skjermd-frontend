@@ -325,12 +325,50 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
   }, [autoSave, laster, changeCounter, lagreSensurering]);
 
   const handleLagreOgLukk = useCallback(async () => {
+    if (kommentarModus && sensurertListe.length === 0 && editableRef.current) {
+      const fullTekst = editableRef.current.innerText.trim();
+      if (fullTekst) {
+        const nyId = crypto.randomUUID();
+        const placeholder = "*".repeat(fullTekst.length);
+        const span = document.createElement("span");
+        span.className = "sensurert-span";
+        span.contentEditable = "false";
+        span.dataset.sensurertId = nyId;
+        span.dataset.placeholder = placeholder;
+        span.textContent = fullTekst;
+        editableRef.current.innerHTML = "";
+        editableRef.current.appendChild(span);
+        setSensurertListe([{ original: fullTekst, placeholder, id: nyId }]);
+
+        const ok = await sensureringApi.lagre(sakId, {
+          originaltekst: existingDataRef.current?.originaltekst ?? fullTekst,
+          sensurertTekst: existingDataRef.current?.sensurertTekst ?? placeholder,
+          sensurertElementer: [
+            ...(existingDataRef.current?.sensurertElementer ?? []),
+            { placeholder, original: fullTekst },
+          ],
+        }).then(() => true).catch((error) => {
+          log.error(`Kunne ikke lagre sensurering for sak ${sakId}`, error);
+          setLagreStatus({
+            type: "error",
+            message: error instanceof Error ? error.message : "Kunne ikke lagre sensurering",
+          });
+          return false;
+        });
+
+        if (ok && onLagreOgLukk) {
+          onLagreOgLukk(placeholder);
+        }
+        return;
+      }
+    }
+
     const ok = await lagreSensurering();
     if (ok && onLagreOgLukk) {
       const sensurertTekst = buildSensurertTekst();
       onLagreOgLukk(sensurertTekst);
     }
-  }, [lagreSensurering, onLagreOgLukk]);
+  }, [lagreSensurering, onLagreOgLukk, kommentarModus, sensurertListe, sakId, buildSensurertTekst]);
 
   return (
     <Box
