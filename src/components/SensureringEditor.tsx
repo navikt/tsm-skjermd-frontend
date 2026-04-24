@@ -28,9 +28,10 @@ interface SensureringEditorProps {
   readOnly?: boolean;
   singleSaveButton?: boolean;
   kommentarModus?: boolean;
+  lagreKnappTekst?: string;
 }
 
-export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError, autoSave = false, readOnly = false, singleSaveButton = false, kommentarModus = false }: SensureringEditorProps) => {
+export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError, autoSave = false, readOnly = false, singleSaveButton = false, kommentarModus = false, lagreKnappTekst = "Lagre" }: SensureringEditorProps) => {
   const [sensurertListe, setSensurertListe] = useState<SensurertItem[]>([]);
   const [originaltekst, setOriginaltekst] = useState("");
   const [changeCounter, setChangeCounter] = useState(0);
@@ -423,7 +424,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
                   onClick={handleLagreOgLukk}
                   loading={lagrer}
                 >
-                  Lagre
+                  {lagreKnappTekst}
                 </Button>
                 {onAvbryt && (
                   <Button

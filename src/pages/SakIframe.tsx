@@ -36,8 +36,7 @@ export const SakIframe = () => {
   const [oppdaterBeskrivelseLoading, setOppdaterBeskrivelseLoading] = useState(false);
   const [kommentarer, setKommentarer] = useState<Kommentar[]>([]);
   const [kommentarerLoading, setKommentarerLoading] = useState(false);
-
-  const [visning, setVisning] = useState<"default" | "kommenter">("default");
+  const [kommentarEditorKey, setKommentarEditorKey] = useState(0);
 
   useEffect(() => {
     if (!token || !sakId) {
@@ -55,17 +54,17 @@ export const SakIframe = () => {
   }, [token, sakId]);
 
   useEffect(() => {
-    if (tilgang !== "ok" || !sakId || visning !== "default") return;
+    if (tilgang !== "ok" || !sakId) return;
     sakApi
       .hentPaId(sakId)
       .then(setSak)
       .catch(() => {
         setSakTilgjengelig(false);
       });
-  }, [tilgang, sakId, visning]);
+  }, [tilgang, sakId]);
 
   useEffect(() => {
-    if (tilgang !== "ok" || !sakId || visning !== "default") return;
+    if (tilgang !== "ok" || !sakId) return;
 
     setKommentarerLoading(true);
     kommentarApi
@@ -77,7 +76,7 @@ export const SakIframe = () => {
       .finally(() => {
         setKommentarerLoading(false);
       });
-  }, [tilgang, sakId, visning]);
+  }, [tilgang, sakId]);
 
   useEffect(() => {
     let lastHeight = 0;
@@ -210,32 +209,6 @@ export const SakIframe = () => {
     );
   }
 
-  if (visning === "kommenter") {
-    return (
-      <div className="p-4" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
-        <SensureringEditor
-          sakId={sakId!}
-          singleSaveButton
-          kommentarModus
-          onAvbryt={() => setVisning("default")}
-          onLagreOgLukk={async (sensurertTekst) => {
-            if (sak?.jiraIssueKey) {
-              try {
-                const nyKommentar = await kommentarApi.opprett(sakId, { tekst: sensurertTekst });
-                setKommentarer((prev) => [nyKommentar, ...prev]);
-                createCommentInJira(sak.jiraIssueKey, sensurertTekst);
-              } catch (err) {
-                setError(err instanceof Error ? err.message : "Kunne ikke opprette kommentar");
-                return;
-              }
-            }
-            setVisning("default");
-          }}
-        />
-      </div>
-    );
-  }
-
   return (
     <div className="p-4">
       <VStack gap="space-12">
@@ -255,7 +228,7 @@ export const SakIframe = () => {
 
             <HStack gap="space-8">
               <Button
-                variant="secondary"
+                variant="primary"
                 size="small"
                 onClick={handleOppdaterBeskrivelse}
                 loading={oppdaterBeskrivelseLoading}
@@ -399,15 +372,27 @@ export const SakIframe = () => {
               </Accordion>
             )}
 
-            <HStack gap="space-8">
-              <Button
-                variant="primary"
-                size="small"
-                onClick={() => setVisning("kommenter")}
-              >
-                Kommenter
-              </Button>
-            </HStack>
+            <SensureringEditor
+              key={kommentarEditorKey}
+              sakId={sakId!}
+              kommentarModus
+              singleSaveButton
+              lagreKnappTekst="Legg til sensitiv kommentar"
+              onAvbryt={() => setKommentarEditorKey((k) => k + 1)}
+              onLagreOgLukk={async (sensurertTekst) => {
+                if (sak?.jiraIssueKey) {
+                  try {
+                    const nyKommentar = await kommentarApi.opprett(sakId, { tekst: sensurertTekst });
+                    setKommentarer((prev) => [nyKommentar, ...prev]);
+                    createCommentInJira(sak.jiraIssueKey, sensurertTekst);
+                  } catch (err) {
+                    setError(err instanceof Error ? err.message : "Kunne ikke opprette kommentar");
+                    return;
+                  }
+                }
+                setKommentarEditorKey((k) => k + 1);
+              }}
+            />
           </VStack>
         </div>
       </VStack>
