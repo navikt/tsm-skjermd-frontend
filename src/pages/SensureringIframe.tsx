@@ -105,13 +105,15 @@ export const SensureringIframe = () => {
   return (
     <div className="p-2 relative" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
       <Button
-        variant="tertiary-neutral"
+        variant="primary"
         size="small"
         icon={<InformationIcon aria-hidden />}
         onClick={() => setVisInfo(true)}
         title="Hjelp"
         className="!absolute top-2 right-2 z-10"
-      />
+      >
+        Hjelp
+      </Button>
       <SensureringEditor
         sakId={sakId}
         autoSave
