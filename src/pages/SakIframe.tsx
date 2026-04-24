@@ -204,7 +204,20 @@ export const SakIframe = () => {
   if (tilgang === "denied") {
     return (
       <div className="p-4" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
-        <Alert variant="warning">Ingen tilgang</Alert>
+        <VStack gap="space-12" align="start">
+          <BodyShort>
+            Du har ikke tilgang til å se sensitiv informasjon for denne saken.
+          </BodyShort>
+          <Button
+            variant="primary"
+            size="small"
+            onClick={() => {
+              alert("Forespørsel om tilgang er ikke implementert ennå.");
+            }}
+          >
+            Be om tilgang
+          </Button>
+        </VStack>
       </div>
     );
   }
