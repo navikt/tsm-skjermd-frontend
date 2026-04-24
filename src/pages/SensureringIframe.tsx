@@ -1,6 +1,7 @@
 import { useParams, useSearchParams } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { Alert } from "@navikt/ds-react";
+import { Alert, BodyShort, Button, Heading, VStack } from "@navikt/ds-react";
+import { InformationIcon, XMarkIcon } from "@navikt/aksel-icons";
 import { SensureringEditor } from "../components/SensureringEditor";
 
 export const SensureringIframe = () => {
@@ -8,6 +9,7 @@ export const SensureringIframe = () => {
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
   const [tilgang, setTilgang] = useState<"loading" | "ok" | "denied">("loading");
+  const [visInfo, setVisInfo] = useState(false);
 
   useEffect(() => {
     if (!token || !sakId) {
@@ -39,8 +41,77 @@ export const SensureringIframe = () => {
     );
   }
 
+  if (visInfo) {
+    return (
+      <div
+        className="p-4 cursor-pointer relative"
+        style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}
+        onClick={() => setVisInfo(false)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " " || e.key === "Escape") {
+            setVisInfo(false);
+          }
+        }}
+      >
+        <Button
+          variant="tertiary-neutral"
+          size="small"
+          icon={<XMarkIcon aria-hidden />}
+          onClick={(e) => {
+            e.stopPropagation();
+            setVisInfo(false);
+          }}
+          title="Lukk"
+          className="!absolute top-2 right-2"
+        />
+        <VStack gap="space-12" align="start">
+          <Heading level="2" size="small">Slik bruker du sensureringseditoren</Heading>
+          <BodyShort size="small">
+            Skriv eller lim inn teksten du vil registrere i editoren. Marker de delene av
+            teksten som inneholder sensitiv informasjon — de blir automatisk sladdet og
+            erstattet med stjerner i samme lengde som den opprinnelige teksten.
+          </BodyShort>
+          <BodyShort size="small">
+            Hold musen over et sladdet felt for å fjerne sladdingen. Endringer lagres
+            automatisk.
+          </BodyShort>
+          <BodyShort size="small" weight="semibold">Eksempel</BodyShort>
+          <BodyShort size="small">
+            Original tekst:
+          </BodyShort>
+          <div className="p-2 rounded bg-white font-mono text-sm w-full">
+            Pasient Ola Nordmann (fnr 12345678901) har fått diagnose.
+          </div>
+          <BodyShort size="small">
+            Etter sensurering av navn og fødselsnummer:
+          </BodyShort>
+          <div className="p-2 rounded bg-white font-mono text-sm w-full">
+            Pasient{" "}
+            <span className="sensurert-span">***********</span>
+            {" "}(fnr{" "}
+            <span className="sensurert-span">***********</span>
+            ) har fått diagnose.
+          </div>
+          <BodyShort size="small" className="italic text-gray-600">
+            Klikk hvor som helst for å lukke.
+          </BodyShort>
+        </VStack>
+      </div>
+    );
+  }
+
   return (
-    <div className="p-2" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
+    <div className="p-2 relative" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
+      <Button
+        variant="tertiary-neutral"
+        size="small"
+        icon={<InformationIcon aria-hidden />}
+        onClick={() => setVisInfo(true)}
+        title="Hjelp"
+        className="!absolute top-2 right-2 z-10"
+      />
       <SensureringEditor
         sakId={sakId}
         autoSave
