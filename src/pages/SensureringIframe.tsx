@@ -112,7 +112,6 @@ export const SensureringIframe = () => {
         title="Hjelp"
         className="!absolute top-2 right-2 z-10"
       >
-        Hjelp
       </Button>
       <SensureringEditor
         sakId={sakId}
