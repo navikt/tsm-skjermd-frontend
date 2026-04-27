@@ -144,7 +144,12 @@ export const SakIframe = () => {
     }
   };
 
-  const createCommentInJira = (issueKey: string, text: string) => {
+  const tekstTilJira = (tekst: string): string | null => {
+    if (tekst.length > 0 && [...tekst].every((c) => c === "*")) return null;
+    return tekst;
+  };
+
+  const createCommentInJira = (issueKey: string, text: string | null) => {
     const requestId = crypto.randomUUID();
 
     window.parent.postMessage({
@@ -174,7 +179,7 @@ export const SakIframe = () => {
         },
         body: JSON.stringify({
           issueKey: sak.jiraIssueKey,
-          text: sensurering.sensurertTekst,
+          text: tekstTilJira(sensurering.sensurertTekst),
         }),
       });
     } catch (err) {
@@ -405,7 +410,7 @@ export const SakIframe = () => {
                   try {
                     const nyKommentar = await kommentarApi.opprett(sakId, { tekst: sensurertTekst });
                     setKommentarer((prev) => [nyKommentar, ...prev]);
-                    createCommentInJira(sak.jiraIssueKey, sensurertTekst);
+                    createCommentInJira(sak.jiraIssueKey, tekstTilJira(sensurertTekst));
                   } catch (err) {
                     setError(err instanceof Error ? err.message : "Kunne ikke opprette kommentar");
                     return;
