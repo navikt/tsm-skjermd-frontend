@@ -104,12 +104,7 @@ export const SensureringIframe = () => {
 
   return (
     <div className="p-2" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
-      <SensureringEditor
-        sakId={sakId}
-        autoSave
-        onAuthError={() => setTilgang("denied")}
-      />
-      <div className="flex justify-end mt-2 pr-2">
+      <div className="flex justify-end mb-2 pr-2">
         <Link
           href="#"
           onClick={(e) => {
@@ -120,6 +115,11 @@ export const SensureringIframe = () => {
           Veiledning
         </Link>
       </div>
+      <SensureringEditor
+        sakId={sakId}
+        autoSave
+        onAuthError={() => setTilgang("denied")}
+      />
     </div>
   );
 };
