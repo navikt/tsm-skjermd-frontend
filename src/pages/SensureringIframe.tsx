@@ -1,7 +1,7 @@
 import { useParams, useSearchParams } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { Alert, BodyShort, Button, Heading, VStack } from "@navikt/ds-react";
-import { InformationIcon, XMarkIcon } from "@navikt/aksel-icons";
+import { Alert, BodyShort, Button, Heading, Link, VStack } from "@navikt/ds-react";
+import { XMarkIcon } from "@navikt/aksel-icons";
 import { SensureringEditor } from "../components/SensureringEditor";
 
 export const SensureringIframe = () => {
@@ -103,21 +103,23 @@ export const SensureringIframe = () => {
   }
 
   return (
-    <div className="p-2 relative" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
-      <Button
-        variant="primary"
-        size="small"
-        icon={<InformationIcon aria-hidden />}
-        onClick={() => setVisInfo(true)}
-        title="Hjelp"
-        className="!absolute top-2 right-2 z-10"
-      >
-      </Button>
+    <div className="p-2" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
       <SensureringEditor
         sakId={sakId}
         autoSave
         onAuthError={() => setTilgang("denied")}
       />
+      <div className="flex justify-end mt-2 pr-2">
+        <Link
+          href="#"
+          onClick={(e) => {
+            e.preventDefault();
+            setVisInfo(true);
+          }}
+        >
+          Veiledning
+        </Link>
+      </div>
     </div>
   );
 };
