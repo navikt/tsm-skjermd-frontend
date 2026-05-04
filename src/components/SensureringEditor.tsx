@@ -296,16 +296,31 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
         placeholder,
         original,
       }));
+
+      let lagreOriginaltekst: string;
+      let lagreSensurertTekst: string;
+      let lagreElementer: { placeholder: string; original: string }[];
+
+      if (kommentarModus && existing) {
+        lagreOriginaltekst = existing.originaltekst;
+        lagreSensurertTekst = existing.sensurertTekst;
+        lagreElementer = [...existing.sensurertElementer, ...nyeElementer];
+      } else if (sensurertListe.length === 0) {
+        const fullTekst = editableRef.current?.innerText.trim() || sensurertTekst;
+        const placeholder = "*".repeat(fullTekst.length);
+        lagreOriginaltekst = fullTekst;
+        lagreSensurertTekst = placeholder;
+        lagreElementer = fullTekst ? [{ placeholder, original: fullTekst }] : [];
+      } else {
+        lagreOriginaltekst = originaltekst;
+        lagreSensurertTekst = sensurertTekst;
+        lagreElementer = nyeElementer;
+      }
+
       await sensureringApi.lagre(sakId, {
-        originaltekst: kommentarModus && existing
-          ? existing.originaltekst
-          : sensurertListe.length === 0
-            ? sensurertTekst
-            : originaltekst,
-        sensurertTekst: kommentarModus && existing ? existing.sensurertTekst : sensurertTekst,
-        sensurertElementer: kommentarModus && existing
-          ? [...existing.sensurertElementer, ...nyeElementer]
-          : nyeElementer,
+        originaltekst: lagreOriginaltekst,
+        sensurertTekst: lagreSensurertTekst,
+        sensurertElementer: lagreElementer,
       });
       log.info(`Sensurering lagret for sak ${sakId}`);
       setLagreStatus({ type: "success", message: "Sensurering lagret!" });
