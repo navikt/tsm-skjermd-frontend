@@ -37,6 +37,7 @@ export const SakIframe = () => {
   const [kommentarer, setKommentarer] = useState<Kommentar[]>([]);
   const [kommentarerLoading, setKommentarerLoading] = useState(false);
   const [kommentarEditorKey, setKommentarEditorKey] = useState(0);
+  const [previewModal, setPreviewModal] = useState<{ tekst: string | null; type: "beskrivelse" | "kommentar"; onBekreft: () => void } | null>(null);
 
   useEffect(() => {
     if (!token || !sakId) {
@@ -162,6 +163,31 @@ export const SakIframe = () => {
     return requestId;
   };
 
+  const sendBeskrivelseTilJira = async (jiraTekst: string | null) => {
+    if (!sakId || !sak?.jiraIssueKey || !token) return;
+
+    try {
+      setOppdaterBeskrivelseLoading(true);
+      setError(null);
+
+      await fetch("/embed/api/jira/update-description", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          issueKey: sak.jiraIssueKey,
+          text: jiraTekst,
+        }),
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Kunne ikke oppdatere Jira-beskrivelse");
+    } finally {
+      setOppdaterBeskrivelseLoading(false);
+    }
+  };
+
   const handleOppdaterBeskrivelse = async () => {
     if (!sakId || !sak?.jiraIssueKey || !token) return;
 
@@ -172,20 +198,17 @@ export const SakIframe = () => {
       const sensurering = await sensureringApi.hent(sakId);
       const jiraTekst = tekstTilJira(sensurering.sensurertTekst);
 
-      await fetch("/embed/api/jira/update-description", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
+      setOppdaterBeskrivelseLoading(false);
+      setPreviewModal({
+        tekst: jiraTekst,
+        type: "beskrivelse",
+        onBekreft: () => {
+          setPreviewModal(null);
+          sendBeskrivelseTilJira(jiraTekst);
         },
-        body: JSON.stringify({
-          issueKey: sak.jiraIssueKey,
-          text: jiraTekst ?? "",
-        }),
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Kunne ikke oppdatere Jira-beskrivelse");
-    } finally {
+      setError(err instanceof Error ? err.message : "Kunne ikke hente sensurering");
       setOppdaterBeskrivelseLoading(false);
     }
   };
@@ -411,7 +434,15 @@ export const SakIframe = () => {
                   try {
                     const nyKommentar = await kommentarApi.opprett(sakId, { tekst: sensurertTekst });
                     setKommentarer((prev) => [nyKommentar, ...prev]);
-                    createCommentInJira(sak.jiraIssueKey, tekstTilJira(sensurertTekst));
+                    const jiraTekst = tekstTilJira(sensurertTekst);
+                    setPreviewModal({
+                      tekst: jiraTekst,
+                      type: "kommentar",
+                      onBekreft: () => {
+                        setPreviewModal(null);
+                        createCommentInJira(sak.jiraIssueKey!, jiraTekst);
+                      },
+                    });
                   } catch (err) {
                     setError(err instanceof Error ? err.message : "Kunne ikke opprette kommentar");
                     return;
@@ -461,6 +492,42 @@ export const SakIframe = () => {
               setNewNavIdent("");
             }}
           >
+            Avbryt
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal
+        open={previewModal !== null}
+        onClose={() => setPreviewModal(null)}
+        header={{
+          heading: previewModal?.type === "beskrivelse"
+            ? "Forhåndsvisning av beskrivelse"
+            : "Forhåndsvisning av kommentar",
+          closeButton: true,
+        }}
+      >
+        <Modal.Body>
+          <VStack gap="space-16">
+            <BodyShort weight="semibold">
+              Følgende tekst vil bli sendt til Jira ({sak?.jiraIssueKey}):
+            </BodyShort>
+            {previewModal?.tekst ? (
+              <div className="p-3 bg-gray-50 border border-gray-200 rounded whitespace-pre-wrap font-mono text-sm">
+                {previewModal.tekst}
+              </div>
+            ) : (
+              <Alert variant="info" size="small">
+                Hele teksten er sensitiv — ingenting vil bli sendt til Jira.
+              </Alert>
+            )}
+          </VStack>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button onClick={previewModal?.onBekreft} disabled={!previewModal?.tekst}>
+            Send til Jira
+          </Button>
+          <Button variant="secondary" onClick={() => setPreviewModal(null)}>
             Avbryt
           </Button>
         </Modal.Footer>

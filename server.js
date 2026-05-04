@@ -222,8 +222,8 @@ app.post('/embed/api/jira/update-description', async (req, res) => {
         }
 
         const { issueKey, text } = req.body;
-        if (!issueKey || text == null) {
-            return res.status(400).json({ error: 'issueKey and text are required' });
+        if (!issueKey) {
+            return res.status(400).json({ error: 'issueKey is required' });
         }
 
         log('JiraProxy', `Updating description for ${issueKey} (user: ${stored.email})`);
