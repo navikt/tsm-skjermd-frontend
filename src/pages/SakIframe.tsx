@@ -170,6 +170,7 @@ export const SakIframe = () => {
       setError(null);
 
       const sensurering = await sensureringApi.hent(sakId);
+      const jiraTekst = tekstTilJira(sensurering.sensurertTekst);
 
       await fetch("/embed/api/jira/update-description", {
         method: "POST",
@@ -179,7 +180,7 @@ export const SakIframe = () => {
         },
         body: JSON.stringify({
           issueKey: sak.jiraIssueKey,
-          text: tekstTilJira(sensurering.sensurertTekst),
+          text: jiraTekst ?? "",
         }),
       });
     } catch (err) {
