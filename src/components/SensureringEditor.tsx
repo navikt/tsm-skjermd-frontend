@@ -83,22 +83,32 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
           };
         } else {
           setOriginaltekst(data.originaltekst);
-          const liste = data.sensurertElementer.map((el, i) => ({
-            original: el.original,
-            placeholder: el.placeholder,
-            id: `loaded-${i}`,
-          }));
-          setSensurertListe(liste);
 
-          if (editableRef.current) {
-            let html = data.sensurertTekst;
-            liste.forEach((item) => {
-              html = html.replace(
-                item.placeholder,
-                `<span class="sensurert-span" contenteditable="false" data-sensurert-id="${item.id}" data-placeholder="${item.placeholder}">${item.original}</span>`
-              );
-            });
-            editableRef.current.innerHTML = html;
+          const altErSensitivt = data.sensurertTekst.length > 0 && [...data.sensurertTekst].every((c) => c === '*');
+
+          if (altErSensitivt) {
+            setSensurertListe([]);
+            if (editableRef.current) {
+              editableRef.current.innerText = data.originaltekst;
+            }
+          } else {
+            const liste = data.sensurertElementer.map((el, i) => ({
+              original: el.original,
+              placeholder: el.placeholder,
+              id: `loaded-${i}`,
+            }));
+            setSensurertListe(liste);
+
+            if (editableRef.current) {
+              let html = data.sensurertTekst;
+              liste.forEach((item) => {
+                html = html.replace(
+                  item.placeholder,
+                  `<span class="sensurert-span" contenteditable="false" data-sensurert-id="${item.id}" data-placeholder="${item.placeholder}">${item.original}</span>`
+                );
+              });
+              editableRef.current.innerHTML = html;
+            }
           }
         }
       })
@@ -328,17 +338,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
     if (kommentarModus && sensurertListe.length === 0 && editableRef.current) {
       const fullTekst = editableRef.current.innerText.trim();
       if (fullTekst) {
-        const nyId = crypto.randomUUID();
         const placeholder = "*".repeat(fullTekst.length);
-        const span = document.createElement("span");
-        span.className = "sensurert-span";
-        span.contentEditable = "false";
-        span.dataset.sensurertId = nyId;
-        span.dataset.placeholder = placeholder;
-        span.textContent = fullTekst;
-        editableRef.current.innerHTML = "";
-        editableRef.current.appendChild(span);
-        setSensurertListe([{ original: fullTekst, placeholder, id: nyId }]);
 
         const ok = await sensureringApi.lagre(sakId, {
           originaltekst: existingDataRef.current?.originaltekst ?? fullTekst,
