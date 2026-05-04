@@ -518,13 +518,13 @@ export const SakIframe = () => {
               </div>
             ) : (
               <Alert variant="info" size="small">
-                Hele teksten er sensitiv — ingenting vil bli sendt til Jira.
+                Hele teksten er sensitiv. Ingen tekst vil bli sendt til Jira.
               </Alert>
             )}
           </VStack>
         </Modal.Body>
         <Modal.Footer>
-          <Button onClick={previewModal?.onBekreft} disabled={!previewModal?.tekst}>
+          <Button onClick={previewModal?.onBekreft}>
             Send til Jira
           </Button>
           <Button variant="secondary" onClick={() => setPreviewModal(null)}>
