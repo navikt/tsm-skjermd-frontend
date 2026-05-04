@@ -396,6 +396,11 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
               ? "Skriv kommentaren din her. Marker tekst for å sensurere sensitiv informasjon før den sendes."
               : "Her kan du skrive tekst som inneholder sensitiv informasjon. Marker de delene av teksten som er sensitiv. Hvis du ikke markerer noe blir hele teksten anset som sensitiv"}
             suppressContentEditableWarning
+            onBlur={() => {
+              if (editableRef.current && !editableRef.current.innerText.trim() && sensurertListe.length === 0) {
+                editableRef.current.innerHTML = '';
+              }
+            }}
             onInput={() => {
               if (!readOnly) {
                 markContentChanged();

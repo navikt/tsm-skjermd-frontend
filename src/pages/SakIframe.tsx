@@ -370,21 +370,21 @@ export const SakIframe = () => {
                         <Table size="small">
                           <Table.Header>
                             <Table.Row>
-                              <Table.HeaderCell>Tidspunkt</Table.HeaderCell>
-                              <Table.HeaderCell>Skrevet av</Table.HeaderCell>
                               <Table.HeaderCell>Kommentar</Table.HeaderCell>
+                              <Table.HeaderCell>Skrevet av</Table.HeaderCell>
                             </Table.Row>
                           </Table.Header>
                           <Table.Body>
                             {kommentarer.map((kommentar) => (
                               <Table.Row key={kommentar.id}>
                                 <Table.DataCell>
-                                  {formatDato(kommentar.opprettetTidspunkt)} kl. {formatTid(kommentar.opprettetTidspunkt)}
-                                </Table.DataCell>
-                                <Table.DataCell>{kommentar.opprettetAv}</Table.DataCell>
-                                <Table.DataCell>
                                   <BodyShort size="small" className="whitespace-pre-wrap">
                                     {kommentar.originalTekst}
+                                  </BodyShort>
+                                </Table.DataCell>
+                                <Table.DataCell>
+                                  <BodyShort size="small">
+                                    {formatDato(kommentar.opprettetTidspunkt)} kl. {formatTid(kommentar.opprettetTidspunkt)} — {kommentar.opprettetAv}
                                   </BodyShort>
                                 </Table.DataCell>
                               </Table.Row>
