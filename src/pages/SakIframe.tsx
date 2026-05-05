@@ -36,6 +36,7 @@ export const SakIframe = () => {
   const [oppdaterBeskrivelseLoading, setOppdaterBeskrivelseLoading] = useState(false);
   const [kommentarer, setKommentarer] = useState<Kommentar[]>([]);
   const [kommentarerLoading, setKommentarerLoading] = useState(false);
+  const [beskrivelseEditorKey, setBeskrivelseEditorKey] = useState(0);
   const [kommentarEditorKey, setKommentarEditorKey] = useState(0);
   const [previewModal, setPreviewModal] = useState<{ tekst: string | null; type: "beskrivelse" | "kommentar"; onBekreft: () => void } | null>(null);
 
@@ -272,8 +273,10 @@ export const SakIframe = () => {
         <div className="p-4 rounded" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
           <VStack gap="space-12">
             <SensureringEditor
+              key={beskrivelseEditorKey}
               sakId={sakId!}
               autoSave
+              onAvbryt={() => setBeskrivelseEditorKey((k) => k + 1)}
             />
 
             <HStack gap="space-8">
