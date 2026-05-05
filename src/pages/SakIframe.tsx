@@ -259,7 +259,7 @@ export const SakIframe = () => {
 
         <BodyShort size="small" weight="semibold">Beskrivelse</BodyShort>
         <div
-          className="p-4 rounded cursor-pointer transition-all hover:brightness-95"
+          className={`p-4 rounded transition-all ${beskrivelseEditing ? '' : 'cursor-pointer hover:brightness-95'}`}
           style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}
           onClick={() => setBeskrivelseEditing(true)}
         >
@@ -363,7 +363,7 @@ export const SakIframe = () => {
 
         <BodyShort size="small" weight="semibold">Kommentar</BodyShort>
         <div
-          className="p-4 rounded cursor-pointer transition-all hover:brightness-95"
+          className={`p-4 rounded transition-all ${kommentarEditing ? '' : 'cursor-pointer hover:brightness-95'}`}
           style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}
           onClick={() => setKommentarEditing(true)}
         >
