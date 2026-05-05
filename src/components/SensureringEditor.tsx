@@ -29,9 +29,10 @@ interface SensureringEditorProps {
   singleSaveButton?: boolean;
   kommentarModus?: boolean;
   lagreKnappTekst?: string;
+  showButtons?: boolean;
 }
 
-export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError, autoSave = false, readOnly = false, singleSaveButton = false, kommentarModus = false, lagreKnappTekst = "Lagre" }: SensureringEditorProps) => {
+export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError, autoSave = false, readOnly = false, singleSaveButton = false, kommentarModus = false, lagreKnappTekst = "Lagre", showButtons = true }: SensureringEditorProps) => {
   const [sensurertListe, setSensurertListe] = useState<SensurertItem[]>([]);
   const [originaltekst, setOriginaltekst] = useState("");
   const [changeCounter, setChangeCounter] = useState(0);
@@ -471,7 +472,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
           )}
         </div>
 
-        {!autoSave && !readOnly && (
+        {!autoSave && !readOnly && showButtons && (
           <HStack gap="space-8">
             {singleSaveButton ? (
               <>

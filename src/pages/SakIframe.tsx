@@ -18,7 +18,7 @@ import {
   PlusIcon,
   TrashIcon,
 } from "@navikt/aksel-icons";
-import { kommentarApi, sakApi, sensureringApi } from "../api/sakApi";
+import { kommentarApi, sakApi } from "../api/sakApi";
 import type { Kommentar, Sak } from "../api/types";
 import { SensureringEditor } from "../components/SensureringEditor";
 
@@ -33,11 +33,12 @@ export const SakIframe = () => {
   const [showTilgangModal, setShowTilgangModal] = useState(false);
   const [newNavIdent, setNewNavIdent] = useState("");
   const [tilgangLoading, setTilgangLoading] = useState(false);
-  const [oppdaterBeskrivelseLoading, setOppdaterBeskrivelseLoading] = useState(false);
   const [kommentarer, setKommentarer] = useState<Kommentar[]>([]);
   const [kommentarerLoading, setKommentarerLoading] = useState(false);
   const [beskrivelseEditorKey, setBeskrivelseEditorKey] = useState(0);
   const [kommentarEditorKey, setKommentarEditorKey] = useState(0);
+  const [beskrivelseEditing, setBeskrivelseEditing] = useState(false);
+  const [kommentarEditing, setKommentarEditing] = useState(false);
   const [previewModal, setPreviewModal] = useState<{ tekst: string | null; type: "beskrivelse" | "kommentar"; onBekreft: () => void } | null>(null);
 
   useEffect(() => {
@@ -168,7 +169,6 @@ export const SakIframe = () => {
     if (!sakId || !sak?.jiraIssueKey || !token) return;
 
     try {
-      setOppdaterBeskrivelseLoading(true);
       setError(null);
 
       await fetch("/embed/api/jira/update-description", {
@@ -184,34 +184,22 @@ export const SakIframe = () => {
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Kunne ikke oppdatere Jira-beskrivelse");
-    } finally {
-      setOppdaterBeskrivelseLoading(false);
     }
   };
 
-  const handleOppdaterBeskrivelse = async () => {
-    if (!sakId || !sak?.jiraIssueKey || !token) return;
+  const handleLagreBeskrivelse = (sensurertTekst: string) => {
+    setBeskrivelseEditing(false);
+    if (!sak?.jiraIssueKey || !token) return;
 
-    try {
-      setOppdaterBeskrivelseLoading(true);
-      setError(null);
-
-      const sensurering = await sensureringApi.hent(sakId);
-      const jiraTekst = tekstTilJira(sensurering.sensurertTekst);
-
-      setOppdaterBeskrivelseLoading(false);
-      setPreviewModal({
-        tekst: jiraTekst,
-        type: "beskrivelse",
-        onBekreft: () => {
-          setPreviewModal(null);
-          sendBeskrivelseTilJira(jiraTekst);
-        },
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Kunne ikke hente sensurering");
-      setOppdaterBeskrivelseLoading(false);
-    }
+    const jiraTekst = tekstTilJira(sensurertTekst);
+    setPreviewModal({
+      tekst: jiraTekst,
+      type: "beskrivelse",
+      onBekreft: () => {
+        setPreviewModal(null);
+        sendBeskrivelseTilJira(jiraTekst);
+      },
+    });
   };
 
   const formatDato = (dato: string | null) => {
@@ -270,32 +258,24 @@ export const SakIframe = () => {
         )}
 
         <BodyShort size="small" weight="semibold">Beskrivelse</BodyShort>
-        <div className="p-4 rounded" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
+        <div
+          className="p-4 rounded cursor-pointer transition-all hover:brightness-95"
+          style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}
+          onClick={() => setBeskrivelseEditing(true)}
+        >
           <VStack gap="space-12">
             <SensureringEditor
               key={beskrivelseEditorKey}
               sakId={sakId!}
-              autoSave
+              singleSaveButton
+              lagreKnappTekst="Lagre"
+              showButtons={beskrivelseEditing}
+              onLagreOgLukk={handleLagreBeskrivelse}
+              onAvbryt={() => {
+                setBeskrivelseEditing(false);
+                setBeskrivelseEditorKey((k) => k + 1);
+              }}
             />
-
-            <HStack gap="space-8">
-              <Button
-                variant="primary"
-                size="small"
-                onClick={handleOppdaterBeskrivelse}
-                loading={oppdaterBeskrivelseLoading}
-                disabled={!sak?.jiraIssueKey || !token}
-              >
-                Oppdater Beskrivelse
-              </Button>
-              <Button
-                variant="tertiary"
-                size="small"
-                onClick={() => setBeskrivelseEditorKey((k) => k + 1)}
-              >
-                Avbryt
-              </Button>
-            </HStack>
 
             {sak && (
               <Accordion>
@@ -382,7 +362,11 @@ export const SakIframe = () => {
         </div>
 
         <BodyShort size="small" weight="semibold">Kommentar</BodyShort>
-        <div className="p-4 rounded" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
+        <div
+          className="p-4 rounded cursor-pointer transition-all hover:brightness-95"
+          style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}
+          onClick={() => setKommentarEditing(true)}
+        >
           <VStack gap="space-12">
             {sak && (
               <Accordion>
@@ -436,8 +420,12 @@ export const SakIframe = () => {
               sakId={sakId!}
               kommentarModus
               singleSaveButton
-              lagreKnappTekst="Legg til sensitiv kommentar"
-              onAvbryt={() => setKommentarEditorKey((k) => k + 1)}
+              lagreKnappTekst="Lagre"
+              showButtons={kommentarEditing}
+              onAvbryt={() => {
+                setKommentarEditing(false);
+                setKommentarEditorKey((k) => k + 1);
+              }}
               onLagreOgLukk={async (sensurertTekst) => {
                 if (sak?.jiraIssueKey) {
                   try {
@@ -457,6 +445,7 @@ export const SakIframe = () => {
                     return;
                   }
                 }
+                setKommentarEditing(false);
                 setKommentarEditorKey((k) => k + 1);
               }}
             />
