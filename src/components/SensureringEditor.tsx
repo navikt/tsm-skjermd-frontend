@@ -101,13 +101,23 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
             setSensurertListe(liste);
 
             if (editableRef.current) {
-              let html = data.sensurertTekst;
-              liste.forEach((item) => {
-                html = html.replace(
-                  item.placeholder,
-                  `<span class="sensurert-span" contenteditable="false" data-sensurert-id="${item.id}" data-placeholder="${item.placeholder}">${item.original}</span>`
-                );
-              });
+              let html = "";
+              let searchFrom = 0;
+              const positions: { start: number; end: number; item: typeof liste[number] }[] = [];
+              for (const item of liste) {
+                const idx = data.sensurertTekst.indexOf(item.placeholder, searchFrom);
+                if (idx !== -1) {
+                  positions.push({ start: idx, end: idx + item.placeholder.length, item });
+                  searchFrom = idx + item.placeholder.length;
+                }
+              }
+              let lastEnd = 0;
+              for (const pos of positions) {
+                html += data.sensurertTekst.slice(lastEnd, pos.start);
+                html += `<span class="sensurert-span" contenteditable="false" data-sensurert-id="${pos.item.id}" data-placeholder="${pos.item.placeholder}">${pos.item.original}</span>`;
+                lastEnd = pos.end;
+              }
+              html += data.sensurertTekst.slice(lastEnd);
               editableRef.current.innerHTML = html;
             }
           }
