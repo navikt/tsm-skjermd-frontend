@@ -276,7 +276,6 @@ export const SakIframe = () => {
               key={beskrivelseEditorKey}
               sakId={sakId!}
               autoSave
-              onAvbryt={() => setBeskrivelseEditorKey((k) => k + 1)}
             />
 
             <HStack gap="space-8">
@@ -288,6 +287,13 @@ export const SakIframe = () => {
                 disabled={!sak?.jiraIssueKey || !token}
               >
                 Oppdater Beskrivelse
+              </Button>
+              <Button
+                variant="tertiary"
+                size="small"
+                onClick={() => setBeskrivelseEditorKey((k) => k + 1)}
+              >
+                Avbryt
               </Button>
             </HStack>
 
