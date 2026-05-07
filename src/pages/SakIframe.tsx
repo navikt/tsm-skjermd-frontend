@@ -148,7 +148,8 @@ export const SakIframe = () => {
   };
 
   const tekstTilJira = (tekst: string): string | null => {
-    if (tekst.length > 0 && [...tekst].every((c) => c === "*")) return null;
+    if (tekst.length === 0) return null;
+    if ([...tekst].every((c) => c === "*")) return null;
     return tekst;
   };
 
@@ -424,6 +425,11 @@ export const SakIframe = () => {
               setKommentarEditorKey((k) => k + 1);
             }}
             onLagreOgLukk={async (sensurertTekst) => {
+              if (!sensurertTekst.trim()) {
+                setKommentarEditing(false);
+                setKommentarEditorKey((k) => k + 1);
+                return;
+              }
               if (sak?.jiraIssueKey) {
                 try {
                   const nyKommentar = await kommentarApi.opprett(sakId, { tekst: sensurertTekst });
@@ -512,7 +518,9 @@ export const SakIframe = () => {
               </div>
             ) : (
               <Alert variant="info" size="small">
-                Hele teksten er sensitiv. Ingen tekst vil bli sendt til Jira.
+                {previewModal?.type === "beskrivelse"
+                  ? "Hele beskrivelsen er sensitiv. Beskrivelsen i Jira vil bli tom."
+                  : "Hele kommentaren er sensitiv. En tom kommentar vil bli opprettet i Jira."}
               </Alert>
             )}
           </VStack>
