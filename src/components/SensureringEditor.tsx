@@ -34,7 +34,6 @@ interface SensureringEditorProps {
 
 export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError, autoSave = false, readOnly = false, singleSaveButton = false, kommentarModus = false, lagreKnappTekst = "Lagre", showButtons = true }: SensureringEditorProps) => {
   const [sensurertListe, setSensurertListe] = useState<SensurertItem[]>([]);
-  const [originaltekst, setOriginaltekst] = useState("");
   const [changeCounter, setChangeCounter] = useState(0);
   const [lagrer, setLagrer] = useState(false);
   const [laster, setLaster] = useState(true);
@@ -102,7 +101,6 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
             sensurertElementer: data.sensurertElementer,
           };
         } else {
-          setOriginaltekst(data.originaltekst);
 
           const altErSensitivt = data.sensurertTekst.length > 0 && [...data.sensurertTekst].every((c) => c === '*');
 
@@ -249,10 +247,6 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
     if (!combinedOriginal.trim()) {
       selection.removeAllRanges();
       return;
-    }
-
-    if (sensurertListe.length === 0) {
-      setOriginaltekst(editableRef.current?.innerText || "");
     }
 
     const nyId = crypto.randomUUID();
