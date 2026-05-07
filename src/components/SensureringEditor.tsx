@@ -66,6 +66,25 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
     return result;
   }, []);
 
+  const buildOriginaltekst = useCallback(() => {
+    if (!editableRef.current) return "";
+    let result = "";
+    const walk = (node: Node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        result += node.textContent || "";
+      } else if (node instanceof HTMLElement && node.dataset.sensurertId) {
+        const item = sensurertListe.find((s) => s.id === node.dataset.sensurertId);
+        result += item?.original || node.textContent || "";
+      } else {
+        for (const child of node.childNodes) {
+          walk(child);
+        }
+      }
+    };
+    walk(editableRef.current);
+    return result;
+  }, [sensurertListe]);
+
   const markContentChanged = useCallback(() => {
     setChangeCounter((prev) => prev + 1);
   }, []);
@@ -323,7 +342,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
         lagreSensurertTekst = placeholder;
         lagreElementer = fullTekst ? [{ placeholder, original: fullTekst }] : [];
       } else {
-        lagreOriginaltekst = originaltekst;
+        lagreOriginaltekst = buildOriginaltekst();
         lagreSensurertTekst = sensurertTekst;
         lagreElementer = nyeElementer;
       }
@@ -346,7 +365,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
     } finally {
       setLagrer(false);
     }
-  }, [sakId, originaltekst, sensurertListe, buildSensurertTekst, kommentarModus]);
+  }, [sakId, sensurertListe, buildSensurertTekst, buildOriginaltekst, kommentarModus]);
 
   useEffect(() => {
     if (!autoSave || laster || changeCounter === 0) return;
