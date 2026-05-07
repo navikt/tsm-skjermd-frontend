@@ -39,7 +39,7 @@ export const SakIframe = () => {
   const [kommentarEditorKey, setKommentarEditorKey] = useState(0);
   const [beskrivelseEditing, setBeskrivelseEditing] = useState(false);
   const [kommentarEditing, setKommentarEditing] = useState(false);
-  const [previewModal, setPreviewModal] = useState<{ tekst: string | null; type: "beskrivelse" | "kommentar"; onBekreft: () => void } | null>(null);
+  const [previewModal, setPreviewModal] = useState<{ tekst: string; type: "beskrivelse" | "kommentar"; onBekreft: () => void } | null>(null);
 
   useEffect(() => {
     if (!token || !sakId) {
@@ -147,13 +147,13 @@ export const SakIframe = () => {
     }
   };
 
-  const tekstTilJira = (tekst: string): string | null => {
-    if (tekst.length === 0) return null;
-    if ([...tekst].every((c) => c === "*")) return null;
+  const tekstTilJira = (tekst: string): string => {
+    if (tekst.length === 0) return "[Maskert]";
+    if ([...tekst].every((c) => c === "*")) return "[Maskert]";
     return tekst;
   };
 
-  const createCommentInJira = (issueKey: string, text: string | null) => {
+  const createCommentInJira = (issueKey: string, text: string) => {
     const requestId = crypto.randomUUID();
 
     window.parent.postMessage({
@@ -166,7 +166,7 @@ export const SakIframe = () => {
     return requestId;
   };
 
-  const sendBeskrivelseTilJira = async (jiraTekst: string | null) => {
+  const sendBeskrivelseTilJira = async (jiraTekst: string) => {
     if (!sakId || !sak?.jiraIssueKey || !token) return;
 
     try {
@@ -512,17 +512,9 @@ export const SakIframe = () => {
             <BodyShort weight="semibold">
               Følgende tekst vil bli sendt til Jira ({sak?.jiraIssueKey}):
             </BodyShort>
-            {previewModal?.tekst ? (
-              <div className="p-3 bg-gray-50 border border-gray-200 rounded whitespace-pre-wrap font-mono text-sm">
-                {previewModal.tekst}
-              </div>
-            ) : (
-              <Alert variant="info" size="small">
-                {previewModal?.type === "beskrivelse"
-                  ? "Hele beskrivelsen er sensitiv. Beskrivelsen i Jira vil bli tom."
-                  : "Hele kommentaren er sensitiv. En tom kommentar vil bli opprettet i Jira."}
-              </Alert>
-            )}
+            <div className="p-3 bg-gray-50 border border-gray-200 rounded whitespace-pre-wrap font-mono text-sm">
+              {previewModal?.tekst}
+            </div>
           </VStack>
         </Modal.Body>
         <Modal.Footer>
