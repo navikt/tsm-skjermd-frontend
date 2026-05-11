@@ -506,7 +506,6 @@ export const SakIframe = () => {
                 setNewNavIdent(isSelected ? value : "");
               }}
               shouldAutocomplete={false}
-              allowNewValues
             />
           </VStack>
         </Modal.Body>
