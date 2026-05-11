@@ -1,4 +1,4 @@
-import type { Sak, OpprettSakRequest, EndreSakRequest, UserInfo, Tilgang, GiTilgangRequest, LagreSensureringRequest, LagreSensureringResponse, OpprettKommentarRequest, Kommentar } from "./types";
+import type { Sak, OpprettSakRequest, EndreSakRequest, UserInfo, Tilgang, GiTilgangRequest, LagreSensureringRequest, LagreSensureringResponse, OpprettKommentarRequest, Kommentar, BrukerSøkResult } from "./types";
 import { createLogger } from "../logger";
 
 const log = createLogger("API");
@@ -192,5 +192,21 @@ export const userApi = {
 
     authLog.info("Brukerinfo hentet");
     return res.json();
+  },
+};
+
+const brukerCache = new Map<string, { data: BrukerSøkResult[]; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000;
+
+export const brukerApi = {
+  søk: async (query: string): Promise<BrukerSøkResult[]> => {
+    const key = query.toLowerCase();
+    const cached = brukerCache.get(key);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      return cached.data;
+    }
+    const data: BrukerSøkResult[] = await apiRequest(`/brukere?q=${encodeURIComponent(query)}`);
+    brukerCache.set(key, { data, timestamp: Date.now() });
+    return data;
   },
 };

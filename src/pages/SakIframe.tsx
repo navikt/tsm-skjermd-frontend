@@ -1,9 +1,8 @@
 import { useParams, useSearchParams } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Alert,
   Button,
-  TextField,
   VStack,
   HStack,
   Table,
@@ -12,14 +11,15 @@ import {
   Modal,
   BodyShort,
   Accordion,
+  UNSAFE_Combobox,
 } from "@navikt/ds-react";
 import {
   PersonIcon,
   PlusIcon,
   TrashIcon,
 } from "@navikt/aksel-icons";
-import { kommentarApi, sakApi } from "../api/sakApi";
-import type { Kommentar, Sak } from "../api/types";
+import { brukerApi, kommentarApi, sakApi } from "../api/sakApi";
+import type { BrukerSøkResult, Kommentar, Sak } from "../api/types";
 import { SensureringEditor } from "../components/SensureringEditor";
 
 export const SakIframe = () => {
@@ -33,6 +33,9 @@ export const SakIframe = () => {
   const [showTilgangModal, setShowTilgangModal] = useState(false);
   const [newNavIdent, setNewNavIdent] = useState("");
   const [tilgangLoading, setTilgangLoading] = useState(false);
+  const [brukerSøkResultater, setBrukerSøkResultater] = useState<BrukerSøkResult[]>([]);
+  const [brukerSøkLoading, setBrukerSøkLoading] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [kommentarer, setKommentarer] = useState<Kommentar[]>([]);
   const [kommentarerLoading, setKommentarerLoading] = useState(false);
   const [beskrivelseEditorKey, setBeskrivelseEditorKey] = useState(0);
@@ -125,6 +128,7 @@ export const SakIframe = () => {
         prev ? { ...prev, tilganger: [...prev.tilganger, nyTilgang] } : prev
       );
       setNewNavIdent("");
+      setBrukerSøkResultater([]);
       setShowTilgangModal(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Kunne ikke gi tilgang");
@@ -132,6 +136,25 @@ export const SakIframe = () => {
       setTilgangLoading(false);
     }
   };
+
+  const handleBrukerSøk = useCallback((query: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (query.length < 2) {
+      setBrukerSøkResultater([]);
+      return;
+    }
+    debounceRef.current = setTimeout(async () => {
+      setBrukerSøkLoading(true);
+      try {
+        const resultater = await brukerApi.søk(query);
+        setBrukerSøkResultater(resultater);
+      } catch {
+        setBrukerSøkResultater([]);
+      } finally {
+        setBrukerSøkLoading(false);
+      }
+    }, 300);
+  }, []);
 
   const handleFjernTilgang = async (navIdent: string) => {
     if (!sakId) return;
@@ -460,6 +483,7 @@ export const SakIframe = () => {
         onClose={() => {
           setShowTilgangModal(false);
           setNewNavIdent("");
+          setBrukerSøkResultater([]);
         }}
         header={{ heading: "Gi tilgang", closeButton: true }}
       >
@@ -468,12 +492,23 @@ export const SakIframe = () => {
             <BodyShort>
               Gi en bruker tilgang til saken <strong>{sak?.jiraIssueKey ?? sakId}</strong>.
             </BodyShort>
-            <TextField
-              label="NAVident"
-              description="Skriv inn NAVident (f.eks. Z123456)"
-              value={newNavIdent}
-              onChange={(e) => setNewNavIdent(e.target.value)}
-              placeholder="Z123456"
+            <UNSAFE_Combobox
+              label="Søk etter bruker"
+              description="Skriv navn eller NAVident"
+              options={brukerSøkResultater.map((b) => ({
+                label: `${b.displayName} (${b.navIdent})`,
+                value: b.navIdent,
+              }))}
+              filteredOptions={brukerSøkResultater.map((b) => ({
+                label: `${b.displayName} (${b.navIdent})`,
+                value: b.navIdent,
+              }))}
+              isLoading={brukerSøkLoading}
+              onChange={handleBrukerSøk}
+              onToggleSelected={(value, isSelected) => {
+                setNewNavIdent(isSelected ? value : "");
+              }}
+              shouldAutocomplete={false}
             />
           </VStack>
         </Modal.Body>
@@ -490,6 +525,7 @@ export const SakIframe = () => {
             onClick={() => {
               setShowTilgangModal(false);
               setNewNavIdent("");
+              setBrukerSøkResultater([]);
             }}
           >
             Avbryt

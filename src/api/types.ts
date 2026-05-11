@@ -65,3 +65,9 @@ export interface UserInfo {
   name: string;
   email: string | null;
 }
+
+export interface BrukerSøkResult {
+  displayName: string;
+  navIdent: string;
+  email: string | null;
+}
