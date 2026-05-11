@@ -495,10 +495,7 @@ export const SakIframe = () => {
             <UNSAFE_Combobox
               label="Søk etter bruker"
               description="Skriv navn eller NAVident"
-              options={brukerSøkResultater.map((b) => ({
-                label: `${b.displayName} (${b.navIdent})`,
-                value: b.navIdent,
-              }))}
+              options={[]}
               filteredOptions={brukerSøkResultater.map((b) => ({
                 label: `${b.displayName} (${b.navIdent})`,
                 value: b.navIdent,
@@ -509,6 +506,7 @@ export const SakIframe = () => {
                 setNewNavIdent(isSelected ? value : "");
               }}
               shouldAutocomplete={false}
+              allowNewValues
             />
           </VStack>
         </Modal.Body>
