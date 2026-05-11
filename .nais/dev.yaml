@@ -41,6 +41,7 @@ spec:
           - /embed/api/saker/*/sensurering
           - /embed/api/saker/*/kommentarer
           - /embed/api/jira/update-description
+          - /embed/api/brukere
           - /api/generate-embed-token
           - /api/validate-embed-token
   env:
