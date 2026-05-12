@@ -22,3 +22,8 @@
   cursor: default;
   white-space: nowrap;
 }
+
+.accordion-borderless .aksel-accordion__header::before,
+.accordion-borderless .aksel-accordion__header::after {
+  display: none;
+}

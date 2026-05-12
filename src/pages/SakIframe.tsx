@@ -262,10 +262,10 @@ export const SakIframe = () => {
     <div className="p-4">
       {sak && (
         <div className="mb-4">
-          <Accordion style={{ border: 'none' }}>
-            <Accordion.Item style={{ borderBlock: 'none' }}>
+          <Accordion className="accordion-borderless">
+            <Accordion.Item>
               <div className="flex justify-end">
-                <Accordion.Header>
+                <Accordion.Header style={{ width: 'auto' }}>
                   <HStack gap="space-8" align="center">
                     <BodyShort size="small" weight="semibold">Tilganger</BodyShort>
                     <Tag variant="neutral" size="xsmall">{sak.tilganger.length}</Tag>
@@ -423,8 +423,8 @@ export const SakIframe = () => {
             />
           </div>
           {sak && (
-            <Accordion className="mt-4" style={{ border: 'none' }}>
-              <Accordion.Item style={{ borderBlock: 'none' }}>
+            <Accordion className="mt-4 accordion-borderless">
+              <Accordion.Item>
                 <Accordion.Header>
                   <HStack gap="space-8" align="center">
                     <BodyShort size="small" weight="semibold">Kommentarer</BodyShort>
