@@ -27,3 +27,7 @@
 .accordion-borderless .aksel-accordion__header::after {
   display: none;
 }
+
+.accordion-borderless .aksel-accordion__header {
+  padding: var(--ax-space-4) var(--ax-space-8);
+}
