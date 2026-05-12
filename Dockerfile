@@ -15,6 +15,7 @@ COPY vite.config.ts tailwind.config.js postcss.config.js index.html ./
 COPY server.js ./
 
 RUN pnpm run build
+RUN pnpm prune --prod
 
 
 # --- STAGE 2: Runtime ---
