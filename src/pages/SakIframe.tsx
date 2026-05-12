@@ -8,14 +8,12 @@ import {
   Table,
   Tag,
   Detail,
-  Modal,
   BodyShort,
   Accordion,
   UNSAFE_Combobox,
 } from "@navikt/ds-react";
 import {
   PersonIcon,
-  PlusIcon,
   TrashIcon,
 } from "@navikt/aksel-icons";
 import { brukerApi, kommentarApi, sakApi } from "../api/sakApi";
@@ -28,9 +26,7 @@ export const SakIframe = () => {
   const token = searchParams.get("token");
   const [tilgang, setTilgang] = useState<"loading" | "ok" | "denied">("loading");
   const [sak, setSak] = useState<Sak | null>(null);
-  const [sakTilgjengelig, setSakTilgjengelig] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showTilgangModal, setShowTilgangModal] = useState(false);
   const [newNavIdent, setNewNavIdent] = useState("");
   const [tilgangLoading, setTilgangLoading] = useState(false);
   const [brukerSøkResultater, setBrukerSøkResultater] = useState<BrukerSøkResult[]>([]);
@@ -42,7 +38,6 @@ export const SakIframe = () => {
   const [kommentarEditorKey, setKommentarEditorKey] = useState(0);
   const [beskrivelseEditing, setBeskrivelseEditing] = useState(false);
   const [kommentarEditing, setKommentarEditing] = useState(false);
-  const [previewModal, setPreviewModal] = useState<{ tekst: string; type: "beskrivelse" | "kommentar"; onBekreft: () => void } | null>(null);
 
   useEffect(() => {
     if (!token || !sakId) {
@@ -69,7 +64,7 @@ export const SakIframe = () => {
           setTilgang("denied");
           return;
         }
-        setSakTilgjengelig(false);
+        setError("Kunne ikke hente sak");
       });
   }, [tilgang, sakId]);
 
@@ -129,7 +124,6 @@ export const SakIframe = () => {
       );
       setNewNavIdent("");
       setBrukerSøkResultater([]);
-      setShowTilgangModal(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Kunne ikke gi tilgang");
     } finally {
@@ -214,16 +208,8 @@ export const SakIframe = () => {
   const handleLagreBeskrivelse = (sensurertTekst: string) => {
     setBeskrivelseEditing(false);
     if (!sak?.jiraIssueKey || !token) return;
-
     const jiraTekst = tekstTilJira(sensurertTekst);
-    setPreviewModal({
-      tekst: jiraTekst,
-      type: "beskrivelse",
-      onBekreft: () => {
-        setPreviewModal(null);
-        sendBeskrivelseTilJira(jiraTekst);
-      },
-    });
+    sendBeskrivelseTilJira(jiraTekst);
   };
 
   const formatDato = (dato: string | null) => {
@@ -274,34 +260,8 @@ export const SakIframe = () => {
 
   return (
     <div className="p-4">
-      <VStack gap="space-12">
-        {error && (
-          <Alert variant="error" size="small" closeButton onClose={() => setError(null)}>
-            {error}
-          </Alert>
-        )}
-
-        <BodyShort size="small" weight="semibold">Beskrivelse</BodyShort>
-        <div
-          className={`p-4 rounded transition-all ${beskrivelseEditing ? '' : 'cursor-pointer hover:brightness-95'}`}
-          style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}
-          onClick={() => { if (!beskrivelseEditing) setBeskrivelseEditing(true); }}
-        >
-          <SensureringEditor
-            key={beskrivelseEditorKey}
-            sakId={sakId!}
-            singleSaveButton
-            lagreKnappTekst="Lagre"
-            showButtons={beskrivelseEditing}
-            onLagreOgLukk={handleLagreBeskrivelse}
-            onAvbryt={() => {
-              setBeskrivelseEditing(false);
-              setBeskrivelseEditorKey((k) => k + 1);
-            }}
-          />
-        </div>
-
-        {sak && (
+      {sak && (
+        <div className="flex justify-end mb-4">
           <Accordion>
             <Accordion.Item>
               <Accordion.Header>
@@ -312,18 +272,6 @@ export const SakIframe = () => {
               </Accordion.Header>
               <Accordion.Content>
                 <VStack gap="space-8">
-                  <HStack justify="space-between" align="center">
-                    <Detail weight="semibold">Administrer tilganger</Detail>
-                    <Button
-                      variant="tertiary"
-                      size="xsmall"
-                      icon={<PlusIcon aria-hidden />}
-                      onClick={() => setShowTilgangModal(true)}
-                    >
-                      Gi tilgang
-                    </Button>
-                  </HStack>
-
                   {sak.tilganger.length === 0 ? (
                     <Detail className="text-gray-500">
                       Ingen har tilgang ennå. Oppretteren ({sak.opprettetAv}) har alltid tilgang.
@@ -373,192 +321,153 @@ export const SakIframe = () => {
                   <Detail className="text-gray-500">
                     Oppretteren ({sak.opprettetAv}) har alltid tilgang og kan ikke fjernes.
                   </Detail>
+                  <UNSAFE_Combobox
+                    label="Gi tilgang"
+                    description="Søk etter navn eller NAVident"
+                    options={[]}
+                    filteredOptions={brukerSøkResultater.map((b) => ({
+                      label: `${b.displayName} (${b.navIdent})`,
+                      value: b.navIdent,
+                    }))}
+                    isLoading={brukerSøkLoading}
+                    onChange={handleBrukerSøk}
+                    onToggleSelected={(value, isSelected) => {
+                      setNewNavIdent(isSelected ? value : "");
+                    }}
+                    shouldAutocomplete={false}
+                  />
+                  <Button
+                    size="small"
+                    onClick={handleGiTilgang}
+                    loading={tilgangLoading}
+                    disabled={!newNavIdent.trim()}
+                  >
+                    Gi tilgang
+                  </Button>
                 </VStack>
               </Accordion.Content>
             </Accordion.Item>
           </Accordion>
+        </div>
+      )}
+
+      <VStack gap="space-12">
+        {error && (
+          <Alert variant="error" size="small" closeButton onClose={() => setError(null)}>
+            {error}
+          </Alert>
         )}
 
-        {!sak && !sakTilgjengelig && (
-          <Detail className="text-gray-500">Tilgangspanelet er ikke tilgjengelig i denne visningen.</Detail>
-        )}
-
-        <BodyShort size="small" weight="semibold">Kommentar</BodyShort>
-        {sak && (
-          <Accordion>
-            <Accordion.Item>
-              <Accordion.Header>
-                <HStack gap="space-8" align="center">
-                  <BodyShort size="small" weight="semibold">Kommentarer</BodyShort>
-                  <Tag variant="neutral" size="xsmall">{kommentarer.length}</Tag>
-                </HStack>
-              </Accordion.Header>
-              <Accordion.Content>
-                <VStack gap="space-8">
-                  {kommentarerLoading ? (
-                    <Detail className="text-gray-500">Laster kommentarer...</Detail>
-                  ) : kommentarer.length === 0 ? (
-                    <Detail className="text-gray-500">Ingen kommentarer registrert ennå.</Detail>
-                  ) : (
-                    <Table size="small">
-                      <Table.Header>
-                        <Table.Row>
-                          <Table.HeaderCell>Kommentar</Table.HeaderCell>
-                          <Table.HeaderCell>Skrevet av</Table.HeaderCell>
-                        </Table.Row>
-                      </Table.Header>
-                      <Table.Body>
-                        {kommentarer.map((kommentar) => (
-                          <Table.Row key={kommentar.id}>
-                            <Table.DataCell>
-                              <BodyShort size="small" className="whitespace-pre-wrap">
-                                {kommentar.originalTekst}
-                              </BodyShort>
-                            </Table.DataCell>
-                            <Table.DataCell>
-                              <BodyShort size="small">
-                                {formatDato(kommentar.opprettetTidspunkt)} kl. {formatTid(kommentar.opprettetTidspunkt)} — {kommentar.opprettetAv}
-                              </BodyShort>
-                            </Table.DataCell>
-                          </Table.Row>
-                        ))}
-                      </Table.Body>
-                    </Table>
-                  )}
-                </VStack>
-              </Accordion.Content>
-            </Accordion.Item>
-          </Accordion>
-        )}
-
+        <BodyShort size="small" weight="semibold">Beskrivelse</BodyShort>
         <div
-          className={`p-4 rounded transition-all ${kommentarEditing ? '' : 'cursor-pointer hover:brightness-95'}`}
+          className={`p-4 rounded transition-all ${beskrivelseEditing ? '' : 'cursor-pointer hover:brightness-95'}`}
           style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}
-          onClick={() => { if (!kommentarEditing) setKommentarEditing(true); }}
+          onClick={() => { if (!beskrivelseEditing) setBeskrivelseEditing(true); }}
         >
           <SensureringEditor
-            key={kommentarEditorKey}
+            key={beskrivelseEditorKey}
             sakId={sakId!}
-            kommentarModus
             singleSaveButton
             lagreKnappTekst="Lagre"
-            showButtons={kommentarEditing}
+            showButtons={beskrivelseEditing}
+            onLagreOgLukk={handleLagreBeskrivelse}
             onAvbryt={() => {
-              setKommentarEditing(false);
-              setKommentarEditorKey((k) => k + 1);
+              setBeskrivelseEditing(false);
+              setBeskrivelseEditorKey((k) => k + 1);
             }}
-            onLagreOgLukk={async (sensurertTekst) => {
-              if (!sensurertTekst.trim()) {
+          />
+        </div>
+
+        <BodyShort size="small" weight="semibold">Kommentar</BodyShort>
+        <div
+          className="p-4 rounded"
+          style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}
+        >
+          <div
+            className={`transition-all ${kommentarEditing ? '' : 'cursor-pointer hover:brightness-95'}`}
+            onClick={() => { if (!kommentarEditing) setKommentarEditing(true); }}
+          >
+            <SensureringEditor
+              key={kommentarEditorKey}
+              sakId={sakId!}
+              kommentarModus
+              singleSaveButton
+              lagreKnappTekst="Lagre"
+              showButtons={kommentarEditing}
+              onAvbryt={() => {
                 setKommentarEditing(false);
                 setKommentarEditorKey((k) => k + 1);
-                return;
-              }
-              if (sak?.jiraIssueKey) {
-                try {
-                  const nyKommentar = await kommentarApi.opprett(sakId, { tekst: sensurertTekst });
-                  setKommentarer((prev) => [nyKommentar, ...prev]);
-                  const jiraTekst = tekstTilJira(sensurertTekst);
-                  setPreviewModal({
-                    tekst: jiraTekst,
-                    type: "kommentar",
-                    onBekreft: () => {
-                      setPreviewModal(null);
-                      createCommentInJira(sak.jiraIssueKey!, jiraTekst);
-                    },
-                  });
+              }}
+              onLagreOgLukk={async (sensurertTekst) => {
+                if (!sensurertTekst.trim()) {
+                  setKommentarEditing(false);
+                  setKommentarEditorKey((k) => k + 1);
+                  return;
+                }
+                if (sak?.jiraIssueKey) {
+                  try {
+                    const nyKommentar = await kommentarApi.opprett(sakId, { tekst: sensurertTekst });
+                    setKommentarer((prev) => [nyKommentar, ...prev]);
+                    const jiraTekst = tekstTilJira(sensurertTekst);
+                    createCommentInJira(sak.jiraIssueKey!, jiraTekst);
                   } catch (err) {
                     setError(err instanceof Error ? err.message : "Kunne ikke opprette kommentar");
                     return;
                   }
                 }
-              setKommentarEditing(false);
-              setKommentarEditorKey((k) => k + 1);
-            }}
-          />
+                setKommentarEditing(false);
+                setKommentarEditorKey((k) => k + 1);
+              }}
+            />
+          </div>
+          {sak && (
+            <Accordion className="mt-4">
+              <Accordion.Item>
+                <Accordion.Header>
+                  <HStack gap="space-8" align="center">
+                    <BodyShort size="small" weight="semibold">Kommentarer</BodyShort>
+                    <Tag variant="neutral" size="xsmall">{kommentarer.length}</Tag>
+                  </HStack>
+                </Accordion.Header>
+                <Accordion.Content>
+                  <VStack gap="space-8">
+                    {kommentarerLoading ? (
+                      <Detail className="text-gray-500">Laster kommentarer...</Detail>
+                    ) : kommentarer.length === 0 ? (
+                      <Detail className="text-gray-500">Ingen kommentarer registrert ennå.</Detail>
+                    ) : (
+                      <Table size="small">
+                        <Table.Header>
+                          <Table.Row>
+                            <Table.HeaderCell>Kommentar</Table.HeaderCell>
+                            <Table.HeaderCell>Skrevet av</Table.HeaderCell>
+                          </Table.Row>
+                        </Table.Header>
+                        <Table.Body>
+                          {kommentarer.map((kommentar) => (
+                            <Table.Row key={kommentar.id}>
+                              <Table.DataCell>
+                                <BodyShort size="small" className="whitespace-pre-wrap">
+                                  {kommentar.originalTekst}
+                                </BodyShort>
+                              </Table.DataCell>
+                              <Table.DataCell>
+                                <BodyShort size="small">
+                                  {formatDato(kommentar.opprettetTidspunkt)} kl. {formatTid(kommentar.opprettetTidspunkt)} — {kommentar.opprettetAv}
+                                </BodyShort>
+                              </Table.DataCell>
+                            </Table.Row>
+                          ))}
+                        </Table.Body>
+                      </Table>
+                    )}
+                  </VStack>
+                </Accordion.Content>
+              </Accordion.Item>
+            </Accordion>
+          )}
         </div>
       </VStack>
-
-      <Modal
-        open={showTilgangModal}
-        onClose={() => {
-          setShowTilgangModal(false);
-          setNewNavIdent("");
-          setBrukerSøkResultater([]);
-        }}
-        header={{ heading: "Gi tilgang", closeButton: true }}
-      >
-        <Modal.Body>
-          <VStack gap="space-16">
-            <BodyShort>
-              Gi en bruker tilgang til saken <strong>{sak?.jiraIssueKey ?? sakId}</strong>.
-            </BodyShort>
-            <UNSAFE_Combobox
-              label="Søk etter bruker"
-              description="Skriv navn eller NAVident"
-              options={[]}
-              filteredOptions={brukerSøkResultater.map((b) => ({
-                label: `${b.displayName} (${b.navIdent})`,
-                value: b.navIdent,
-              }))}
-              isLoading={brukerSøkLoading}
-              onChange={handleBrukerSøk}
-              onToggleSelected={(value, isSelected) => {
-                setNewNavIdent(isSelected ? value : "");
-              }}
-              shouldAutocomplete={false}
-            />
-          </VStack>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button
-            onClick={handleGiTilgang}
-            loading={tilgangLoading}
-            disabled={!newNavIdent.trim()}
-          >
-            Gi tilgang
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={() => {
-              setShowTilgangModal(false);
-              setNewNavIdent("");
-              setBrukerSøkResultater([]);
-            }}
-          >
-            Avbryt
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      <Modal
-        open={previewModal !== null}
-        onClose={() => setPreviewModal(null)}
-        header={{
-          heading: previewModal?.type === "beskrivelse"
-            ? "Forhåndsvisning av beskrivelse"
-            : "Forhåndsvisning av kommentar",
-          closeButton: true,
-        }}
-      >
-        <Modal.Body>
-          <VStack gap="space-16">
-            <BodyShort weight="semibold">
-              Følgende tekst vil bli sendt til Jira ({sak?.jiraIssueKey}):
-            </BodyShort>
-            <div className="p-3 bg-gray-50 border border-gray-200 rounded whitespace-pre-wrap font-mono text-sm">
-              {previewModal?.tekst}
-            </div>
-          </VStack>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button onClick={previewModal?.onBekreft}>
-            Send til Jira
-          </Button>
-          <Button variant="secondary" onClick={() => setPreviewModal(null)}>
-            Avbryt
-          </Button>
-        </Modal.Footer>
-      </Modal>
     </div>
   );
 };
