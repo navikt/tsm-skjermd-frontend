@@ -22,6 +22,18 @@ import { brukerApi, kommentarApi, leseloggApi, sakApi } from "../api/sakApi";
 import type { BrukerSøkResult, Kommentar, Sak } from "../api/types";
 import { SensureringEditor } from "../components/SensureringEditor";
 
+const LESELOGG_CACHE_TTL = 60 * 60 * 1000;
+
+function erLeseloggCachet(sakId: string): boolean {
+  const raw = sessionStorage.getItem(`leselogg-${sakId}`);
+  if (!raw) return false;
+  return Date.now() - Number(raw) < LESELOGG_CACHE_TTL;
+}
+
+function cacheLeselogg(sakId: string) {
+  sessionStorage.setItem(`leselogg-${sakId}`, String(Date.now()));
+}
+
 export const SakIframe = () => {
   const { sakId } = useParams<{ sakId: string }>();
   const [searchParams] = useSearchParams();
@@ -40,7 +52,7 @@ export const SakIframe = () => {
   const [kommentarEditorKey, setKommentarEditorKey] = useState(0);
   const [beskrivelseEditing, setBeskrivelseEditing] = useState(false);
   const [kommentarEditing, setKommentarEditing] = useState(false);
-  const [visningGodkjent, setVisningGodkjent] = useState(false);
+  const [visningGodkjent, setVisningGodkjent] = useState(() => !!sakId && erLeseloggCachet(sakId));
   const [showLeseloggModal, setShowLeseloggModal] = useState(false);
   const [begrunnelse, setBegrunnelse] = useState("");
   const [begrunnelseLoading, setBegrunnelseLoading] = useState(false);
@@ -308,6 +320,7 @@ export const SakIframe = () => {
                 setBegrunnelseLoading(true);
                 try {
                   await leseloggApi.registrer(sakId, begrunnelse);
+                  cacheLeselogg(sakId);
                   setVisningGodkjent(true);
                   setShowLeseloggModal(false);
                   setBegrunnelse("");
