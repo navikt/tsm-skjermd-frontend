@@ -71,3 +71,7 @@ export interface BrukerSøkResult {
   navIdent: string;
   email: string | null;
 }
+
+export interface LeseloggRequest {
+  begrunnelse: string;
+}

@@ -40,6 +40,7 @@ spec:
           - /embed/sensurering-editor/*
           - /embed/api/saker/*/sensurering
           - /embed/api/saker/*/kommentarer
+          - /embed/api/saker/*/leselogg
           - /embed/api/jira/update-description
           - /embed/api/brukere
           - /api/generate-embed-token

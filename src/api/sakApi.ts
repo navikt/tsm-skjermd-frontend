@@ -1,4 +1,4 @@
-import type { Sak, OpprettSakRequest, EndreSakRequest, UserInfo, Tilgang, GiTilgangRequest, LagreSensureringRequest, LagreSensureringResponse, OpprettKommentarRequest, Kommentar, BrukerSøkResult } from "./types";
+import type { Sak, OpprettSakRequest, EndreSakRequest, UserInfo, Tilgang, GiTilgangRequest, LagreSensureringRequest, LagreSensureringResponse, OpprettKommentarRequest, Kommentar, BrukerSøkResult, LeseloggRequest } from "./types";
 import { createLogger } from "../logger";
 
 const log = createLogger("API");
@@ -209,4 +209,12 @@ export const brukerApi = {
     brukerCache.set(key, { data, timestamp: Date.now() });
     return data;
   },
+};
+
+export const leseloggApi = {
+  registrer: (sakId: string, begrunnelse: string): Promise<void> =>
+    apiRequest(`/saker/${sakId}/leselogg`, {
+      method: "POST",
+      body: JSON.stringify({ begrunnelse } satisfies LeseloggRequest),
+    }),
 };

@@ -11,12 +11,14 @@ import {
   BodyShort,
   Accordion,
   UNSAFE_Combobox,
+  Modal,
+  Textarea,
 } from "@navikt/ds-react";
 import {
   PersonIcon,
   TrashIcon,
 } from "@navikt/aksel-icons";
-import { brukerApi, kommentarApi, sakApi } from "../api/sakApi";
+import { brukerApi, kommentarApi, leseloggApi, sakApi } from "../api/sakApi";
 import type { BrukerSøkResult, Kommentar, Sak } from "../api/types";
 import { SensureringEditor } from "../components/SensureringEditor";
 
@@ -38,6 +40,10 @@ export const SakIframe = () => {
   const [kommentarEditorKey, setKommentarEditorKey] = useState(0);
   const [beskrivelseEditing, setBeskrivelseEditing] = useState(false);
   const [kommentarEditing, setKommentarEditing] = useState(false);
+  const [visningGodkjent, setVisningGodkjent] = useState(false);
+  const [showLeseloggModal, setShowLeseloggModal] = useState(false);
+  const [begrunnelse, setBegrunnelse] = useState("");
+  const [begrunnelseLoading, setBegrunnelseLoading] = useState(false);
 
   useEffect(() => {
     if (!token || !sakId) {
@@ -254,6 +260,79 @@ export const SakIframe = () => {
             Be om tilgang
           </Button>
         </VStack>
+      </div>
+    );
+  }
+
+  if (!visningGodkjent) {
+    return (
+      <div className="p-4" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
+        <VStack gap="space-12" align="start">
+          <BodyShort>
+            Denne saken inneholder sensitiv informasjon. For å se innholdet må du oppgi en begrunnelse.
+          </BodyShort>
+          <Button
+            variant="primary"
+            size="small"
+            onClick={() => setShowLeseloggModal(true)}
+          >
+            Vis sensitiv informasjon
+          </Button>
+        </VStack>
+        <Modal
+          open={showLeseloggModal}
+          onClose={() => {
+            setShowLeseloggModal(false);
+            setBegrunnelse("");
+          }}
+          header={{ heading: "Begrunn tilgang", closeButton: true }}
+        >
+          <Modal.Body>
+            <VStack gap="space-16">
+              <BodyShort>
+                Hvorfor trenger du å se denne informasjonen? Tilgangen vil bli logget.
+              </BodyShort>
+              <Textarea
+                label="Begrunnelse"
+                description="Oppgi en kort begrunnelse (minst 10 tegn)"
+                value={begrunnelse}
+                onChange={(e) => setBegrunnelse(e.target.value)}
+                minRows={3}
+              />
+            </VStack>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button
+              onClick={async () => {
+                if (!sakId) return;
+                setBegrunnelseLoading(true);
+                try {
+                  await leseloggApi.registrer(sakId, begrunnelse);
+                  setVisningGodkjent(true);
+                  setShowLeseloggModal(false);
+                  setBegrunnelse("");
+                } catch (err) {
+                  setError(err instanceof Error ? err.message : "Kunne ikke registrere leselogg");
+                } finally {
+                  setBegrunnelseLoading(false);
+                }
+              }}
+              loading={begrunnelseLoading}
+              disabled={begrunnelse.trim().length < 10}
+            >
+              Vis
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setShowLeseloggModal(false);
+                setBegrunnelse("");
+              }}
+            >
+              Avbryt
+            </Button>
+          </Modal.Footer>
+        </Modal>
       </div>
     );
   }
