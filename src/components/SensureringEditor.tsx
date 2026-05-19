@@ -280,18 +280,21 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
   }, [sensurertListe, kommentarModus, markContentChanged]);
 
   useEffect(() => {
-    const el = editableRef.current;
-    if (!el || readOnly) return;
+    if (!editableRef.current || readOnly) return;
 
-    const handleMouseUp = () => {
+    const handleSelectionComplete = () => {
       const selection = window.getSelection();
       if (selection && selection.toString().trim() !== "") {
         markerSomSensitiv();
       }
     };
 
-    el.addEventListener("mouseup", handleMouseUp);
-    return () => el.removeEventListener("mouseup", handleMouseUp);
+    document.addEventListener("mouseup", handleSelectionComplete);
+    window.addEventListener("blur", handleSelectionComplete);
+    return () => {
+      document.removeEventListener("mouseup", handleSelectionComplete);
+      window.removeEventListener("blur", handleSelectionComplete);
+    };
   }, [markerSomSensitiv, readOnly]);
 
   const fjernSensurering = useCallback((itemId: string) => {
