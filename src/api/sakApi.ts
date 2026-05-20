@@ -1,4 +1,4 @@
-import type { Sak, OpprettSakRequest, EndreSakRequest, UserInfo, Tilgang, GiTilgangRequest, LagreSensureringRequest, LagreSensureringResponse, OpprettKommentarRequest, Kommentar, BrukerSøkResult, LeseloggRequest } from "./types";
+import type { Sak, OpprettSakRequest, EndreSakRequest, UserInfo, Tilgang, GiTilgangRequest, LagreSensureringRequest, LagreSensureringResponse, OpprettKommentarRequest, Kommentar, BrukerSøkResult, LeseloggRequest, FilInfo } from "./types";
 import { createLogger } from "../logger";
 
 const log = createLogger("API");
@@ -216,5 +216,49 @@ export const leseloggApi = {
     apiRequest(`/saker/${sakId}/leselogg`, {
       method: "POST",
       body: JSON.stringify({ begrunnelse } satisfies LeseloggRequest),
+    }),
+};
+
+export const filApi = {
+  hentAlle: (sakId: string): Promise<FilInfo[]> =>
+    apiRequest(`/saker/${sakId}/filer`),
+
+  lastOpp: async (sakId: string, file: File): Promise<FilInfo> => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const headers: HeadersInit = {};
+
+    if (isEmbedMode()) {
+      const embedToken = getEmbedToken();
+      if (embedToken) {
+        headers["Authorization"] = `Bearer ${embedToken}`;
+      }
+    } else if (isLocalDev) {
+      const token = await getLocalDevToken();
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    const fullUrl = `${getApiBase()}/saker/${sakId}/filer`;
+    const res = await fetch(fullUrl, {
+      method: "POST",
+      headers,
+      body: formData,
+      credentials: isEmbedMode() ? "omit" : "include",
+    });
+
+    if (!res.ok) {
+      throw new Error(`Filopplasting feilet: ${res.status} ${res.statusText}`);
+    }
+
+    return res.json();
+  },
+
+  hentUrl: (sakId: string, filId: string): string =>
+    `${getApiBase()}/saker/${sakId}/filer/${filId}`,
+
+  slett: (sakId: string, filId: string): Promise<void> =>
+    apiRequest(`/saker/${sakId}/filer/${filId}`, {
+      method: "DELETE",
     }),
 };

@@ -75,3 +75,12 @@ export interface BrukerSøkResult {
 export interface LeseloggRequest {
   begrunnelse: string;
 }
+
+export interface FilInfo {
+  id: string;
+  filnavn: string;
+  contentType: string;
+  storrelse: number;
+  lastetOppAv: string;
+  lastetOppTidspunkt: string;
+}

@@ -3,6 +3,10 @@ import { useState, useEffect } from "react";
 import { Alert, BodyShort, Button, Heading, Link, VStack } from "@navikt/ds-react";
 import { XMarkIcon } from "@navikt/aksel-icons";
 import { SensureringEditor } from "../components/SensureringEditor";
+import { FileUploadZone } from "../components/FileUploadZone";
+import { FileList } from "../components/FileList";
+import { filApi } from "../api/sakApi";
+import type { FilInfo } from "../api/types";
 
 export const SensureringIframe = () => {
   const { sakId } = useParams<{ sakId: string }>();
@@ -10,6 +14,7 @@ export const SensureringIframe = () => {
   const token = searchParams.get("token");
   const [tilgang, setTilgang] = useState<"loading" | "ok" | "denied">("loading");
   const [visInfo, setVisInfo] = useState(false);
+  const [filer, setFiler] = useState<FilInfo[]>([]);
 
   useEffect(() => {
     if (!token || !sakId) {
@@ -19,7 +24,12 @@ export const SensureringIframe = () => {
 
     fetch(`/api/validate-embed-token?token=${encodeURIComponent(token)}&sakId=${encodeURIComponent(sakId)}`)
       .then((res) => {
-        setTilgang(res.ok ? "ok" : "denied");
+        if (res.ok) {
+          setTilgang("ok");
+          filApi.hentAlle(sakId).then(setFiler).catch(() => {});
+        } else {
+          setTilgang("denied");
+        }
       }).catch(() => {
         setTilgang("denied");
       });
@@ -120,6 +130,20 @@ export const SensureringIframe = () => {
         autoSave
         onAuthError={() => setTilgang("denied")}
       />
+      <div className="mt-4">
+        <BodyShort size="small" weight="semibold" className="mb-2">Filer</BodyShort>
+        <FileUploadZone
+          sakId={sakId}
+          onFileUploaded={(fil) => setFiler((prev) => [fil, ...prev])}
+        />
+        <div className="mt-2">
+          <FileList
+            filer={filer}
+            sakId={sakId}
+            onFileDeleted={(filId) => setFiler((prev) => prev.filter((f) => f.id !== filId))}
+          />
+        </div>
+      </div>
     </div>
   );
 };

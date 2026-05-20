@@ -18,9 +18,11 @@ import {
   PersonIcon,
   TrashIcon,
 } from "@navikt/aksel-icons";
-import { brukerApi, kommentarApi, leseloggApi, sakApi } from "../api/sakApi";
-import type { BrukerSøkResult, Kommentar, Sak } from "../api/types";
+import { brukerApi, kommentarApi, filApi, leseloggApi, sakApi } from "../api/sakApi";
+import type { BrukerSøkResult, FilInfo, Kommentar, Sak } from "../api/types";
 import { SensureringEditor } from "../components/SensureringEditor";
+import { FileUploadZone } from "../components/FileUploadZone";
+import { FileList } from "../components/FileList";
 
 const LESELOGG_CACHE_TTL = 60 * 60 * 1000;
 
@@ -56,6 +58,7 @@ export const SakIframe = () => {
   const [showLeseloggModal, setShowLeseloggModal] = useState(false);
   const [begrunnelse, setBegrunnelse] = useState("");
   const [begrunnelseLoading, setBegrunnelseLoading] = useState(false);
+  const [filer, setFiler] = useState<FilInfo[]>([]);
 
   useEffect(() => {
     if (!token || !sakId) {
@@ -98,6 +101,16 @@ export const SakIframe = () => {
           setTilgang("denied");
           return;
         }
+      })
+      .finally(() => {
+        setKommentarerLoading(false);
+      });
+
+    filApi
+      .hentAlle(sakId)
+      .then(setFiler)
+      .catch(() => {});
+  }, [tilgang, sakId]);
         setError("Kunne ikke hente kommentarer");
       })
       .finally(() => {
@@ -560,6 +573,21 @@ export const SakIframe = () => {
               </Accordion.Item>
             </Accordion>
           )}
+        </div>
+
+        <BodyShort size="small" weight="semibold">Filer</BodyShort>
+        <div className="p-4 rounded" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
+          <VStack gap="space-8">
+            <FileUploadZone
+              sakId={sakId!}
+              onFileUploaded={(fil) => setFiler((prev) => [fil, ...prev])}
+            />
+            <FileList
+              filer={filer}
+              sakId={sakId!}
+              onFileDeleted={(filId) => setFiler((prev) => prev.filter((f) => f.id !== filId))}
+            />
+          </VStack>
         </div>
       </VStack>
     </div>

@@ -31,9 +31,11 @@ import {
   PersonGroupIcon,
   PlusIcon,
 } from "@navikt/aksel-icons";
-import { sakApi } from "../api/sakApi";
-import type { Sak } from "../api/types";
+import { sakApi, filApi } from "../api/sakApi";
+import type { Sak, FilInfo } from "../api/types";
 import { createLogger } from "../logger";
+import { FileUploadZone } from "../components/FileUploadZone";
+import { FileList } from "../components/FileList";
 
 const log = createLogger("SakDetail");
 
@@ -51,6 +53,7 @@ export const SakDetail = () => {
   const [showTilgangModal, setShowTilgangModal] = useState(false);
   const [newNavIdent, setNewNavIdent] = useState("");
   const [tilgangLoading, setTilgangLoading] = useState(false);
+  const [filer, setFiler] = useState<FilInfo[]>([]);
 
   useEffect(() => {
     const hentSak = async () => {
@@ -61,6 +64,7 @@ export const SakDetail = () => {
         const data = await sakApi.hentPaId(id);
         setSak(data);
         setSensitivData(data.sensitivData);
+        filApi.hentAlle(id).then(setFiler).catch(() => {});
       } catch (err) {
         log.error(`Kunne ikke hente sak ${id}`, err);
         setError(err instanceof Error ? err.message : "Kunne ikke hente sak");
@@ -457,6 +461,29 @@ export const SakDetail = () => {
             <Detail className="text-gray-500">
               Oppretteren ({sak.opprettetAv}) har alltid tilgang og kan ikke fjernes.
             </Detail>
+          </VStack>
+        </Box>
+
+        {/* Filer */}
+        <Box
+          background="default"
+          padding="space-20"
+          borderRadius="8"
+        >
+          <VStack gap="space-16">
+            <HStack gap="space-8" align="center">
+              <FileTextIcon aria-hidden />
+              <Heading size="xsmall">Filer</Heading>
+            </HStack>
+            <FileUploadZone
+              sakId={id!}
+              onFileUploaded={(fil) => setFiler((prev) => [fil, ...prev])}
+            />
+            <FileList
+              filer={filer}
+              sakId={id!}
+              onFileDeleted={(filId) => setFiler((prev) => prev.filter((f) => f.id !== filId))}
+            />
           </VStack>
         </Box>
 
