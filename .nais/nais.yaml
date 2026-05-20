@@ -38,6 +38,8 @@ spec:
           - /embed/sensurering/*
           - /embed/sensurering-editor/*
           - /embed/api/saker/*/sensurering
+          - /embed/api/saker/*/filer
+          - /embed/api/saker/*/filer/*
           - /embed/api/jira/update-description
           - /embed/api/jira/add-comment
           - /api/generate-embed-token
