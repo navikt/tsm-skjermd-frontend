@@ -11,7 +11,6 @@ import {
   BodyShort,
   Accordion,
   UNSAFE_Combobox,
-  Modal,
   Textarea,
 } from "@navikt/ds-react";
 import {
@@ -55,7 +54,6 @@ export const SakIframe = () => {
   const [beskrivelseEditing, setBeskrivelseEditing] = useState(false);
   const [kommentarEditing, setKommentarEditing] = useState(false);
   const [visningGodkjent, setVisningGodkjent] = useState(() => !!sakId && erLeseloggCachet(sakId));
-  const [showLeseloggModal, setShowLeseloggModal] = useState(false);
   const [begrunnelse, setBegrunnelse] = useState("");
   const [begrunnelseLoading, setBegrunnelseLoading] = useState(false);
   const [filer, setFiler] = useState<FilInfo[]>([]);
@@ -298,73 +296,45 @@ export const SakIframe = () => {
   if (!visningGodkjent) {
     return (
       <div className="p-4" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
-        <VStack gap="space-12" align="start">
-          <BodyShort>
-            Denne saken inneholder sensitiv informasjon. For å se innholdet må du oppgi en begrunnelse.
+        <VStack gap="space-16">
+          <BodyShort weight="semibold">Begrunn tilgang</BodyShort>
+          <BodyShort size="small">
+            Denne saken inneholder sensitiv informasjon. For å se innholdet må du oppgi en begrunnelse. Tilgangen vil bli logget.
           </BodyShort>
+          {error && (
+            <Alert variant="error" size="small" closeButton onClose={() => setError(null)}>
+              {error}
+            </Alert>
+          )}
+          <Textarea
+            label="Begrunnelse"
+            description="Oppgi en kort begrunnelse (minst 10 tegn)"
+            value={begrunnelse}
+            onChange={(e) => setBegrunnelse(e.target.value)}
+            minRows={3}
+          />
           <Button
-            variant="primary"
             size="small"
-            onClick={() => setShowLeseloggModal(true)}
+            onClick={async () => {
+              if (!sakId) return;
+              setBegrunnelseLoading(true);
+              try {
+                await leseloggApi.registrer(sakId, begrunnelse);
+                cacheLeselogg(sakId);
+                setVisningGodkjent(true);
+                setBegrunnelse("");
+              } catch (err) {
+                setError(err instanceof Error ? err.message : "Kunne ikke registrere leselogg");
+              } finally {
+                setBegrunnelseLoading(false);
+              }
+            }}
+            loading={begrunnelseLoading}
+            disabled={begrunnelse.trim().length < 10}
           >
             Vis sensitiv informasjon
           </Button>
         </VStack>
-        <Modal
-          open={showLeseloggModal}
-          onClose={() => {
-            setShowLeseloggModal(false);
-            setBegrunnelse("");
-          }}
-          header={{ heading: "Begrunn tilgang", closeButton: true }}
-        >
-          <Modal.Body>
-            <VStack gap="space-16">
-              <BodyShort>
-                Hvorfor trenger du å se denne informasjonen? Tilgangen vil bli logget.
-              </BodyShort>
-              <Textarea
-                label="Begrunnelse"
-                description="Oppgi en kort begrunnelse (minst 10 tegn)"
-                value={begrunnelse}
-                onChange={(e) => setBegrunnelse(e.target.value)}
-                minRows={3}
-              />
-            </VStack>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button
-              onClick={async () => {
-                if (!sakId) return;
-                setBegrunnelseLoading(true);
-                try {
-                  await leseloggApi.registrer(sakId, begrunnelse);
-                  cacheLeselogg(sakId);
-                  setVisningGodkjent(true);
-                  setShowLeseloggModal(false);
-                  setBegrunnelse("");
-                } catch (err) {
-                  setError(err instanceof Error ? err.message : "Kunne ikke registrere leselogg");
-                } finally {
-                  setBegrunnelseLoading(false);
-                }
-              }}
-              loading={begrunnelseLoading}
-              disabled={begrunnelse.trim().length < 10}
-            >
-              Vis
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setShowLeseloggModal(false);
-                setBegrunnelse("");
-              }}
-            >
-              Avbryt
-            </Button>
-          </Modal.Footer>
-        </Modal>
       </div>
     );
   }
