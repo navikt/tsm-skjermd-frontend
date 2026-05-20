@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import { Alert, Button, BodyShort, Loader } from "@navikt/ds-react";
+import { Alert, BodyShort, Loader } from "@navikt/ds-react";
 import { UploadIcon } from "@navikt/aksel-icons";
 import { filApi } from "../api/sakApi";
 import type { FilInfo } from "../api/types";
@@ -126,7 +126,7 @@ export const FileUploadZone = ({ sakId, onFileUploaded }: FileUploadZoneProps) =
               Dra og slipp fil her, eller klikk for å velge
             </BodyShort>
             <BodyShort size="small" className="text-gray-400">
-              PDF, DOCX, XLSX, JPG, PNG, GIF — maks 10 MB
+              PDF, DOCX, XLSX, JPG, PNG, GIF — maks 10 MB, maks 20 filer per sak
             </BodyShort>
           </div>
         )}

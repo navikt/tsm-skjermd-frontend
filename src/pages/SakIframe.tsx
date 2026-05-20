@@ -111,12 +111,6 @@ export const SakIframe = () => {
       .then(setFiler)
       .catch(() => {});
   }, [tilgang, sakId]);
-        setError("Kunne ikke hente kommentarer");
-      })
-      .finally(() => {
-        setKommentarerLoading(false);
-      });
-  }, [tilgang, sakId]);
 
   useEffect(() => {
     let lastHeight = 0;

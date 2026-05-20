@@ -140,7 +140,7 @@ export const FileList = ({ filer, sakId, onFileDeleted, readOnly }: FileListProp
         open={previewFil !== null}
         onClose={() => setPreviewFil(null)}
         header={{ heading: previewFil?.filnavn ?? "", closeButton: true }}
-        width="large"
+        width="medium"
       >
         <Modal.Body>
           {previewFil && erBilde(previewFil.contentType) && (
