@@ -45,7 +45,12 @@ function cleanupExpiredEmbedTokens() {
 setInterval(cleanupExpiredEmbedTokens, 60 * 1000);
 
 // Parse JSON bodies
-app.use(express.json());
+app.use((req, res, next) => {
+    if (req.headers['content-type']?.includes('multipart/form-data')) {
+        return next();
+    }
+    express.json()(req, res, next);
+});
 
 // Log ALL incoming requests
 app.use((req, res, next) => {
@@ -284,7 +289,6 @@ app.use('/embed/api', async (req, res) => {
         log('EmbedProxy', `${req.method} ${targetUrl} (user: ${stored.email})`);
 
         const headers = {
-            'Content-Type': 'application/json',
             'X-User-Email': stored.email,
             'X-API-Key': EMBED_API_KEY,
         };
@@ -293,9 +297,21 @@ app.use('/embed/api', async (req, res) => {
             headers['X-Correlation-Id'] = req.headers['x-correlation-id'];
         }
 
+        const isMultipart = req.headers['content-type']?.includes('multipart/form-data');
+        if (!isMultipart) {
+            headers['Content-Type'] = 'application/json';
+        }
+
         const options = { method: req.method, headers };
         if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
-            options.body = JSON.stringify(req.body);
+            if (isMultipart) {
+                const { Readable } = await import('stream');
+                options.body = Readable.toWeb(req);
+                headers['Content-Type'] = req.headers['content-type'];
+                options.duplex = 'half';
+            } else {
+                options.body = JSON.stringify(req.body);
+            }
         }
 
         log('EmbedProxy', `Forwarding to: ${targetUrl}`);
@@ -311,6 +327,12 @@ app.use('/embed/api', async (req, res) => {
             res.json(data);
         } else if (response.status === 204) {
             res.end();
+        } else if (contentType && (contentType.includes('image/') || contentType.includes('application/pdf') || contentType.includes('application/octet-stream'))) {
+            if (contentType) res.setHeader('Content-Type', contentType);
+            const disposition = response.headers.get('content-disposition');
+            if (disposition) res.setHeader('Content-Disposition', disposition);
+            const arrayBuf = await response.arrayBuffer();
+            res.send(Buffer.from(arrayBuf));
         } else {
             const text = await response.text();
             if (response.status >= 400) logError('EmbedProxy', `Error: ${text}`);
@@ -351,13 +373,17 @@ app.use('/internal', async (req, res) => {
 
         // Build request headers
         const headers = {
-            'Content-Type': 'application/json',
             'Authorization': `Bearer ${backendToken}`,
         };
 
         // Forward correlation ID if present
         if (req.headers['x-correlation-id']) {
             headers['X-Correlation-Id'] = req.headers['x-correlation-id'];
+        }
+
+        const isMultipart = req.headers['content-type']?.includes('multipart/form-data');
+        if (!isMultipart) {
+            headers['Content-Type'] = 'application/json';
         }
 
         const options = {
@@ -367,8 +393,15 @@ app.use('/internal', async (req, res) => {
 
         // Include body for POST/PUT/PATCH requests
         if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
-            options.body = JSON.stringify(req.body);
-            log('Proxy', `Request body: ${JSON.stringify(req.body)}`);
+            if (isMultipart) {
+                const { Readable } = await import('stream');
+                options.body = Readable.toWeb(req);
+                headers['Content-Type'] = req.headers['content-type'];
+                options.duplex = 'half';
+            } else {
+                options.body = JSON.stringify(req.body);
+                log('Proxy', `Request body: ${JSON.stringify(req.body)}`);
+            }
         }
 
         log('Proxy', `Forwarding to: ${targetUrl}`);
@@ -390,6 +423,12 @@ app.use('/internal', async (req, res) => {
             res.json(data);
         } else if (response.status === 204) {
             res.end();
+        } else if (contentType && (contentType.includes('image/') || contentType.includes('application/pdf') || contentType.includes('application/octet-stream'))) {
+            if (contentType) res.setHeader('Content-Type', contentType);
+            const disposition = response.headers.get('content-disposition');
+            if (disposition) res.setHeader('Content-Disposition', disposition);
+            const arrayBuf = await response.arrayBuffer();
+            res.send(Buffer.from(arrayBuf));
         } else {
             const text = await response.text();
             if (response.status >= 400) {
