@@ -275,7 +275,7 @@ export const SakIframe = () => {
 
   if (tilgang === "denied") {
     return (
-      <div className="p-4 pl-6" style={{ backgroundColor: "var(--ax-bg-danger-soft)", borderLeft: "4px solid var(--ax-border-danger)" }}>
+      <div className="p-4 pl-6" style={{ backgroundColor: "var(--ax-bg-danger-soft)", borderLeft: "4px solid var(--ax-bg-danger-soft)" }}>
         <VStack gap="space-12" align="start">
           <BodyShort>
             Du har ikke tilgang til å se sensitiv informasjon for denne saken.
@@ -296,7 +296,7 @@ export const SakIframe = () => {
 
   if (!visningGodkjent) {
     return (
-      <div className="p-4 pl-6" style={{ backgroundColor: "var(--ax-bg-danger-soft)", borderLeft: "4px solid var(--ax-border-danger)" }}>
+      <div className="p-4 pl-6" style={{ backgroundColor: "var(--ax-bg-danger-soft)", borderLeft: "4px solid var(--ax-bg-danger-soft)" }}>
         <VStack gap="space-16" align="start">
           <BodyShort size="small">
             Denne saken inneholder sensitiv informasjon.
@@ -369,7 +369,7 @@ export const SakIframe = () => {
   }
 
   return (
-    <div className="p-4 pl-6" style={{ borderLeft: "4px solid var(--ax-border-danger)" }}>
+    <div className="p-4 pl-6" style={{ borderLeft: "4px solid var(--ax-bg-danger-soft)" }}>
       {sak && (
         <div className="mb-4">
           <Accordion className="accordion-borderless">
