@@ -390,6 +390,7 @@ export const SakIframe = () => {
   if (!visningGodkjent) {
     return (
       <div className="p-4 pl-6" style={{ backgroundColor: "var(--ax-bg-danger-soft)", borderLeft: "4px solid var(--ax-bg-danger-soft)" }}>
+        <div className="flex justify-end">{tilgangerAccordion}</div>
         <VStack gap="space-16" align="start">
           <BodyShort size="small">
             Denne saken inneholder sensitiv informasjon.
@@ -456,7 +457,6 @@ export const SakIframe = () => {
               </HStack>
             </>
           )}
-          {tilgangerAccordion}
         </VStack>
       </div>
     );
