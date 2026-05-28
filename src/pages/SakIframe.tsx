@@ -43,6 +43,7 @@ export const SakIframe = () => {
   const [sak, setSak] = useState<Sak | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [newNavIdent, setNewNavIdent] = useState("");
+  const [selectedBrukerLabel, setSelectedBrukerLabel] = useState("");
   const [tilgangLoading, setTilgangLoading] = useState(false);
   const [brukerSøkResultater, setBrukerSøkResultater] = useState<BrukerSøkResult[]>([]);
   const [brukerSøkLoading, setBrukerSøkLoading] = useState(false);
@@ -159,6 +160,7 @@ export const SakIframe = () => {
         prev ? { ...prev, tilganger: [...prev.tilganger, nyTilgang] } : prev
       );
       setNewNavIdent("");
+      setSelectedBrukerLabel("");
       setBrukerSøkResultater([]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Kunne ikke gi tilgang");
@@ -368,7 +370,14 @@ export const SakIframe = () => {
                 isLoading={brukerSøkLoading}
                 onChange={handleBrukerSøk}
                 onToggleSelected={(value, isSelected) => {
-                  setNewNavIdent(isSelected ? value : "");
+                  if (isSelected) {
+                    setNewNavIdent(value);
+                    const match = brukerSøkResultater.find((b) => b.navIdent === value);
+                    setSelectedBrukerLabel(match ? `${match.displayName} (${match.navIdent})` : value);
+                  } else {
+                    setNewNavIdent("");
+                    setSelectedBrukerLabel("");
+                  }
                 }}
                 shouldAutocomplete={false}
               />
@@ -378,7 +387,7 @@ export const SakIframe = () => {
                 loading={tilgangLoading}
                 disabled={!newNavIdent.trim()}
               >
-                Gi tilgang
+                {selectedBrukerLabel ? `Gi tilgang til ${selectedBrukerLabel}` : "Gi tilgang"}
               </Button>
             </VStack>
           </Accordion.Content>
