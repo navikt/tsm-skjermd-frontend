@@ -263,7 +263,7 @@ export const SakIframe = () => {
     return <p>Mangler sakId</p>;
   }
 
-  if (auth.status === "loading" || tilgang === "loading") {
+  if (auth.status === "loading") {
     return null;
   }
 
@@ -292,6 +292,10 @@ export const SakIframe = () => {
         <Alert variant="error" size="small">{auth.error}</Alert>
       </div>
     );
+  }
+
+  if (tilgang === "loading") {
+    return null;
   }
 
   if (tilgang === "denied") {
