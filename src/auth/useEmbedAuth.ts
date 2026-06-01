@@ -82,16 +82,31 @@ export function useEmbedAuth() {
   }, []);
 
   const login = useCallback(async () => {
+    const msal = msalRef.current;
+    const scopes = scopesRef.current;
+
+    if (!msal) {
+      log.error("MSAL not initialized yet");
+      setState({ status: "error", error: "Autentisering er ikke klar ennå" });
+      return;
+    }
+
+    // Open popup synchronously to preserve user gesture context.
+    // MSAL does async work before calling window.open(), which breaks the
+    // gesture chain and causes browsers to block the popup in iframe contexts.
+    const popupWindow = window.open("about:blank", "msal-login", "width=483,height=600,left=200,top=100");
+    if (!popupWindow) {
+      setState({ status: "error", error: "Popup ble blokkert av nettleseren. Tillat popups for denne siden." });
+      return;
+    }
+
+    const originalOpen = window.open.bind(window);
+    window.open = () => {
+      window.open = originalOpen;
+      return popupWindow;
+    };
+
     try {
-      const msal = msalRef.current;
-      const scopes = scopesRef.current;
-
-      if (!msal) {
-        log.error("MSAL not initialized yet");
-        setState({ status: "error", error: "Autentisering er ikke klar ennå" });
-        return;
-      }
-
       setState({ status: "loading" });
       const result: AuthenticationResult = await msal.loginPopup({
         scopes,
@@ -102,11 +117,14 @@ export function useEmbedAuth() {
       log.info(`Login successful: ${result.account?.username}`);
       setState({ status: "authenticated", account: result.account! });
     } catch (err) {
+      popupWindow.close();
       log.error("Login failed", err);
       setState({
         status: "error",
         error: err instanceof Error ? err.message : "Innlogging feilet",
       });
+    } finally {
+      window.open = originalOpen;
     }
   }, []);
 
