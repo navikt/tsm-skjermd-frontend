@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import type { AccountInfo, AuthenticationResult } from "@azure/msal-browser";
+import type { AccountInfo, AuthenticationResult, IPublicClientApplication } from "@azure/msal-browser";
 import { InteractionRequiredAuthError } from "@azure/msal-browser";
 import { getMsalInstance, getLoginScopes, getBackendScopes } from "./msalConfig";
 import { createLogger } from "../logger";
@@ -29,6 +29,8 @@ type AuthState =
 export function useEmbedAuth() {
   const [state, setState] = useState<AuthState>({ status: "loading" });
   const initRef = useRef(false);
+  const msalRef = useRef<IPublicClientApplication | null>(null);
+  const scopesRef = useRef<string[]>([]);
 
   useEffect(() => {
     if (initRef.current) return;
@@ -37,6 +39,10 @@ export function useEmbedAuth() {
     (async () => {
       try {
         const msal = await getMsalInstance();
+        msalRef.current = msal;
+
+        const scopes = await getLoginScopes();
+        scopesRef.current = scopes;
 
         await withTimeout(msal.handleRedirectPromise(), 3000, "handleRedirectPromise");
 
@@ -55,7 +61,6 @@ export function useEmbedAuth() {
         }
 
         try {
-          const scopes = await getLoginScopes();
           const ssoResult = await withTimeout(msal.ssoSilent({ scopes }), 5000, "ssoSilent");
           if (ssoResult?.account) {
             msal.setActiveAccount(ssoResult.account);
@@ -78,9 +83,16 @@ export function useEmbedAuth() {
 
   const login = useCallback(async () => {
     try {
+      const msal = msalRef.current;
+      const scopes = scopesRef.current;
+
+      if (!msal) {
+        log.error("MSAL not initialized yet");
+        setState({ status: "error", error: "Autentisering er ikke klar ennå" });
+        return;
+      }
+
       setState({ status: "loading" });
-      const msal = await getMsalInstance();
-      const scopes = await getLoginScopes();
       const result: AuthenticationResult = await msal.loginPopup({
         scopes,
         prompt: "select_account",
@@ -99,7 +111,7 @@ export function useEmbedAuth() {
   }, []);
 
   const getAccessToken = useCallback(async (): Promise<string> => {
-    const msal = await getMsalInstance();
+    const msal = msalRef.current ?? await getMsalInstance();
     const account = msal.getActiveAccount();
 
     if (!account) {
@@ -107,7 +119,7 @@ export function useEmbedAuth() {
     }
 
     const backendSc = await getBackendScopes();
-    const scopes = backendSc.length > 0 ? backendSc : await getLoginScopes();
+    const scopes = backendSc.length > 0 ? backendSc : scopesRef.current.length > 0 ? scopesRef.current : await getLoginScopes();
 
     try {
       const result = await msal.acquireTokenSilent({ scopes, account });
