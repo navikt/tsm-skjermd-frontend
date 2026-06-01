@@ -6,6 +6,20 @@ import { createLogger } from "../logger";
 
 const log = createLogger("EmbedAuth");
 
+const isInIframe = window.self !== window.top;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T | null> {
+  return Promise.race([
+    promise,
+    new Promise<null>((resolve) => {
+      setTimeout(() => {
+        log.info(`${label} timed out after ${ms}ms`);
+        resolve(null);
+      }, ms);
+    }),
+  ]);
+}
+
 type AuthState =
   | { status: "loading" }
   | { status: "authenticated"; account: AccountInfo }
@@ -23,9 +37,8 @@ export function useEmbedAuth() {
     (async () => {
       try {
         const msal = await getMsalInstance();
-        const scopes = await getLoginScopes();
 
-        await msal.handleRedirectPromise();
+        await withTimeout(msal.handleRedirectPromise(), 3000, "handleRedirectPromise");
 
         const accounts = msal.getAllAccounts();
         if (accounts.length > 0) {
@@ -35,15 +48,27 @@ export function useEmbedAuth() {
           return;
         }
 
-        try {
-          const ssoResult = await msal.ssoSilent({ scopes });
-          msal.setActiveAccount(ssoResult.account);
-          log.info(`SSO silent succeeded: ${ssoResult.account?.username}`);
-          setState({ status: "authenticated", account: ssoResult.account! });
-        } catch {
-          log.info("No existing session, user needs to log in");
+        if (isInIframe) {
+          log.info("Running inside iframe, skipping ssoSilent (blocked in nested iframes)");
           setState({ status: "unauthenticated" });
+          return;
         }
+
+        try {
+          const scopes = await getLoginScopes();
+          const ssoResult = await withTimeout(msal.ssoSilent({ scopes }), 5000, "ssoSilent");
+          if (ssoResult?.account) {
+            msal.setActiveAccount(ssoResult.account);
+            log.info(`SSO silent succeeded: ${ssoResult.account.username}`);
+            setState({ status: "authenticated", account: ssoResult.account });
+            return;
+          }
+        } catch {
+          // Expected — no existing session
+        }
+
+        log.info("No existing session, user needs to log in");
+        setState({ status: "unauthenticated" });
       } catch (err) {
         log.error("MSAL initialization failed", err);
         setState({ status: "error", error: "Kunne ikke initialisere autentisering" });
