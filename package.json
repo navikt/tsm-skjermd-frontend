@@ -12,6 +12,7 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "@azure/msal-browser": "^5.11.0",
     "@navikt/aksel-icons": "^8.9.0",
     "@navikt/ds-css": "^8.9.0",
     "@navikt/ds-react": "^8.9.0",

@@ -1,46 +1,57 @@
-import { useParams, useSearchParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Alert, BodyShort, Button, Heading, Link, VStack } from "@navikt/ds-react";
 import { XMarkIcon } from "@navikt/aksel-icons";
 import { SensureringEditor } from "../components/SensureringEditor";
 import { FileUploadZone } from "../components/FileUploadZone";
 import { FileList } from "../components/FileList";
-import { filApi } from "../api/sakApi";
+import { filApi, setEmbedTokenProvider } from "../api/sakApi";
 import type { FilInfo } from "../api/types";
+import { useEmbedAuth } from "../auth/useEmbedAuth";
 
 export const SensureringIframe = () => {
   const { sakId } = useParams<{ sakId: string }>();
-  const [searchParams] = useSearchParams();
-  const token = searchParams.get("token");
+  const auth = useEmbedAuth();
   const [tilgang, setTilgang] = useState<"loading" | "ok" | "denied">("loading");
   const [visInfo, setVisInfo] = useState(false);
   const [filer, setFiler] = useState<FilInfo[]>([]);
 
   useEffect(() => {
-    if (!token || !sakId) {
-      setTilgang("denied");
-      return;
+    if (auth.status !== "authenticated") return;
+    setEmbedTokenProvider(auth.getAccessToken);
+    setTilgang("ok");
+    if (sakId) {
+      filApi.hentAlle(sakId).then(setFiler).catch(() => {});
     }
-
-    fetch(`/api/validate-embed-token?token=${encodeURIComponent(token)}&sakId=${encodeURIComponent(sakId)}`)
-      .then((res) => {
-        if (res.ok) {
-          setTilgang("ok");
-          filApi.hentAlle(sakId).then(setFiler).catch(() => {});
-        } else {
-          setTilgang("denied");
-        }
-      }).catch(() => {
-        setTilgang("denied");
-      });
-  }, [token, sakId]);
+  }, [auth.status, auth.getAccessToken, sakId]);
 
   if (!sakId) {
     return <p>Mangler sakId</p>;
   }
 
-  if (tilgang === "loading") {
+  if (auth.status === "loading" || tilgang === "loading") {
     return null;
+  }
+
+  if (auth.status === "unauthenticated") {
+    return (
+      <div className="p-4" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
+        <VStack gap="space-12" align="start">
+          <BodyShort>Du må logge inn for å bruke sensureringseditoren.</BodyShort>
+          <Button variant="primary" size="small" onClick={auth.login}>
+            Logg inn
+          </Button>
+        </VStack>
+      </div>
+    );
+  }
+
+  if (auth.status === "error") {
+    return (
+      <div className="p-4" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
+        <Alert variant="error" size="small">{auth.error}</Alert>
+      </div>
+    );
   }
 
   if (tilgang === "denied") {

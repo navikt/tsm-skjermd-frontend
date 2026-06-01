@@ -1,4 +1,4 @@
-import { useParams, useSearchParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Alert,
@@ -17,11 +17,12 @@ import {
   PersonIcon,
   TrashIcon,
 } from "@navikt/aksel-icons";
-import { brukerApi, kommentarApi, filApi, leseloggApi, sakApi } from "../api/sakApi";
+import { brukerApi, kommentarApi, filApi, leseloggApi, sakApi, setEmbedTokenProvider } from "../api/sakApi";
 import type { BrukerSøkResult, FilInfo, Kommentar, Sak } from "../api/types";
 import { SensureringEditor } from "../components/SensureringEditor";
 import { FileUploadZone } from "../components/FileUploadZone";
 import { FileList } from "../components/FileList";
+import { useEmbedAuth } from "../auth/useEmbedAuth";
 
 const LESELOGG_CACHE_TTL = 60 * 60 * 1000;
 
@@ -37,9 +38,7 @@ function cacheLeselogg(sakId: string) {
 
 export const SakIframe = () => {
   const { sakId } = useParams<{ sakId: string }>();
-  const [searchParams] = useSearchParams();
-  const token = searchParams.get("token");
-  const [tilgang, setTilgang] = useState<"loading" | "ok" | "denied">("loading");
+  const auth = useEmbedAuth();
   const [sak, setSak] = useState<Sak | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [newNavIdent, setNewNavIdent] = useState("");
@@ -59,21 +58,13 @@ export const SakIframe = () => {
   const [begrunnelse, setBegrunnelse] = useState("");
   const [begrunnelseLoading, setBegrunnelseLoading] = useState(false);
   const [filer, setFiler] = useState<FilInfo[]>([]);
+  const [tilgang, setTilgang] = useState<"loading" | "ok" | "denied">("loading");
 
   useEffect(() => {
-    if (!token || !sakId) {
-      setTilgang("denied");
-      return;
-    }
-
-    fetch(`/api/validate-embed-token?token=${encodeURIComponent(token)}&sakId=${encodeURIComponent(sakId)}`)
-      .then((res) => {
-        setTilgang(res.ok ? "ok" : "denied");
-      })
-      .catch(() => {
-        setTilgang("denied");
-      });
-  }, [token, sakId]);
+    if (auth.status !== "authenticated") return;
+    setEmbedTokenProvider(auth.getAccessToken);
+    setTilgang("ok");
+  }, [auth.status, auth.getAccessToken]);
 
   useEffect(() => {
     if (tilgang !== "ok" || !sakId) return;
@@ -222,15 +213,16 @@ export const SakIframe = () => {
   };
 
   const sendBeskrivelseTilJira = async (jiraTekst: string) => {
-    if (!sakId || !sak?.jiraIssueKey || !token) return;
+    if (!sakId || !sak?.jiraIssueKey || auth.status !== "authenticated") return;
 
     try {
       setError(null);
+      const accessToken = await auth.getAccessToken();
 
       await fetch("/embed/api/jira/update-description", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -245,7 +237,7 @@ export const SakIframe = () => {
 
   const handleLagreBeskrivelse = (sensurertTekst: string) => {
     setBeskrivelseEditing(false);
-    if (!sak?.jiraIssueKey || !token) return;
+    if (!sak?.jiraIssueKey || auth.status !== "authenticated") return;
     const jiraTekst = tekstTilJira(sensurertTekst);
     sendBeskrivelseTilJira(jiraTekst);
   };
@@ -271,8 +263,35 @@ export const SakIframe = () => {
     return <p>Mangler sakId</p>;
   }
 
-  if (tilgang === "loading") {
+  if (auth.status === "loading" || tilgang === "loading") {
     return null;
+  }
+
+  if (auth.status === "unauthenticated") {
+    return (
+      <div className="p-4 pl-6" style={{ backgroundColor: "var(--ax-bg-danger-soft)", borderLeft: "4px solid var(--ax-bg-danger-soft)" }}>
+        <VStack gap="space-12" align="start">
+          <BodyShort>
+            Du må logge inn for å se sensitiv informasjon for denne saken.
+          </BodyShort>
+          <Button
+            variant="primary"
+            size="small"
+            onClick={auth.login}
+          >
+            Logg inn
+          </Button>
+        </VStack>
+      </div>
+    );
+  }
+
+  if (auth.status === "error") {
+    return (
+      <div className="p-4 pl-6" style={{ backgroundColor: "var(--ax-bg-danger-soft)", borderLeft: "4px solid var(--ax-bg-danger-soft)" }}>
+        <Alert variant="error" size="small">{auth.error}</Alert>
+      </div>
+    );
   }
 
   if (tilgang === "denied") {
