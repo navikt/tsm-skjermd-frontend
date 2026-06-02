@@ -28,6 +28,8 @@ spec:
       replyURLs:
         - "https://tsm-skjermd-frontend.ekstern.dev.nav.no/embed/auth-callback"
         - "https://tsm-skjermd-frontend.intern.dev.nav.no/embed/auth-callback"
+        - "https://tsm-skjermd-frontend.ekstern.dev.nav.no/embed/auth-window"
+        - "https://tsm-skjermd-frontend.intern.dev.nav.no/embed/auth-window"
       singlePageApplication: true
     sidecar:
         enabled: true
@@ -39,6 +41,7 @@ spec:
           - /embed/sensurering/*
           - /embed/sensurering-editor/*
           - /embed/auth-callback
+          - /embed/auth-window
           - /embed/api/*
           - /embed/api/saker/*
           - /embed/api/saker/*/tilganger

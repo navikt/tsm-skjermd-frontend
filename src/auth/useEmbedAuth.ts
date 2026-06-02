@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import type { AccountInfo, AuthenticationResult, IPublicClientApplication } from "@azure/msal-browser";
+import type { AccountInfo, IPublicClientApplication } from "@azure/msal-browser";
 import { InteractionRequiredAuthError } from "@azure/msal-browser";
 import { getMsalInstance, getLoginScopes, getBackendScopes } from "./msalConfig";
 import { createLogger } from "../logger";
@@ -28,9 +28,13 @@ type AuthState =
 
 export function useEmbedAuth() {
   const [state, setState] = useState<AuthState>({ status: "loading" });
+  const [loginUrl, setLoginUrl] = useState<string | null>(null);
   const initRef = useRef(false);
   const msalRef = useRef<IPublicClientApplication | null>(null);
   const scopesRef = useRef<string[]>([]);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const sidRef = useRef<string | null>(null);
+  const tokenRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (initRef.current) return;
@@ -55,7 +59,7 @@ export function useEmbedAuth() {
         }
 
         if (isInIframe) {
-          log.info("Running inside iframe, skipping ssoSilent (blocked in nested iframes)");
+          log.info("Running inside iframe, skipping ssoSilent");
           setState({ status: "unauthenticated" });
           return;
         }
@@ -81,54 +85,53 @@ export function useEmbedAuth() {
     })();
   }, []);
 
-  const login = useCallback(async () => {
-    const msal = msalRef.current;
-    const scopes = scopesRef.current;
-
-    if (!msal) {
-      log.error("MSAL not initialized yet");
-      setState({ status: "error", error: "Autentisering er ikke klar ennå" });
-      return;
+  useEffect(() => {
+    if (state.status === "unauthenticated" && !loginUrl) {
+      const sid = crypto.randomUUID();
+      sidRef.current = sid;
+      setLoginUrl(`/embed/auth-window?sid=${sid}`);
     }
+  }, [state.status, loginUrl]);
 
-    // Open popup synchronously to preserve user gesture context.
-    // MSAL does async work before calling window.open(), which breaks the
-    // gesture chain and causes browsers to block the popup in iframe contexts.
-    const popupWindow = window.open("about:blank", "msal-login", "width=483,height=600,left=200,top=100");
-    if (!popupWindow) {
-      setState({ status: "error", error: "Popup ble blokkert av nettleseren. Tillat popups for denne siden." });
-      return;
-    }
-
-    const originalOpen = window.open.bind(window);
-    window.open = () => {
-      window.open = originalOpen;
-      return popupWindow;
+  useEffect(() => {
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
     };
+  }, []);
 
-    try {
-      setState({ status: "loading" });
-      const result: AuthenticationResult = await msal.loginPopup({
-        scopes,
-        prompt: "select_account",
-      });
+  const onLoginClick = useCallback(() => {
+    if (!sidRef.current) return;
+    setState({ status: "loading" });
 
-      msal.setActiveAccount(result.account);
-      log.info(`Login successful: ${result.account?.username}`);
-      setState({ status: "authenticated", account: result.account! });
-    } catch (err) {
-      popupWindow.close();
-      log.error("Login failed", err);
-      setState({
-        status: "error",
-        error: err instanceof Error ? err.message : "Innlogging feilet",
-      });
-    } finally {
-      window.open = originalOpen;
-    }
+    pollingRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/embed/api/auth/poll?sid=${sidRef.current}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.status === "authenticated" && data.accessToken) {
+          if (pollingRef.current) clearInterval(pollingRef.current);
+          tokenRef.current = data.accessToken;
+          log.info("Login completed via new tab");
+
+          const msal = msalRef.current;
+          const account = msal?.getAllAccounts()[0];
+          if (account) {
+            setState({ status: "authenticated", account });
+          } else {
+            setState({ status: "authenticated", account: { username: "Authenticated" } as AccountInfo });
+          }
+        }
+      } catch {
+        // Network error, keep polling
+      }
+    }, 2000);
   }, []);
 
   const getAccessToken = useCallback(async (): Promise<string> => {
+    if (tokenRef.current) {
+      return tokenRef.current;
+    }
+
     const msal = msalRef.current ?? await getMsalInstance();
     const account = msal.getActiveAccount();
 
@@ -144,13 +147,11 @@ export function useEmbedAuth() {
       return result.accessToken;
     } catch (err) {
       if (err instanceof InteractionRequiredAuthError) {
-        log.info("Silent token acquisition failed, trying popup");
-        const result = await msal.acquireTokenPopup({ scopes });
-        return result.accessToken;
+        throw new Error("Tokenet er utløpt. Logg inn på nytt.");
       }
       throw err;
     }
   }, []);
 
-  return { ...state, login, getAccessToken };
+  return { ...state, loginUrl, onLoginClick, getAccessToken };
 }

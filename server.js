@@ -215,6 +215,44 @@ app.get('/embed/api/auth-config', (req, res) => {
     });
 });
 
+// --- Auth session relay for iframe login via new tab ---
+const authSessions = new Map();
+
+setInterval(() => {
+    const now = Date.now();
+    for (const [sid, session] of authSessions) {
+        if (now - session.createdAt > 5 * 60 * 1000) {
+            authSessions.delete(sid);
+        }
+    }
+}, 60 * 1000);
+
+app.post('/embed/api/auth/complete', (req, res) => {
+    const { sid, accessToken } = req.body;
+    if (!sid || !accessToken) {
+        return res.status(400).json({ error: 'Missing sid or accessToken' });
+    }
+    authSessions.set(sid, { accessToken, createdAt: Date.now() });
+    log('AuthRelay', `Auth completed for session ${sid.slice(0, 8)}...`);
+    res.json({ ok: true });
+});
+
+app.get('/embed/api/auth/poll', (req, res) => {
+    const sid = req.query.sid;
+    if (!sid) {
+        return res.status(400).json({ error: 'Missing sid' });
+    }
+    const session = authSessions.get(sid);
+    if (!session) {
+        return res.json({ status: 'pending' });
+    }
+    const { accessToken } = session;
+    authSessions.delete(sid);
+    log('AuthRelay', `Token delivered for session ${sid.slice(0, 8)}...`);
+    res.json({ status: 'authenticated', accessToken });
+});
+// --- End auth session relay ---
+
 // Proxy for Jira description update via Forge
 const JIRA_FORGE_URL = 'https://96f81f54-9920-41c0-a6a1-f45bdbc548ad.hello.atlassian-dev.net/x1/WPJvDj6Vxt4N_owp0xJ1bz0HSYc';
 app.post('/embed/api/jira/update-description', async (req, res) => {

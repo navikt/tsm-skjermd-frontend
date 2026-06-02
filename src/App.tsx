@@ -7,6 +7,7 @@ import { RegistrerSak } from "./pages/RegistrerSak";
 import { SensureringIframe } from "./pages/SensureringIframe";
 import { SakIframe } from "./pages/SakIframe";
 import { AuthCallback } from "./pages/AuthCallback";
+import { AuthWindow } from "./pages/AuthWindow";
 
 const WithLayout = () => (
   <AppLayout>
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="/embed/sensurering/:sakId" element={<SakIframe />} />
         <Route path="/embed/sensurering-editor/:sakId" element={<SensureringIframe />} />
         <Route path="/embed/auth-callback" element={<AuthCallback />} />
+        <Route path="/embed/auth-window" element={<AuthWindow />} />
         <Route element={<WithLayout />}>
           <Route path="/" element={<SakerList />} />
           <Route path="/saker/ny" element={<NySak />} />

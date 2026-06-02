@@ -29,7 +29,7 @@ export const SensureringIframe = () => {
     return <p>Mangler sakId</p>;
   }
 
-  if (auth.status === "loading" || tilgang === "loading") {
+  if (auth.status === "loading") {
     return null;
   }
 
@@ -38,12 +38,18 @@ export const SensureringIframe = () => {
       <div className="p-4" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
         <VStack gap="space-12" align="start">
           <BodyShort>Du må logge inn for å bruke sensureringseditoren.</BodyShort>
-          <Button variant="primary" size="small" onClick={auth.login}>
-            Logg inn
-          </Button>
+          {auth.loginUrl && (
+            <Button as="a" href={auth.loginUrl} target="_blank" rel="opener" variant="primary" size="small" onClick={auth.onLoginClick}>
+              Logg inn
+            </Button>
+          )}
         </VStack>
       </div>
     );
+  }
+
+  if (tilgang === "loading") {
+    return null;
   }
 
   if (auth.status === "error") {

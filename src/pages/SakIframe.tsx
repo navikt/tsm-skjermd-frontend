@@ -274,13 +274,19 @@ export const SakIframe = () => {
           <BodyShort>
             Du må logge inn for å se sensitiv informasjon for denne saken.
           </BodyShort>
-          <Button
-            variant="primary"
-            size="small"
-            onClick={auth.login}
-          >
-            Logg inn
-          </Button>
+          {auth.loginUrl && (
+            <Button
+              as="a"
+              href={auth.loginUrl}
+              target="_blank"
+              rel="opener"
+              variant="primary"
+              size="small"
+              onClick={auth.onLoginClick}
+            >
+              Logg inn
+            </Button>
+          )}
         </VStack>
       </div>
     );
