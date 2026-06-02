@@ -41,13 +41,13 @@ spec:
           - /embed/auth/start
           - /embed/auth/callback
           - /embed/api/saker/*
-          - /embed/api/sakers/*/tilganger
-          - /embed/api/sakers/*/tilganger/*
-          - /embed/api/sakers/*/sensurering
-          - /embed/api/sakers/*/kommentarer
-          - /embed/api/sakers/*/leselogg
-          - /embed/api/sakers/*/filer
-          - /embed/api/sakers/*/filer/*
+          - /embed/api/saker/*/tilganger
+          - /embed/api/saker/*/tilganger/*
+          - /embed/api/saker/*/sensurering
+          - /embed/api/saker/*/kommentarer
+          - /embed/api/saker/*/leselogg
+          - /embed/api/saker/*/filer
+          - /embed/api/saker/*/filer/*
           - /embed/api/jira/update-description
           - /embed/api/brukere
           - /embed/api/auth-config

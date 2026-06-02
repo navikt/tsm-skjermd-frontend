@@ -98,7 +98,7 @@ export function useEmbedAuth() {
       if (exp && exp - EXPIRY_SKEW_MS < Date.now()) {
         tokenRef.current = null;
         try {
-          localStorage.removeItem(TOKEN_STORAGE_KEY);
+          sessionStorage.removeItem(TOKEN_STORAGE_KEY);
         } catch {
           // ignore
         }
