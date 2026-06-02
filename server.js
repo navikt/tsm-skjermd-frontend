@@ -242,6 +242,7 @@ app.get('/embed/api/auth/poll', (req, res) => {
     if (!sid) {
         return res.status(400).json({ error: 'Missing sid' });
     }
+    res.set('Cache-Control', 'no-store');
     const session = authSessions.get(sid);
     if (!session) {
         return res.json({ status: 'pending' });
