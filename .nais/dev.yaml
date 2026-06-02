@@ -26,11 +26,8 @@ spec:
           - "NAVident"
           - "azp_name"
       replyURLs:
-        - "https://tsm-skjermd-frontend.ekstern.dev.nav.no/embed/auth-callback"
-        - "https://tsm-skjermd-frontend.intern.dev.nav.no/embed/auth-callback"
-        - "https://tsm-skjermd-frontend.ekstern.dev.nav.no/embed/auth-window"
-        - "https://tsm-skjermd-frontend.intern.dev.nav.no/embed/auth-window"
-      singlePageApplication: true
+        - "https://tsm-skjermd-frontend.ekstern.dev.nav.no/embed/auth/callback"
+        - "https://tsm-skjermd-frontend.intern.dev.nav.no/embed/auth/callback"
     sidecar:
         enabled: true
         autoLogin: true
@@ -40,8 +37,8 @@ spec:
           - /favicon.svg
           - /embed/sensurering/*
           - /embed/sensurering-editor/*
-          - /embed/auth-callback
-          - /embed/auth-window
+          - /embed/auth/start
+          - /embed/auth/callback
           - /embed/api/*
           - /embed/api/saker/*
           - /embed/api/saker/*/tilganger
@@ -55,7 +52,6 @@ spec:
           - /embed/api/brukere
           - /embed/api/auth-config
           - /embed/api/auth/poll
-          - /embed/api/auth/complete
           - /api/generate-embed-token
           - /api/validate-embed-token
   env:

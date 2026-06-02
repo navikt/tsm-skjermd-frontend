@@ -206,7 +206,7 @@ async function exchangeToken(userToken) {
     }
 }
 
-// Runtime config for MSAL (Azure AD client ID available at runtime from NAIS)
+// Runtime config for MSAL (kept for backwards compatibility)
 app.get('/embed/api/auth-config', (req, res) => {
     res.json({
         clientId: process.env.AZURE_APP_CLIENT_ID || '',
@@ -215,44 +215,124 @@ app.get('/embed/api/auth-config', (req, res) => {
     });
 });
 
-// --- Auth session relay for iframe login via new tab ---
-const authSessions = new Map();
+// --- Server-side OAuth flow for iframe embed auth ---
+const authSessions = new Map();   // sid -> { accessToken, createdAt }
+const authFlowStore = new Map();  // state -> { sid, codeVerifier, createdAt }
+
+function generatePKCE() {
+    const verifier = crypto.randomBytes(32).toString('base64url');
+    const challenge = crypto.createHash('sha256').update(verifier).digest('base64url');
+    return { verifier, challenge };
+}
 
 setInterval(() => {
     const now = Date.now();
-    for (const [sid, session] of authSessions) {
-        if (now - session.createdAt > 5 * 60 * 1000) {
-            authSessions.delete(sid);
-        }
+    for (const [key, val] of authSessions) {
+        if (now - val.createdAt > 60 * 60 * 1000) authSessions.delete(key);
+    }
+    for (const [key, val] of authFlowStore) {
+        if (now - val.createdAt > 5 * 60 * 1000) authFlowStore.delete(key);
     }
 }, 60 * 1000);
 
-app.post('/embed/api/auth/complete', (req, res) => {
-    const { sid, accessToken } = req.body;
-    if (!sid || !accessToken) {
-        return res.status(400).json({ error: 'Missing sid or accessToken' });
-    }
-    authSessions.set(sid, { accessToken, createdAt: Date.now() });
-    log('AuthRelay', `Auth completed for session ${sid.slice(0, 8)}...`);
-    res.json({ ok: true });
+app.get('/embed/auth/start', (req, res) => {
+    const sid = req.query.sid;
+    if (!sid) return res.status(400).send('Missing sid');
+
+    const state = crypto.randomUUID();
+    const { verifier, challenge } = generatePKCE();
+    authFlowStore.set(state, { sid, codeVerifier: verifier, createdAt: Date.now() });
+
+    const clientId = process.env.AZURE_APP_CLIENT_ID;
+    const tenantId = process.env.AZURE_APP_TENANT_ID;
+    const redirectUri = `https://${req.get('host')}/embed/auth/callback`;
+    const scope = `openid profile api://${clientId}/.default`;
+
+    const params = new URLSearchParams({
+        client_id: clientId,
+        response_type: 'code',
+        redirect_uri: redirectUri,
+        scope,
+        state,
+        code_challenge: challenge,
+        code_challenge_method: 'S256',
+        response_mode: 'query',
+    });
+
+    const authUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize?${params}`;
+    log('Auth', `Starting server-side auth flow for sid ${sid.slice(0, 8)}...`);
+    res.redirect(authUrl);
 });
+
+app.get('/embed/auth/callback', async (req, res) => {
+    const { code, state, error, error_description } = req.query;
+
+    if (error) {
+        logError('Auth', `Auth error: ${error} - ${error_description}`);
+        return res.send(authResultPage('Innlogging feilet', error_description || error, true));
+    }
+
+    const flowData = authFlowStore.get(state);
+    if (!flowData) {
+        return res.status(400).send(authResultPage('Ugyldig forespørsel', 'State er utløpt eller ugyldig. Prøv å logge inn på nytt.', true));
+    }
+    authFlowStore.delete(state);
+
+    const tokenEndpoint = process.env.AZURE_OPENID_CONFIG_TOKEN_ENDPOINT
+        || `https://login.microsoftonline.com/${process.env.AZURE_APP_TENANT_ID}/oauth2/v2.0/token`;
+    const redirectUri = `https://${req.get('host')}/embed/auth/callback`;
+
+    try {
+        const tokenRes = await fetch(tokenEndpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                client_id: process.env.AZURE_APP_CLIENT_ID,
+                client_secret: process.env.AZURE_APP_CLIENT_SECRET,
+                code,
+                redirect_uri: redirectUri,
+                grant_type: 'authorization_code',
+                code_verifier: flowData.codeVerifier,
+            }),
+        });
+
+        if (!tokenRes.ok) {
+            const errText = await tokenRes.text();
+            logError('Auth', `Token exchange failed: ${errText}`);
+            return res.send(authResultPage('Innlogging feilet', 'Kunne ikke fullføre innlogging. Prøv igjen.', true));
+        }
+
+        const tokenData = await tokenRes.json();
+        authSessions.set(flowData.sid, { accessToken: tokenData.access_token, createdAt: Date.now() });
+        log('Auth', `Login completed for session ${flowData.sid.slice(0, 8)}...`);
+        res.send(authResultPage('Du er logget inn!', 'Du kan lukke denne fanen og gå tilbake til Jira.', false));
+    } catch (err) {
+        logError('Auth', 'Token exchange error:', err);
+        res.send(authResultPage('Innlogging feilet', 'En uventet feil oppstod.', true));
+    }
+});
+
+function authResultPage(title, message, isError) {
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title></head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:#f5f5f5">
+<div style="text-align:center;padding:2rem;background:white;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1)">
+<h2 style="color:${isError ? '#c30000' : '#006a4e'}">${title}</h2>
+<p>${message}</p>
+</div></body></html>`;
+}
 
 app.get('/embed/api/auth/poll', (req, res) => {
     const sid = req.query.sid;
-    if (!sid) {
-        return res.status(400).json({ error: 'Missing sid' });
-    }
+    if (!sid) return res.status(400).json({ error: 'Missing sid' });
     res.set('Cache-Control', 'no-store');
     const session = authSessions.get(sid);
-    if (!session) {
-        return res.json({ status: 'pending' });
-    }
+    if (!session) return res.json({ status: 'pending' });
     const { accessToken } = session;
     authSessions.delete(sid);
-    log('AuthRelay', `Token delivered for session ${sid.slice(0, 8)}...`);
+    log('Auth', `Token delivered for session ${sid.slice(0, 8)}...`);
     res.json({ status: 'authenticated', accessToken });
 });
-// --- End auth session relay ---
+// --- End server-side OAuth ---
 
 // Proxy for Jira description update via Forge
 const JIRA_FORGE_URL = 'https://96f81f54-9920-41c0-a6a1-f45bdbc548ad.hello.atlassian-dev.net/x1/WPJvDj6Vxt4N_owp0xJ1bz0HSYc';
