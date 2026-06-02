@@ -38,11 +38,13 @@ export const SensureringIframe = () => {
       <div className="p-4" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
         <VStack gap="space-12" align="start">
           <BodyShort>Venter på innlogging... Fullfør innloggingen i fanen som åpnet seg.</BodyShort>
-          {auth.loginUrl && (
-            <a href={auth.loginUrl} target="_blank" rel="opener noopener" style={{ color: "var(--ax-text-action)", textDecoration: "underline", fontSize: "14px" }}>
-              Åpne innlogging på nytt
-            </a>
-          )}
+          <button
+            type="button"
+            onClick={auth.openLogin}
+            style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: "var(--ax-text-action)", textDecoration: "underline", fontSize: "14px" }}
+          >
+            Åpne innlogging på nytt
+          </button>
         </VStack>
       </div>
     );
@@ -53,11 +55,13 @@ export const SensureringIframe = () => {
       <div className="p-4" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
         <VStack gap="space-12" align="start">
           <BodyShort>Du må logge inn for å bruke sensureringseditoren.</BodyShort>
-          {auth.loginUrl && (
-            <a href={auth.loginUrl} target="_blank" rel="opener" onClick={auth.onLoginClick} className="navds-button navds-button--primary navds-button--small">
-              Logg inn
-            </a>
-          )}
+          <button
+            type="button"
+            onClick={auth.openLogin}
+            className="navds-button navds-button--primary navds-button--small"
+          >
+            Logg inn
+          </button>
         </VStack>
       </div>
     );

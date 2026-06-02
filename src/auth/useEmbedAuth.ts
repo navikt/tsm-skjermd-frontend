@@ -71,7 +71,7 @@ export function useEmbedAuth() {
     };
   }, []);
 
-  const onLoginClick = useCallback(() => {
+  const startPolling = useCallback(() => {
     setState({ status: "polling" });
 
     pollingRef.current = setInterval(async () => {
@@ -92,6 +92,25 @@ export function useEmbedAuth() {
     }, 2000);
   }, []);
 
+  const onLoginClick = startPolling;
+
+  const openLogin = useCallback(() => {
+    const url = `/embed/auth/start?sid=${sidRef.current}`;
+    const absoluteUrl = new URL(url, window.location.origin).href;
+
+    const popup = window.open(absoluteUrl, "_blank", "noopener,noreferrer");
+    if (!popup) {
+      // Popup blocked by iframe sandbox — ask the Forge host to open it via router.open
+      log.info("Popup blocked, requesting parent to open login");
+      window.parent.postMessage(
+        { type: "skjermd:open-login", url: absoluteUrl },
+        "*",
+      );
+    }
+
+    startPolling();
+  }, [startPolling]);
+
   const getAccessToken = useCallback(async (): Promise<string> => {
     if (tokenRef.current) {
       const exp = decodeTokenExp(tokenRef.current);
@@ -110,5 +129,5 @@ export function useEmbedAuth() {
     throw new Error("Ikke autentisert");
   }, []);
 
-  return { ...state, loginUrl, onLoginClick, getAccessToken };
+  return { ...state, loginUrl, onLoginClick, openLogin, getAccessToken };
 }
