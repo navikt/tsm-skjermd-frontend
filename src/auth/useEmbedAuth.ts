@@ -22,6 +22,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 
 type AuthState =
   | { status: "loading" }
+  | { status: "polling" }
   | { status: "authenticated"; account: AccountInfo }
   | { status: "unauthenticated" }
   | { status: "error"; error: string };
@@ -101,7 +102,7 @@ export function useEmbedAuth() {
 
   const onLoginClick = useCallback(() => {
     if (!sidRef.current) return;
-    setState({ status: "loading" });
+    setState({ status: "polling" });
 
     pollingRef.current = setInterval(async () => {
       try {

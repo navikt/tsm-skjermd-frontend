@@ -33,15 +33,30 @@ export const SensureringIframe = () => {
     return null;
   }
 
+  if (auth.status === "polling") {
+    return (
+      <div className="p-4" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
+        <VStack gap="space-12" align="start">
+          <BodyShort>Venter på innlogging... Fullfør innloggingen i fanen som åpnet seg.</BodyShort>
+          {auth.loginUrl && (
+            <a href={auth.loginUrl} target="_blank" rel="opener noopener" style={{ color: "var(--ax-text-action)", textDecoration: "underline", fontSize: "14px" }}>
+              Åpne innlogging på nytt
+            </a>
+          )}
+        </VStack>
+      </div>
+    );
+  }
+
   if (auth.status === "unauthenticated") {
     return (
       <div className="p-4" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
         <VStack gap="space-12" align="start">
           <BodyShort>Du må logge inn for å bruke sensureringseditoren.</BodyShort>
           {auth.loginUrl && (
-            <Button as="a" href={auth.loginUrl} target="_blank" rel="opener" variant="primary" size="small" onClick={auth.onLoginClick}>
+            <a href={auth.loginUrl} target="_blank" rel="opener" onClick={auth.onLoginClick} className="navds-button navds-button--primary navds-button--small">
               Logg inn
-            </Button>
+            </a>
           )}
         </VStack>
       </div>
