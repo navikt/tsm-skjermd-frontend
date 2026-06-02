@@ -54,6 +54,8 @@ spec:
           - /embed/api/jira/update-description
           - /embed/api/brukere
           - /embed/api/auth-config
+          - /embed/api/auth/poll
+          - /embed/api/auth/complete
           - /api/generate-embed-token
           - /api/validate-embed-token
   env:
