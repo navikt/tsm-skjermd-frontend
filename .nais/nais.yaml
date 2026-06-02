@@ -8,6 +8,7 @@ metadata:
 spec:
   envFrom:
     - secret: serviceaccounts-jira
+    - secret: tsm-skjermd-frontend
   ingresses:
     - https://tsm-skjermd-frontend.intern.nav.no
   image: {{image}}

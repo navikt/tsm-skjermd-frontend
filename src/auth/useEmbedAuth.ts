@@ -17,11 +17,11 @@ function decodeTokenExp(token: string): number | null {
 
 function loadStoredToken(): string | null {
   try {
-    const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+    const token = sessionStorage.getItem(TOKEN_STORAGE_KEY);
     if (!token) return null;
     const exp = decodeTokenExp(token);
     if (!exp || exp - EXPIRY_SKEW_MS < Date.now()) {
-      localStorage.removeItem(TOKEN_STORAGE_KEY);
+      sessionStorage.removeItem(TOKEN_STORAGE_KEY);
       return null;
     }
     return token;
@@ -32,7 +32,7 @@ function loadStoredToken(): string | null {
 
 function storeToken(token: string): void {
   try {
-    localStorage.setItem(TOKEN_STORAGE_KEY, token);
+    sessionStorage.setItem(TOKEN_STORAGE_KEY, token);
   } catch {
     // Storage unavailable, token kept in memory only
   }

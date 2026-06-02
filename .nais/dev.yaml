@@ -8,6 +8,7 @@ metadata:
 spec:
   envFrom:
     - secret: serviceaccounts-jira
+    - secret: tsm-skjermd-frontend
   ingresses:
     - https://tsm-skjermd-frontend.intern.dev.nav.no
     - https://tsm-skjermd-frontend.ekstern.dev.nav.no
@@ -39,15 +40,14 @@ spec:
           - /embed/sensurering-editor/*
           - /embed/auth/start
           - /embed/auth/callback
-          - /embed/api/*
           - /embed/api/saker/*
-          - /embed/api/saker/*/tilganger
-          - /embed/api/saker/*/tilganger/*
-          - /embed/api/saker/*/sensurering
-          - /embed/api/saker/*/kommentarer
-          - /embed/api/saker/*/leselogg
-          - /embed/api/saker/*/filer
-          - /embed/api/saker/*/filer/*
+          - /embed/api/sakers/*/tilganger
+          - /embed/api/sakers/*/tilganger/*
+          - /embed/api/sakers/*/sensurering
+          - /embed/api/sakers/*/kommentarer
+          - /embed/api/sakers/*/leselogg
+          - /embed/api/sakers/*/filer
+          - /embed/api/sakers/*/filer/*
           - /embed/api/jira/update-description
           - /embed/api/brukere
           - /embed/api/auth-config

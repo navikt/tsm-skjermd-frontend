@@ -20,6 +20,7 @@ const TOKEN_EXCHANGE_ENDPOINT = process.env.NAIS_TOKEN_EXCHANGE_ENDPOINT;
 // Target audience for OBO token exchange (backend app)
 const BACKEND_TARGET_AUDIENCE = process.env.BACKEND_TARGET_AUDIENCE || "api://dev-gcp.team-service-management.tsm-skjermd/.default";
 const EMBED_API_KEY = process.env.EMBED_API_KEY;
+const JIRA_FORGE_URL = process.env.JIRA_FORGE_URL;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,6 +29,7 @@ log('Startup', `Backend URL: ${BACKEND_URL}`);
 log('Startup', `Token Exchange Endpoint: ${TOKEN_EXCHANGE_ENDPOINT || 'NOT SET (local dev mode)'}`);
 log('Startup', `Backend Target Audience: ${BACKEND_TARGET_AUDIENCE}`);
 log('Startup', `Embed API Key: ${EMBED_API_KEY ? 'SET' : 'NOT SET'}`);
+log('Startup', `Jira Forge URL: ${JIRA_FORGE_URL ? 'SET' : 'NOT SET'}`);
 
 // Embed token store: Map<embedToken, { email, sakId, expiresAt }>
 const embedTokenStore = new Map();
@@ -335,7 +337,6 @@ app.get('/embed/api/auth/poll', (req, res) => {
 // --- End server-side OAuth ---
 
 // Proxy for Jira description update via Forge
-const JIRA_FORGE_URL = 'https://96f81f54-9920-41c0-a6a1-f45bdbc548ad.hello.atlassian-dev.net/x1/WPJvDj6Vxt4N_owp0xJ1bz0HSYc';
 app.post('/embed/api/jira/update-description', async (req, res) => {
     try {
         const bearerToken = req.headers.authorization?.replace('Bearer ', '');
@@ -362,6 +363,11 @@ app.post('/embed/api/jira/update-description', async (req, res) => {
         if (!EMBED_API_KEY) {
             logError('JiraProxy', 'EMBED_API_KEY not configured');
             return res.status(500).json({ error: 'API key not configured' });
+        }
+
+        if (!JIRA_FORGE_URL) {
+            logError('JiraProxy', 'JIRA_FORGE_URL not configured');
+            return res.status(500).json({ error: 'Jira integration not configured' });
         }
 
         const { issueKey, text } = req.body;
