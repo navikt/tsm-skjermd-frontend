@@ -306,7 +306,16 @@ export const SakIframe = () => {
   if (auth.status === "error") {
     return (
       <div className="p-4 pl-6" style={{ backgroundColor: "var(--ax-bg-danger-soft)", borderLeft: "4px solid var(--ax-bg-danger-soft)" }}>
-        <Alert variant="error" size="small">{auth.error}</Alert>
+        <VStack gap="space-12" align="start">
+          <Alert variant="error" size="small">{auth.error}</Alert>
+          <button
+            type="button"
+            onClick={auth.openLogin}
+            className="navds-button navds-button--primary navds-button--small"
+          >
+            Logg inn på nytt
+          </button>
+        </VStack>
       </div>
     );
   }
