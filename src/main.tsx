@@ -5,7 +5,7 @@ import './index.css';
 import './embedHeightSync';
 
 // Import dev mocks early when running in Vite dev mode
-if ((import.meta as any).env.DEV) {
+if (import.meta.env.DEV) {
   import('./mocks/setupMocks');
 }
 

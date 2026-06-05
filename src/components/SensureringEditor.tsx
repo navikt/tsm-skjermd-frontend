@@ -14,6 +14,7 @@ import {
 import { sensureringApi } from "../api/sakApi";
 import type { SensurertElement } from "../api/types";
 import { createLogger } from "../logger";
+import { matchSensurertePosisjoner } from "./sensureringReconstruction";
 
 const log = createLogger("Sensurering");
 
@@ -88,13 +89,18 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
     setChangeCounter((prev) => prev + 1);
   }, []);
 
+  const kommentarModusRef = useRef(kommentarModus);
+  kommentarModusRef.current = kommentarModus;
+  const onAuthErrorRef = useRef(onAuthError);
+  onAuthErrorRef.current = onAuthError;
+
   useEffect(() => {
     if (!sakId) return;
     setLaster(true);
     sensureringApi
       .hent(sakId)
       .then((data) => {
-        if (kommentarModus) {
+        if (kommentarModusRef.current) {
           existingDataRef.current = {
             originaltekst: data.originaltekst,
             sensurertTekst: data.sensurertTekst,
@@ -118,23 +124,17 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
             setSensurertListe(liste);
 
             if (editableRef.current) {
+              const sensurertTekst = data.sensurertTekst;
+              const positions = matchSensurertePosisjoner(sensurertTekst, liste);
+
               let html = "";
-              let searchFrom = 0;
-              const positions: { start: number; end: number; item: typeof liste[number] }[] = [];
-              for (const item of liste) {
-                const idx = data.sensurertTekst.indexOf(item.placeholder, searchFrom);
-                if (idx !== -1) {
-                  positions.push({ start: idx, end: idx + item.placeholder.length, item });
-                  searchFrom = idx + item.placeholder.length;
-                }
-              }
               let lastEnd = 0;
               for (const pos of positions) {
-                html += data.sensurertTekst.slice(lastEnd, pos.start);
+                html += sensurertTekst.slice(lastEnd, pos.start);
                 html += `<span class="sensurert-span" contenteditable="false" data-sensurert-id="${pos.item.id}" data-placeholder="${pos.item.placeholder}">${pos.item.original}</span>`;
                 lastEnd = pos.end;
               }
-              html += data.sensurertTekst.slice(lastEnd);
+              html += sensurertTekst.slice(lastEnd);
               editableRef.current.innerHTML = html;
             }
           }
@@ -143,7 +143,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
       .catch((err) => {
         log.warn(`Ingen eksisterende sensurering for sak ${sakId}`, err);
         if (err.message?.includes('401') || err.message?.includes('Embed-token')) {
-          onAuthError?.();
+          onAuthErrorRef.current?.();
         }
       })
       .finally(() => setLaster(false));
@@ -277,7 +277,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
       return updated;
     });
     markContentChanged();
-  }, [sensurertListe, kommentarModus, markContentChanged]);
+  }, [sensurertListe, markContentChanged]);
 
   useEffect(() => {
     if (!editableRef.current || readOnly) return;

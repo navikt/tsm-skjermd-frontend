@@ -1,10 +1,9 @@
 // Development fetch mocks for local dev environment
 import { createLogger } from "../logger";
+import type { Sak } from "../api/types";
 
 const log = createLogger("Mocks");
-const originalFetch = window.fetch.bind(window as any);
-
-type Sak = any;
+const originalFetch = window.fetch.bind(window);
 
 const now = () => new Date().toISOString();
 
@@ -35,7 +34,7 @@ const mockSaker: Sak[] = [
 
 let nextId = 3;
 
-function jsonResponse(body: any, status = 200) {
+function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { "Content-Type": "application/json" },
@@ -124,7 +123,7 @@ async function mockFetch(input: RequestInfo, init?: RequestInit) {
           // DELETE /v1/saker/:id/tilganger/:navIdent
           if (method === "DELETE" && parts.length === 5) {
             const navIdent = parts[4];
-            mockSaker[sakIndex].tilganger = mockSaker[sakIndex].tilganger.filter((t: any) => t.navIdent !== navIdent);
+            mockSaker[sakIndex].tilganger = mockSaker[sakIndex].tilganger.filter((t) => t.navIdent !== navIdent);
             return new Response(null, { status: 204 });
           }
         }
@@ -140,9 +139,8 @@ async function mockFetch(input: RequestInfo, init?: RequestInit) {
 }
 
 // Install mock - check both DEV and window location
-if ((import.meta as any).env.DEV) {
-  // @ts-ignore
-  window.fetch = mockFetch;
+if (import.meta.env.DEV) {
+  window.fetch = mockFetch as typeof window.fetch;
   log.info("Dev fetch mocks installed");
 }
 
