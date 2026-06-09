@@ -58,6 +58,23 @@ const authLimiter = rateLimit({
 
 app.use('/embed/auth', authLimiter);
 
+// Embed token store: Map<embedToken, { email, sakId, expiresAt }>
+// Used by the Forge app, which mints a token via /api/generate-embed-token
+// (server-to-server, X-API-Key) before loading the iframe with ?token=...
+const embedTokenStore = new Map();
+const EMBED_TOKEN_TTL_MS = 3600 * 1000;
+
+function cleanupExpiredEmbedTokens() {
+    const now = Date.now();
+    for (const [key, value] of embedTokenStore) {
+        if (value.expiresAt < now) {
+            embedTokenStore.delete(key);
+        }
+    }
+}
+
+setInterval(cleanupExpiredEmbedTokens, 60 * 1000);
+
 // Parse JSON bodies
 app.use((req, res, next) => {
     if (req.headers['content-type']?.includes('multipart/form-data')) {
@@ -108,6 +125,62 @@ app.get('/api/me', (req, res) => {
 
     log('User', `Authenticated: ${userInfo.navIdent} (${userInfo.name})`);
     res.json(userInfo);
+});
+
+// Generate embed token for iframe access (called server-to-server by the Forge app)
+app.post('/api/generate-embed-token', (req, res) => {
+    if (!EMBED_API_KEY) {
+        logError('Embed', 'EMBED_API_KEY not configured');
+        return res.status(500).json({ error: 'Embed tokens not configured' });
+    }
+
+    const apiKey = req.headers['x-api-key'];
+    if (!apiKey || apiKey.length !== EMBED_API_KEY.length ||
+        !crypto.timingSafeEqual(Buffer.from(apiKey), Buffer.from(EMBED_API_KEY))) {
+        logError('Embed', 'Invalid API key');
+        return res.status(403).json({ error: 'Invalid API key' });
+    }
+
+    const { email, sakId } = req.body;
+    if (!email || !sakId) {
+        return res.status(400).json({ error: 'Missing email or sakId' });
+    }
+
+    const embedToken = crypto.randomUUID();
+    const expiresAt = Date.now() + EMBED_TOKEN_TTL_MS;
+
+    embedTokenStore.set(embedToken, { email, sakId, expiresAt });
+
+    log('Embed', `Token generated for sak ${sakId}, expires in ${EMBED_TOKEN_TTL_MS / 1000}s`);
+    res.json({ token: embedToken, expiresIn: EMBED_TOKEN_TTL_MS / 1000 });
+});
+
+app.get('/api/validate-embed-token', (req, res) => {
+    const token = req.query.token;
+    if (!token) {
+        return res.status(401).json({ valid: false, error: 'Missing token' });
+    }
+
+    const stored = embedTokenStore.get(token);
+    if (!stored) {
+        log('Embed', `Validation failed: unknown token`);
+        return res.status(401).json({ valid: false, error: 'Invalid token' });
+    }
+
+    if (stored.expiresAt < Date.now()) {
+        embedTokenStore.delete(token);
+        log('Embed', `Validation failed: expired token`);
+        return res.status(401).json({ valid: false, error: 'Token expired' });
+    }
+
+    const requestedSakId = req.query.sakId;
+    if (requestedSakId && requestedSakId !== stored.sakId) {
+        log('Embed', `Validation failed: token for sak ${stored.sakId}, requested sak ${requestedSakId}`);
+        return res.status(403).json({ valid: false, error: 'Token not valid for this sak' });
+    }
+
+    log('Embed', `Token validated for sak ${stored.sakId}`);
+    res.json({ valid: true, sakId: stored.sakId });
 });
 
 // Token cache for OBO tokens
@@ -304,6 +377,11 @@ app.get('/embed/api/auth/poll', (req, res) => {
 });
 // --- End server-side OAuth ---
 
+// Check if a Bearer token is a JWT (Azure AD token) vs embed token (UUID)
+function isJwtToken(token) {
+    return token && token.includes('.');
+}
+
 // Proxy for Jira description update via Forge
 app.post('/embed/api/jira/update-description', async (req, res) => {
     try {
@@ -312,11 +390,21 @@ app.post('/embed/api/jira/update-description', async (req, res) => {
             return res.status(401).json({ error: 'No token' });
         }
 
-        const payload = decodeJwtPayload(bearerToken);
-        if (!payload) {
-            return res.status(401).json({ error: 'Invalid token' });
+        let userEmail;
+        if (isJwtToken(bearerToken)) {
+            const payload = decodeJwtPayload(bearerToken);
+            if (!payload) {
+                return res.status(401).json({ error: 'Invalid token' });
+            }
+            userEmail = payload.preferred_username || payload.email;
+        } else {
+            const stored = embedTokenStore.get(bearerToken);
+            if (!stored || stored.expiresAt < Date.now()) {
+                if (stored) embedTokenStore.delete(bearerToken);
+                return res.status(401).json({ error: 'Invalid or expired embed token' });
+            }
+            userEmail = stored.email;
         }
-        const userEmail = payload.preferred_username || payload.email;
 
         if (!EMBED_API_KEY) {
             logError('JiraProxy', 'EMBED_API_KEY not configured');
@@ -359,7 +447,8 @@ app.post('/embed/api/jira/update-description', async (req, res) => {
     }
 });
 
-// Proxy for iframe embed API — requires Azure AD token (server-side PKCE flow)
+// Proxy for iframe embed API — supports both Azure AD tokens (PKCE flow) and
+// legacy embed tokens (UUID) minted by the Forge app via /api/generate-embed-token
 app.use('/embed/api', async (req, res) => {
     const startTime = Date.now();
     try {
@@ -369,17 +458,46 @@ app.use('/embed/api', async (req, res) => {
             return res.status(401).json({ error: 'No token' });
         }
 
-        log('EmbedProxy', 'Using Azure AD token flow');
-        let backendToken;
-        try {
-            backendToken = await exchangeToken(bearerToken);
-        } catch (err) {
-            logError('EmbedProxy', 'Token exchange failed:', err);
-            return res.status(401).json({ error: 'Token exchange failed' });
-        }
+        let targetUrl;
+        const headers = {};
 
-        const targetUrl = `${BACKEND_URL}/internal/v1${req.url}`;
-        const headers = { 'Authorization': `Bearer ${backendToken}` };
+        if (isJwtToken(bearerToken)) {
+            // Azure AD token — exchange for backend OBO token and proxy to /internal/v1
+            log('EmbedProxy', 'Using Azure AD token flow');
+            let backendToken;
+            try {
+                backendToken = await exchangeToken(bearerToken);
+            } catch (err) {
+                logError('EmbedProxy', 'Token exchange failed:', err);
+                return res.status(401).json({ error: 'Token exchange failed' });
+            }
+            targetUrl = `${BACKEND_URL}/internal/v1${req.url}`;
+            headers['Authorization'] = `Bearer ${backendToken}`;
+        } else {
+            // Legacy embed token (UUID) — proxy to /embed/v1 with X-User-Email + X-API-Key
+            const stored = embedTokenStore.get(bearerToken);
+            if (!stored) {
+                logError('EmbedProxy', 'Invalid embed token');
+                return res.status(401).json({ error: 'Invalid or expired embed token' });
+            }
+
+            if (stored.expiresAt < Date.now()) {
+                embedTokenStore.delete(bearerToken);
+                logError('EmbedProxy', 'Expired embed token');
+                return res.status(401).json({ error: 'Embed token expired' });
+            }
+
+            const requestedSakId = req.url.match(/\/saker\/([^/]+)/)?.[1];
+            if (requestedSakId && requestedSakId !== stored.sakId) {
+                logError('EmbedProxy', `Token for sak ${stored.sakId} used against sak ${requestedSakId}`);
+                return res.status(403).json({ error: 'Token not valid for this sak' });
+            }
+
+            targetUrl = `${BACKEND_URL}/embed/v1${req.url}`;
+            headers['X-User-Email'] = stored.email;
+            headers['X-API-Key'] = EMBED_API_KEY;
+            log('EmbedProxy', 'Using legacy embed token');
+        }
 
         log('EmbedProxy', `${req.method} ${targetUrl}`);
 

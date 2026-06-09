@@ -13,6 +13,11 @@ function isEmbedMode(): boolean {
   return window.location.pathname.startsWith("/embed/");
 }
 
+function getEmbedToken(): string | null {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("token");
+}
+
 let embedTokenProvider: (() => Promise<string>) | null = null;
 
 export function setEmbedTokenProvider(provider: () => Promise<string>) {
@@ -61,6 +66,11 @@ async function apiRequest<T>(
     if (embedTokenProvider) {
       const token = await embedTokenProvider();
       (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
+    } else {
+      const embedToken = getEmbedToken();
+      if (embedToken) {
+        (headers as Record<string, string>)["Authorization"] = `Bearer ${embedToken}`;
+      }
     }
   } else if (isLocalDev) {
     const token = await getLocalDevToken();
@@ -233,6 +243,11 @@ export const filApi = {
       if (embedTokenProvider) {
         const token = await embedTokenProvider();
         headers["Authorization"] = `Bearer ${token}`;
+      } else {
+        const embedToken = getEmbedToken();
+        if (embedToken) {
+          headers["Authorization"] = `Bearer ${embedToken}`;
+        }
       }
     } else if (isLocalDev) {
       const token = await getLocalDevToken();
