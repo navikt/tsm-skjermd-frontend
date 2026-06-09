@@ -13,11 +13,6 @@ function isEmbedMode(): boolean {
   return window.location.pathname.startsWith("/embed/");
 }
 
-function getEmbedToken(): string | null {
-  const params = new URLSearchParams(window.location.search);
-  return params.get("token");
-}
-
 let embedTokenProvider: (() => Promise<string>) | null = null;
 
 export function setEmbedTokenProvider(provider: () => Promise<string>) {
@@ -64,15 +59,8 @@ async function apiRequest<T>(
   // Add Authorization header for local dev or embed mode
   if (isEmbedMode()) {
     if (embedTokenProvider) {
-      const msalToken = await embedTokenProvider();
-      (headers as Record<string, string>)["Authorization"] = `Bearer ${msalToken}`;
-      log.info("Using MSAL token");
-    } else {
-      const embedToken = getEmbedToken();
-      if (embedToken) {
-        (headers as Record<string, string>)["Authorization"] = `Bearer ${embedToken}`;
-        log.info("Using embed token");
-      }
+      const token = await embedTokenProvider();
+      (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
     }
   } else if (isLocalDev) {
     const token = await getLocalDevToken();
@@ -243,13 +231,8 @@ export const filApi = {
 
     if (isEmbedMode()) {
       if (embedTokenProvider) {
-        const msalToken = await embedTokenProvider();
-        headers["Authorization"] = `Bearer ${msalToken}`;
-      } else {
-        const embedToken = getEmbedToken();
-        if (embedToken) {
-          headers["Authorization"] = `Bearer ${embedToken}`;
-        }
+        const token = await embedTokenProvider();
+        headers["Authorization"] = `Bearer ${token}`;
       }
     } else if (isLocalDev) {
       const token = await getLocalDevToken();

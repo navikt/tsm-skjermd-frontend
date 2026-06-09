@@ -1,5 +1,7 @@
 import crypto from "crypto";
 import express from "express";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -17,7 +19,6 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8080";
 const TOKEN_EXCHANGE_ENDPOINT = process.env.NAIS_TOKEN_EXCHANGE_ENDPOINT;
-// Target audience for OBO token exchange (backend app)
 const BACKEND_TARGET_AUDIENCE = process.env.BACKEND_TARGET_AUDIENCE || "api://dev-gcp.team-service-management.tsm-skjermd/.default";
 const EMBED_API_KEY = process.env.EMBED_API_KEY;
 const JIRA_FORGE_URL = process.env.JIRA_FORGE_URL;
@@ -31,20 +32,31 @@ log('Startup', `Backend Target Audience: ${BACKEND_TARGET_AUDIENCE}`);
 log('Startup', `Embed API Key: ${EMBED_API_KEY ? 'SET' : 'NOT SET'}`);
 log('Startup', `Jira Forge URL: ${JIRA_FORGE_URL ? 'SET' : 'NOT SET'}`);
 
-// Embed token store: Map<embedToken, { email, sakId, expiresAt }>
-const embedTokenStore = new Map();
-const EMBED_TOKEN_TTL_MS = 3600 * 1000;
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", "data:"],
+            connectSrc: ["'self'"],
+            frameSrc: ["'none'"],
+            frameAncestors: ["'self'", "https://*.atlassian.net"],
+        },
+    },
+    crossOriginEmbedderPolicy: false,
+    crossOriginOpenerPolicy: false,
+}));
 
-function cleanupExpiredEmbedTokens() {
-    const now = Date.now();
-    for (const [key, value] of embedTokenStore) {
-        if (value.expiresAt < now) {
-            embedTokenStore.delete(key);
-        }
-    }
-}
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 50,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'For mange forespørsler, prøv igjen senere' },
+});
 
-setInterval(cleanupExpiredEmbedTokens, 60 * 1000);
+app.use('/embed/auth', authLimiter);
 
 // Parse JSON bodies
 app.use((req, res, next) => {
@@ -96,61 +108,6 @@ app.get('/api/me', (req, res) => {
 
     log('User', `Authenticated: ${userInfo.navIdent} (${userInfo.name})`);
     res.json(userInfo);
-});
-
-// Generate embed token for iframe access
-app.post('/api/generate-embed-token', (req, res) => {
-    if (!EMBED_API_KEY) {
-        logError('Embed', 'EMBED_API_KEY not configured');
-        return res.status(500).json({ error: 'Embed tokens not configured' });
-    }
-
-    const apiKey = req.headers['x-api-key'];
-    if (apiKey !== EMBED_API_KEY) {
-        logError('Embed', 'Invalid API key');
-        return res.status(403).json({ error: 'Invalid API key' });
-    }
-
-    const { email, sakId } = req.body;
-    if (!email || !sakId) {
-        return res.status(400).json({ error: 'Missing email or sakId' });
-    }
-
-    const embedToken = crypto.randomUUID();
-    const expiresAt = Date.now() + EMBED_TOKEN_TTL_MS;
-
-    embedTokenStore.set(embedToken, { email, sakId, expiresAt });
-
-    log('Embed', `Token generated for sak ${sakId}, user ${email}, expires in ${EMBED_TOKEN_TTL_MS / 1000}s`);
-    res.json({ token: embedToken, expiresIn: EMBED_TOKEN_TTL_MS / 1000 });
-});
-
-app.get('/api/validate-embed-token', (req, res) => {
-    const token = req.query.token;
-    if (!token) {
-        return res.status(401).json({ valid: false, error: 'Missing token' });
-    }
-
-    const stored = embedTokenStore.get(token);
-    if (!stored) {
-        log('Embed', `Validation failed: unknown token`);
-        return res.status(401).json({ valid: false, error: 'Invalid token' });
-    }
-
-    if (stored.expiresAt < Date.now()) {
-        embedTokenStore.delete(token);
-        log('Embed', `Validation failed: expired token`);
-        return res.status(401).json({ valid: false, error: 'Token expired' });
-    }
-
-    const requestedSakId = req.query.sakId;
-    if (requestedSakId && requestedSakId !== stored.sakId) {
-        log('Embed', `Validation failed: token for sak ${stored.sakId}, requested sak ${requestedSakId}`);
-        return res.status(403).json({ valid: false, error: 'Token not valid for this sak' });
-    }
-
-    log('Embed', `Token validated for sak ${stored.sakId}, user ${stored.email}`);
-    res.json({ valid: true, sakId: stored.sakId });
 });
 
 // Token cache for OBO tokens
@@ -314,12 +271,23 @@ app.get('/embed/auth/callback', async (req, res) => {
     }
 });
 
+function escapeHtml(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 function authResultPage(title, message, isError) {
-    return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title></head>
+    const t = escapeHtml(title);
+    const m = escapeHtml(message);
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${t}</title></head>
 <body style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:#f5f5f5">
 <div style="text-align:center;padding:2rem;background:white;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1)">
-<h2 style="color:${isError ? '#c30000' : '#006a4e'}">${title}</h2>
-<p>${message}</p>
+<h2 style="color:${isError ? '#c30000' : '#006a4e'}">${t}</h2>
+<p>${m}</p>
 </div></body></html>`;
 }
 
@@ -344,21 +312,11 @@ app.post('/embed/api/jira/update-description', async (req, res) => {
             return res.status(401).json({ error: 'No token' });
         }
 
-        let userEmail;
-        if (isJwtToken(bearerToken)) {
-            const payload = decodeJwtPayload(bearerToken);
-            if (!payload) {
-                return res.status(401).json({ error: 'Invalid token' });
-            }
-            userEmail = payload.preferred_username || payload.email;
-        } else {
-            const stored = embedTokenStore.get(bearerToken);
-            if (!stored || stored.expiresAt < Date.now()) {
-                if (stored) embedTokenStore.delete(bearerToken);
-                return res.status(401).json({ error: 'Invalid or expired embed token' });
-            }
-            userEmail = stored.email;
+        const payload = decodeJwtPayload(bearerToken);
+        if (!payload) {
+            return res.status(401).json({ error: 'Invalid token' });
         }
+        const userEmail = payload.preferred_username || payload.email;
 
         if (!EMBED_API_KEY) {
             logError('JiraProxy', 'EMBED_API_KEY not configured');
@@ -375,7 +333,7 @@ app.post('/embed/api/jira/update-description', async (req, res) => {
             return res.status(400).json({ error: 'issueKey is required' });
         }
 
-        log('JiraProxy', `Updating description for ${issueKey} (user: ${userEmail})`);
+        log('JiraProxy', `Updating description for ${issueKey}`);
 
         const response = await fetch(JIRA_FORGE_URL, {
             method: 'POST',
@@ -401,12 +359,7 @@ app.post('/embed/api/jira/update-description', async (req, res) => {
     }
 });
 
-// Check if a Bearer token is a JWT (Azure AD token) vs embed token (UUID)
-function isJwtToken(token) {
-    return token && token.includes('.');
-}
-
-// Proxy for iframe embed API - supports both Azure AD tokens and legacy embed tokens
+// Proxy for iframe embed API — requires Azure AD token (server-side PKCE flow)
 app.use('/embed/api', async (req, res) => {
     const startTime = Date.now();
     try {
@@ -416,46 +369,17 @@ app.use('/embed/api', async (req, res) => {
             return res.status(401).json({ error: 'No token' });
         }
 
-        let targetUrl;
-        const headers = {};
-
-        if (isJwtToken(bearerToken)) {
-            // Azure AD token — exchange for backend OBO token and proxy to /internal/v1
-            log('EmbedProxy', 'Using Azure AD token flow');
-            let backendToken;
-            try {
-                backendToken = await exchangeToken(bearerToken);
-            } catch (err) {
-                logError('EmbedProxy', 'Token exchange failed:', err);
-                return res.status(401).json({ error: 'Token exchange failed' });
-            }
-            targetUrl = `${BACKEND_URL}/internal/v1${req.url}`;
-            headers['Authorization'] = `Bearer ${backendToken}`;
-        } else {
-            // Legacy embed token (UUID)
-            const stored = embedTokenStore.get(bearerToken);
-            if (!stored) {
-                logError('EmbedProxy', 'Invalid embed token');
-                return res.status(401).json({ error: 'Invalid or expired embed token' });
-            }
-
-            if (stored.expiresAt < Date.now()) {
-                embedTokenStore.delete(bearerToken);
-                logError('EmbedProxy', 'Expired embed token');
-                return res.status(401).json({ error: 'Embed token expired' });
-            }
-
-            const requestedSakId = req.url.match(/\/saker\/([^/]+)/)?.[1];
-            if (requestedSakId && requestedSakId !== stored.sakId) {
-                logError('EmbedProxy', `Token for sak ${stored.sakId} used against sak ${requestedSakId}`);
-                return res.status(403).json({ error: 'Token not valid for this sak' });
-            }
-
-            targetUrl = `${BACKEND_URL}/embed/v1${req.url}`;
-            headers['X-User-Email'] = stored.email;
-            headers['X-API-Key'] = EMBED_API_KEY;
-            log('EmbedProxy', `Using legacy embed token (user: ${stored.email})`);
+        log('EmbedProxy', 'Using Azure AD token flow');
+        let backendToken;
+        try {
+            backendToken = await exchangeToken(bearerToken);
+        } catch (err) {
+            logError('EmbedProxy', 'Token exchange failed:', err);
+            return res.status(401).json({ error: 'Token exchange failed' });
         }
+
+        const targetUrl = `${BACKEND_URL}/internal/v1${req.url}`;
+        const headers = { 'Authorization': `Bearer ${backendToken}` };
 
         log('EmbedProxy', `${req.method} ${targetUrl}`);
 

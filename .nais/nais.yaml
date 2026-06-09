@@ -15,7 +15,7 @@ spec:
   replicas:
     min: 1
     max: 1
-  port: 3000
+  port: 8080
   azure:
     application:
       enabled: true
@@ -25,7 +25,8 @@ spec:
         extra:
           - "NAVident"
           - "azp_name"
-      singlePageApplication: false
+      replyURLs:
+        - "https://tsm-skjermd-frontend.intern.nav.no/embed/auth/callback"
     sidecar:
         enabled: true
         autoLogin: true
@@ -33,15 +34,29 @@ spec:
           - /health/*
           - /assets/*
           - /favicon.svg
+          - /embed/sensurering/*
+          - /embed/sensurering-editor/*
+          - /embed/auth/start
+          - /embed/auth/callback
           - /embed/api/saker/*
           - /embed/api/saker/*/tilganger
           - /embed/api/saker/*/tilganger/*
-          - /embed/sensurering/*
-          - /embed/sensurering-editor/*
           - /embed/api/saker/*/sensurering
+          - /embed/api/saker/*/kommentarer
+          - /embed/api/saker/*/leselogg
           - /embed/api/saker/*/filer
           - /embed/api/saker/*/filer/*
           - /embed/api/jira/update-description
           - /embed/api/jira/add-comment
-          - /api/generate-embed-token
-          - /api/validate-embed-token
+          - /embed/api/brukere
+          - /embed/api/auth-config
+          - /embed/api/auth/poll
+  env:
+    - name: BACKEND_URL
+      value: "http://tsm-skjermd"
+    - name: BACKEND_TARGET_AUDIENCE
+      value: "api://prod-gcp.team-service-management.tsm-skjermd/.default"
+  accessPolicy:
+    outbound:
+      rules:
+        - application: tsm-skjermd
