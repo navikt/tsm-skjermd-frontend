@@ -1,64 +1,31 @@
 import { useParams } from "react-router-dom";
-import { useState, useEffect, useRef, useCallback } from "react";
-import {
-  Alert,
-  Button,
-  VStack,
-  HStack,
-  Table,
-  Tag,
-  Detail,
-  BodyShort,
-  Accordion,
-  UNSAFE_Combobox,
-  Textarea,
-} from "@navikt/ds-react";
-import {
-  PersonIcon,
-  TrashIcon,
-} from "@navikt/aksel-icons";
-import { brukerApi, kommentarApi, filApi, leseloggApi, sakApi, setEmbedTokenProvider } from "../api/sakApi";
-import type { BrukerSøkResult, FilInfo, Kommentar, Sak } from "../api/types";
-import { SensureringEditor } from "../components/SensureringEditor";
-import { FileUploadZone } from "../components/FileUploadZone";
-import { FileList } from "../components/FileList";
+import { useState, useEffect } from "react";
+import { Alert, Button, VStack, BodyShort } from "@navikt/ds-react";
+import { kommentarApi, filApi, sakApi, setEmbedTokenProvider } from "../api/sakApi";
+import type { FilInfo, Kommentar, Sak } from "../api/types";
 import { useEmbedAuth } from "../auth/useEmbedAuth";
-
-const LESELOGG_CACHE_TTL = 60 * 60 * 1000;
-
-function erLeseloggCachet(sakId: string): boolean {
-  const raw = sessionStorage.getItem(`leselogg-${sakId}`);
-  if (!raw) return false;
-  return Date.now() - Number(raw) < LESELOGG_CACHE_TTL;
-}
-
-function cacheLeselogg(sakId: string) {
-  sessionStorage.setItem(`leselogg-${sakId}`, String(Date.now()));
-}
+import { useIframeHeightSync } from "../hooks/useIframeHeightSync";
+import { erLeseloggCachet } from "../utils/leselogg";
+import { SensitivPanel } from "../components/SensitivPanel";
+import { AuthGate } from "../components/AuthGate";
+import { TilgangerAccordion } from "../components/TilgangerAccordion";
+import { LeseloggGate } from "../components/LeseloggGate";
+import { BeskrivelseSeksjon } from "../components/BeskrivelseSeksjon";
+import { KommentarSeksjon } from "../components/KommentarSeksjon";
+import { FilerSeksjon } from "../components/FilerSeksjon";
 
 export const SakIframe = () => {
   const { sakId } = useParams<{ sakId: string }>();
   const auth = useEmbedAuth();
   const [sak, setSak] = useState<Sak | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [newNavIdent, setNewNavIdent] = useState("");
-  const [selectedBrukerLabel, setSelectedBrukerLabel] = useState("");
-  const [tilgangLoading, setTilgangLoading] = useState(false);
-  const [brukerSøkResultater, setBrukerSøkResultater] = useState<BrukerSøkResult[]>([]);
-  const [brukerSøkLoading, setBrukerSøkLoading] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [kommentarer, setKommentarer] = useState<Kommentar[]>([]);
   const [kommentarerLoading, setKommentarerLoading] = useState(false);
-  const [beskrivelseEditorKey, setBeskrivelseEditorKey] = useState(0);
-  const [kommentarEditorKey, setKommentarEditorKey] = useState(0);
-  const [beskrivelseEditing, setBeskrivelseEditing] = useState(false);
-  const [kommentarEditing, setKommentarEditing] = useState(false);
   const [visningGodkjent, setVisningGodkjent] = useState(() => !!sakId && erLeseloggCachet(sakId));
-  const [visBegrunnelse, setVisBegrunnelse] = useState(false);
-  const [begrunnelse, setBegrunnelse] = useState("");
-  const [begrunnelseLoading, setBegrunnelseLoading] = useState(false);
   const [filer, setFiler] = useState<FilInfo[]>([]);
   const [tilgang, setTilgang] = useState<"loading" | "ok" | "denied">("loading");
+
+  useIframeHeightSync();
 
   useEffect(() => {
     if (auth.status !== "authenticated") return;
@@ -103,559 +70,72 @@ export const SakIframe = () => {
       .catch(() => {});
   }, [tilgang, sakId]);
 
-  useEffect(() => {
-    let lastHeight = 0;
-
-    const reportHeight = () => {
-      const root = document.getElementById("root");
-      let height = root ? root.scrollHeight : document.body?.scrollHeight ?? 0;
-
-      const modal = document.querySelector("dialog[open]");
-      if (modal) {
-        const modalRect = modal.getBoundingClientRect();
-        const modalBottom = modalRect.top + window.scrollY + modalRect.height;
-        height = Math.max(height, modalBottom);
-      }
-
-      if (height > 0 && height !== lastHeight) {
-        lastHeight = height;
-        window.parent.postMessage({ type: "tsm-skjermd-resize", height }, "*");
-      }
-    };
-
-    reportHeight();
-
-    const resizeObserver = new ResizeObserver(reportHeight);
-    if (document.body) resizeObserver.observe(document.body);
-
-    const mutationObserver = new MutationObserver(reportHeight);
-    mutationObserver.observe(document.body, { childList: true, subtree: true });
-
-    const interval = setInterval(reportHeight, 200);
-
-    return () => {
-      resizeObserver.disconnect();
-      mutationObserver.disconnect();
-      clearInterval(interval);
-    };
-  }, []);
-
-  const handleGiTilgang = async () => {
-    if (!sakId || !newNavIdent.trim()) return;
-    try {
-      setTilgangLoading(true);
-      const nyTilgang = await sakApi.giTilgang(sakId, {
-        navIdent: newNavIdent.trim().toUpperCase(),
-      });
-      setSak((prev) =>
-        prev ? { ...prev, tilganger: [...prev.tilganger, nyTilgang] } : prev
-      );
-      setNewNavIdent("");
-      setSelectedBrukerLabel("");
-      setBrukerSøkResultater([]);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Kunne ikke gi tilgang");
-    } finally {
-      setTilgangLoading(false);
-    }
-  };
-
-  const handleBrukerSøk = useCallback((query: string) => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (query.length < 2) {
-      setBrukerSøkResultater([]);
-      return;
-    }
-    debounceRef.current = setTimeout(async () => {
-      setBrukerSøkLoading(true);
-      try {
-        const resultater = await brukerApi.søk(query);
-        setBrukerSøkResultater(resultater);
-      } catch {
-        setBrukerSøkResultater([]);
-      } finally {
-        setBrukerSøkLoading(false);
-      }
-    }, 300);
-  }, []);
-
-  const handleFjernTilgang = async (navIdent: string) => {
-    if (!sakId) return;
-    try {
-      await sakApi.fjernTilgang(sakId, navIdent);
-      setSak((prev) =>
-        prev
-          ? { ...prev, tilganger: prev.tilganger.filter((t) => t.navIdent !== navIdent) }
-          : prev
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Kunne ikke fjerne tilgang");
-    }
-  };
-
-  const tekstTilJira = (tekst: string): string => {
-    if (tekst.length === 0) return "[Maskert]";
-    if ([...tekst].every((c) => c === "*")) return "[Maskert]";
-    return tekst;
-  };
-
-  const createCommentInJira = (issueKey: string, text: string) => {
-    const requestId = crypto.randomUUID();
-
-    window.parent.postMessage({
-      type: 'CREATE_JIRA_COMMENT',
-      requestId,
-      issueKey,
-      text
-    }, '*');
-
-    return requestId;
-  };
-
-  const sendBeskrivelseTilJira = async (jiraTekst: string) => {
-    if (!sakId || !sak?.jiraIssueKey || auth.status !== "authenticated") return;
-
-    try {
-      setError(null);
-      const accessToken = await auth.getAccessToken();
-
-      await fetch("/embed/api/jira/update-description", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          issueKey: sak.jiraIssueKey,
-          text: jiraTekst,
-        }),
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Kunne ikke oppdatere Jira-beskrivelse");
-    }
-  };
-
-  const handleLagreBeskrivelse = (sensurertTekst: string) => {
-    setBeskrivelseEditing(false);
-    if (!sak?.jiraIssueKey || auth.status !== "authenticated") return;
-    const jiraTekst = tekstTilJira(sensurertTekst);
-    sendBeskrivelseTilJira(jiraTekst);
-  };
-
-  const formatDato = (dato: string | null) => {
-    if (!dato) return "-";
-    return new Date(dato).toLocaleDateString("nb-NO", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    });
-  };
-
-  const formatTid = (dato: string | null) => {
-    if (!dato) return "";
-    return new Date(dato).toLocaleTimeString("nb-NO", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
   if (!sakId) {
     return <p>Mangler sakId</p>;
   }
 
-  if (auth.status === "loading") {
-    return null;
-  }
-
-  if (auth.status === "polling") {
-    return (
-      <div className="p-4 pl-6" style={{ backgroundColor: "var(--ax-bg-danger-soft)", borderLeft: "4px solid var(--ax-bg-danger-soft)" }}>
-        <VStack gap="space-12" align="start">
-          <BodyShort>Venter på innlogging... Fullfør innloggingen i fanen som åpnet seg.</BodyShort>
-          <button
-            type="button"
-            onClick={auth.openLogin}
-            style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: "var(--ax-text-action)", textDecoration: "underline", fontSize: "14px" }}
-          >
-            Åpne innlogging på nytt
-          </button>
-        </VStack>
-      </div>
-    );
-  }
-
-  if (auth.status === "unauthenticated") {
-    return (
-      <div className="p-4 pl-6" style={{ backgroundColor: "var(--ax-bg-danger-soft)", borderLeft: "4px solid var(--ax-bg-danger-soft)" }}>
-        <VStack gap="space-12" align="start">
-          <BodyShort>
-            Du må logge inn for å se sensitiv informasjon for denne saken.
-          </BodyShort>
-          <button
-            type="button"
-            onClick={auth.openLogin}
-            className="navds-button navds-button--primary navds-button--small"
-          >
-            Logg inn
-          </button>
-        </VStack>
-      </div>
-    );
-  }
-
-  if (auth.status === "error") {
-    return (
-      <div className="p-4 pl-6" style={{ backgroundColor: "var(--ax-bg-danger-soft)", borderLeft: "4px solid var(--ax-bg-danger-soft)" }}>
-        <VStack gap="space-12" align="start">
-          <Alert variant="error" size="small">{auth.error}</Alert>
-          <button
-            type="button"
-            onClick={auth.openLogin}
-            className="navds-button navds-button--primary navds-button--small"
-          >
-            Logg inn på nytt
-          </button>
-        </VStack>
-      </div>
-    );
-  }
-
-  if (tilgang === "loading") {
-    return null;
-  }
-
-  if (tilgang === "denied") {
-    return (
-      <div className="p-4 pl-6" style={{ backgroundColor: "var(--ax-bg-danger-soft)", borderLeft: "4px solid var(--ax-bg-danger-soft)" }}>
-        <VStack gap="space-12" align="start">
-          <BodyShort>
-            Du har ikke tilgang til å se sensitiv informasjon for denne saken.
-          </BodyShort>
-          <Button
-            variant="primary"
-            size="small"
-            onClick={() => {
-              alert("Forespørsel om tilgang er ikke implementert ennå.");
-            }}
-          >
-            Be om tilgang
-          </Button>
-        </VStack>
-      </div>
-    );
-  }
-
-  const tilgangerAccordion = sak && (
-    <div className="mb-4">
-      <Accordion className="accordion-borderless">
-        <Accordion.Item>
-          <div className="flex justify-end">
-            <Accordion.Header style={{ width: 'auto' }}>
-              <HStack gap="space-8" align="center">
-                <BodyShort size="small" weight="semibold">Tilganger</BodyShort>
-                <Tag variant="neutral" size="xsmall">{sak.tilganger.length}</Tag>
-              </HStack>
-            </Accordion.Header>
-          </div>
-          <Accordion.Content>
-            <VStack gap="space-8">
-              {sak.tilganger.length === 0 ? (
-                <Detail className="text-gray-500">
-                  Ingen har tilgang ennå. Oppretteren ({sak.opprettetAv}) har alltid tilgang.
-                </Detail>
-              ) : (
-                <Table size="small">
-                  <Table.Header>
-                    <Table.Row>
-                      <Table.HeaderCell>NAVident</Table.HeaderCell>
-                      <Table.HeaderCell>Gitt av</Table.HeaderCell>
-                      <Table.HeaderCell>Tidspunkt</Table.HeaderCell>
-                      <Table.HeaderCell />
-                    </Table.Row>
-                  </Table.Header>
-                  <Table.Body>
-                    {sak.tilganger.map((t) => (
-                      <Table.Row key={t.navIdent}>
-                        <Table.DataCell>
-                          <HStack gap="space-4" align="center">
-                            <PersonIcon aria-hidden fontSize="1rem" />
-                            {t.navIdent}
-                            {t.navIdent === sak.opprettetAv && (
-                              <Tag variant="neutral" size="xsmall">Oppretter</Tag>
-                            )}
-                          </HStack>
-                        </Table.DataCell>
-                        <Table.DataCell>{t.gittAv}</Table.DataCell>
-                        <Table.DataCell>
-                          {formatDato(t.gittTidspunkt)} kl. {formatTid(t.gittTidspunkt)}
-                        </Table.DataCell>
-                        <Table.DataCell>
-                          {t.navIdent !== sak.opprettetAv && (
-                            <Button
-                              variant="tertiary-neutral"
-                              size="xsmall"
-                              icon={<TrashIcon aria-hidden />}
-                              onClick={() => handleFjernTilgang(t.navIdent)}
-                              title="Fjern tilgang"
-                            />
-                          )}
-                        </Table.DataCell>
-                      </Table.Row>
-                    ))}
-                  </Table.Body>
-                </Table>
-              )}
-              <Detail className="text-gray-500">
-                Oppretteren ({sak.opprettetAv}) har alltid tilgang og kan ikke fjernes.
-              </Detail>
-              <UNSAFE_Combobox
-                label="Gi tilgang"
-                description="Søk etter navn eller NAVident"
-                options={[]}
-                filteredOptions={brukerSøkResultater.map((b) => ({
-                  label: `${b.displayName} (${b.navIdent})`,
-                  value: b.navIdent,
-                }))}
-                isLoading={brukerSøkLoading}
-                onChange={handleBrukerSøk}
-                onToggleSelected={(value, isSelected) => {
-                  if (isSelected) {
-                    setNewNavIdent(value);
-                    const match = brukerSøkResultater.find((b) => b.navIdent === value);
-                    setSelectedBrukerLabel(match ? `${match.displayName} (${match.navIdent})` : value);
-                  } else {
-                    setNewNavIdent("");
-                    setSelectedBrukerLabel("");
-                  }
-                }}
-                shouldAutocomplete={false}
-              />
-              <Button
-                size="small"
-                onClick={handleGiTilgang}
-                loading={tilgangLoading}
-                disabled={!newNavIdent.trim()}
-              >
-                {selectedBrukerLabel ? `Gi tilgang til ${selectedBrukerLabel}` : "Gi tilgang"}
-              </Button>
-            </VStack>
-          </Accordion.Content>
-        </Accordion.Item>
-      </Accordion>
-    </div>
-  );
-
-  if (!visningGodkjent) {
-    return (
-      <div className="p-4 pl-6" style={{ backgroundColor: "var(--ax-bg-danger-soft)", borderLeft: "4px solid var(--ax-bg-danger-soft)" }}>
-        <div className="flex justify-end">{tilgangerAccordion}</div>
-        <VStack gap="space-16" align="start">
-          <BodyShort size="small">
-            Denne saken inneholder sensitiv informasjon.
-          </BodyShort>
-          {!visBegrunnelse ? (
+  return (
+    <AuthGate auth={auth}>
+      {tilgang === "loading" ? null : tilgang === "denied" ? (
+        <SensitivPanel>
+          <VStack gap="space-12" align="start">
+            <BodyShort>
+              Du har ikke tilgang til å se sensitiv informasjon for denne saken.
+            </BodyShort>
             <Button
               variant="primary"
               size="small"
-              onClick={() => setVisBegrunnelse(true)}
+              onClick={() => {
+                alert("Forespørsel om tilgang er ikke implementert ennå.");
+              }}
             >
-              Vis sensitiv informasjon
+              Be om tilgang
             </Button>
-          ) : (
-            <>
-              <BodyShort weight="semibold">Begrunn tilgang</BodyShort>
-              <BodyShort size="small">
-                For å se innholdet må du oppgi en begrunnelse. Tilgangen vil bli logget.
-              </BodyShort>
-              {error && (
-                <Alert variant="error" size="small" closeButton onClose={() => setError(null)}>
-                  {error}
-                </Alert>
-              )}
-              <Textarea
-                label="Begrunnelse"
-                description="Oppgi en kort begrunnelse (minst 10 tegn)"
-                value={begrunnelse}
-                onChange={(e) => setBegrunnelse(e.target.value)}
-                minRows={3}
-              />
-              <HStack gap="space-8">
-                <Button
-                  size="small"
-                  onClick={async () => {
-                    if (!sakId) return;
-                    setBegrunnelseLoading(true);
-                    try {
-                      await leseloggApi.registrer(sakId, begrunnelse);
-                      cacheLeselogg(sakId);
-                      setVisningGodkjent(true);
-                      setBegrunnelse("");
-                    } catch (err) {
-                      setError(err instanceof Error ? err.message : "Kunne ikke registrere leselogg");
-                    } finally {
-                      setBegrunnelseLoading(false);
-                    }
-                  }}
-                  loading={begrunnelseLoading}
-                  disabled={begrunnelse.trim().length < 10}
-                >
-                  Bekreft
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="small"
-                  onClick={() => {
-                    setVisBegrunnelse(false);
-                    setBegrunnelse("");
-                    setError(null);
-                  }}
-                >
-                  Avbryt
-                </Button>
-              </HStack>
-            </>
-          )}
-        </VStack>
-      </div>
-    );
-  }
-
-  return (
-    <div className="p-4 pl-6" style={{ borderLeft: "4px solid var(--ax-bg-danger-soft)" }}>
-      {tilgangerAccordion}
-
-      <VStack gap="space-12">
-        {error && (
-          <Alert variant="error" size="small" closeButton onClose={() => setError(null)}>
-            {error}
-          </Alert>
-        )}
-
-        <BodyShort size="small" weight="semibold">Beskrivelse</BodyShort>
-        <div
-          className={`p-4 rounded transition-all ${beskrivelseEditing ? '' : 'cursor-pointer hover:brightness-95'}`}
-          style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}
-          onClick={() => { if (!beskrivelseEditing) setBeskrivelseEditing(true); }}
-        >
-          <SensureringEditor
-            key={beskrivelseEditorKey}
-            sakId={sakId!}
-            singleSaveButton
-            lagreKnappTekst="Lagre"
-            showButtons={beskrivelseEditing}
-            onLagreOgLukk={handleLagreBeskrivelse}
-            onAvbryt={() => {
-              setBeskrivelseEditing(false);
-              setBeskrivelseEditorKey((k) => k + 1);
-            }}
-          />
-        </div>
-
-        <BodyShort size="small" weight="semibold">Kommentar</BodyShort>
-        <div
-          className="p-4 rounded"
-          style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}
-        >
-          <div
-            className={`transition-all ${kommentarEditing ? '' : 'cursor-pointer hover:brightness-95'}`}
-            onClick={() => { if (!kommentarEditing) setKommentarEditing(true); }}
-          >
-            <SensureringEditor
-              key={kommentarEditorKey}
-              sakId={sakId!}
-              kommentarModus
-              singleSaveButton
-              lagreKnappTekst="Lagre"
-              showButtons={kommentarEditing}
-              onAvbryt={() => {
-                setKommentarEditing(false);
-                setKommentarEditorKey((k) => k + 1);
-              }}
-              onLagreOgLukk={async (sensurertTekst) => {
-                if (!sensurertTekst.trim()) {
-                  setKommentarEditing(false);
-                  setKommentarEditorKey((k) => k + 1);
-                  return;
-                }
-                if (sak?.jiraIssueKey) {
-                  try {
-                    const nyKommentar = await kommentarApi.opprett(sakId, { tekst: sensurertTekst });
-                    setKommentarer((prev) => [nyKommentar, ...prev]);
-                    const jiraTekst = tekstTilJira(sensurertTekst);
-                    createCommentInJira(sak.jiraIssueKey!, jiraTekst);
-                  } catch (err) {
-                    setError(err instanceof Error ? err.message : "Kunne ikke opprette kommentar");
-                    return;
-                  }
-                }
-                setKommentarEditing(false);
-                setKommentarEditorKey((k) => k + 1);
-              }}
-            />
-          </div>
-          {sak && (
-            <Accordion className="mt-4 accordion-borderless">
-              <Accordion.Item>
-                <Accordion.Header>
-                  <HStack gap="space-8" align="center">
-                    <BodyShort size="small" weight="semibold">Kommentarer</BodyShort>
-                    <Tag variant="neutral" size="xsmall">{kommentarer.length}</Tag>
-                  </HStack>
-                </Accordion.Header>
-                <Accordion.Content>
-                  <VStack gap="space-8">
-                    {kommentarerLoading ? (
-                      <Detail className="text-gray-500">Laster kommentarer...</Detail>
-                    ) : kommentarer.length === 0 ? (
-                      <Detail className="text-gray-500">Ingen kommentarer registrert ennå.</Detail>
-                    ) : (
-                      <Table size="small">
-                        <Table.Header>
-                          <Table.Row>
-                            <Table.HeaderCell>Kommentar</Table.HeaderCell>
-                            <Table.HeaderCell>Skrevet av</Table.HeaderCell>
-                          </Table.Row>
-                        </Table.Header>
-                        <Table.Body>
-                          {kommentarer.map((kommentar) => (
-                            <Table.Row key={kommentar.id}>
-                              <Table.DataCell>
-                                <BodyShort size="small" className="whitespace-pre-wrap">
-                                  {kommentar.originalTekst}
-                                </BodyShort>
-                              </Table.DataCell>
-                              <Table.DataCell>
-                                <BodyShort size="small">
-                                  {formatDato(kommentar.opprettetTidspunkt)} kl. {formatTid(kommentar.opprettetTidspunkt)} — {kommentar.opprettetAv}
-                                </BodyShort>
-                              </Table.DataCell>
-                            </Table.Row>
-                          ))}
-                        </Table.Body>
-                      </Table>
-                    )}
-                  </VStack>
-                </Accordion.Content>
-              </Accordion.Item>
-            </Accordion>
-          )}
-        </div>
-
-        <BodyShort size="small" weight="semibold">Filer</BodyShort>
-        <div className="p-4 rounded" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
-          <VStack gap="space-8">
-            <FileUploadZone
-              sakId={sakId!}
-              onFileUploaded={(fil) => setFiler((prev) => [fil, ...prev])}
-            />
-            <FileList
-              filer={filer}
-              sakId={sakId!}
-              onFileDeleted={(filId) => setFiler((prev) => prev.filter((f) => f.id !== filId))}
-            />
           </VStack>
-        </div>
-      </VStack>
-    </div>
+        </SensitivPanel>
+      ) : !visningGodkjent ? (
+        <LeseloggGate
+          sakId={sakId}
+          tilgangerHeader={
+            sak && (
+              <TilgangerAccordion sakId={sakId} sak={sak} setSak={setSak} onError={setError} />
+            )
+          }
+          onGodkjent={() => setVisningGodkjent(true)}
+        />
+      ) : (
+        <SensitivPanel background={false}>
+          {sak && (
+            <TilgangerAccordion sakId={sakId} sak={sak} setSak={setSak} onError={setError} />
+          )}
+
+          <VStack gap="space-12">
+            {error && (
+              <Alert variant="error" size="small" closeButton onClose={() => setError(null)}>
+                {error}
+              </Alert>
+            )}
+
+            <BeskrivelseSeksjon
+              sakId={sakId}
+              sak={sak}
+              getAccessToken={auth.getAccessToken}
+              onError={setError}
+            />
+
+            <KommentarSeksjon
+              sakId={sakId}
+              sak={sak}
+              kommentarer={kommentarer}
+              setKommentarer={setKommentarer}
+              kommentarerLoading={kommentarerLoading}
+              onError={setError}
+            />
+
+            <FilerSeksjon sakId={sakId} filer={filer} setFiler={setFiler} />
+          </VStack>
+        </SensitivPanel>
+      )}
+    </AuthGate>
   );
 };
