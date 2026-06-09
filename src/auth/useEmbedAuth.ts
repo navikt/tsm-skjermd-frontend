@@ -92,9 +92,9 @@ export function useEmbedAuth() {
     }, 2000);
   }, []);
 
-  const onLoginClick = startPolling;
+  const openLogin = useCallback((event?: { preventDefault?: () => void }) => {
+    event?.preventDefault?.();
 
-  const openLogin = useCallback(() => {
     const url = `/embed/auth/start?sid=${sidRef.current}`;
     const absoluteUrl = new URL(url, window.location.origin).href;
 
@@ -129,5 +129,5 @@ export function useEmbedAuth() {
     throw new Error("Ikke autentisert");
   }, []);
 
-  return { ...state, loginUrl, onLoginClick, openLogin, getAccessToken };
+  return { ...state, loginUrl, openLogin, getAccessToken };
 }

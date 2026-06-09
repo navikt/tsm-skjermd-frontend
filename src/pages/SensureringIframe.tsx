@@ -39,7 +39,7 @@ export const SensureringIframe = () => {
         <VStack gap="space-12" align="start">
           <BodyShort>Venter på innlogging... Fullfør innloggingen i fanen som åpnet seg.</BodyShort>
           {auth.loginUrl && (
-            <a href={auth.loginUrl} target="_blank" rel="opener noopener" onClick={auth.onLoginClick} style={{ color: "var(--ax-text-action)", textDecoration: "underline", fontSize: "14px" }}>
+            <a href={auth.loginUrl} target="_blank" rel="opener noopener" onClick={auth.openLogin} style={{ color: "var(--ax-text-action)", textDecoration: "underline", fontSize: "14px" }}>
               Åpne innlogging på nytt
             </a>
           )}
@@ -54,7 +54,7 @@ export const SensureringIframe = () => {
         <VStack gap="space-12" align="start">
           <BodyShort>Du må logge inn for å bruke sensureringseditoren.</BodyShort>
           {auth.loginUrl && (
-            <a href={auth.loginUrl} target="_blank" rel="opener noopener" onClick={auth.onLoginClick} className="navds-button navds-button--primary navds-button--small">
+            <a href={auth.loginUrl} target="_blank" rel="opener noopener" onClick={auth.openLogin} className="navds-button navds-button--primary navds-button--small">
               Logg inn
             </a>
           )}
@@ -73,7 +73,7 @@ export const SensureringIframe = () => {
         <VStack gap="space-12" align="start">
           <InlineMessage status="error" size="small" role="alert">{auth.error}</InlineMessage>
           {auth.loginUrl && (
-            <a href={auth.loginUrl} target="_blank" rel="opener noopener" onClick={auth.onLoginClick} className="navds-button navds-button--primary navds-button--small">
+            <a href={auth.loginUrl} target="_blank" rel="opener noopener" onClick={auth.openLogin} className="navds-button navds-button--primary navds-button--small">
               Logg inn på nytt
             </a>
           )}
