@@ -41,9 +41,10 @@ app.use(helmet({
             imgSrc: ["'self'", "data:"],
             connectSrc: ["'self'"],
             frameSrc: ["'none'"],
-            frameAncestors: ["'self'", "https://*.atlassian.net"],
+            frameAncestors: ["'self'", "https://*.atlassian.net", "https://*.atlassian-dev.net"],
         },
     },
+    frameguard: false,
     crossOriginEmbedderPolicy: false,
     crossOriginOpenerPolicy: false,
 }));
