@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { InlineMessage, BodyShort, Button, VStack } from "@navikt/ds-react";
+import { InlineMessage, BodyShort, VStack } from "@navikt/ds-react";
 import type { useEmbedAuth } from "../auth/useEmbedAuth";
 import { SensitivPanel } from "./SensitivPanel";
 
@@ -18,13 +18,11 @@ export const AuthGate = ({ auth, children }: AuthGateProps) => {
       <SensitivPanel>
         <VStack gap="space-12" align="start">
           <BodyShort>Venter på innlogging... Fullfør innloggingen i fanen som åpnet seg.</BodyShort>
-          <button
-            type="button"
-            onClick={auth.openLogin}
-            style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: "var(--ax-text-action)", textDecoration: "underline", fontSize: "14px" }}
-          >
-            Åpne innlogging på nytt
-          </button>
+          {auth.loginUrl && (
+            <a href={auth.loginUrl} target="_blank" rel="opener noopener" onClick={auth.onLoginClick} style={{ color: "var(--ax-text-action)", textDecoration: "underline", fontSize: "14px" }}>
+              Åpne innlogging på nytt
+            </a>
+          )}
         </VStack>
       </SensitivPanel>
     );
@@ -37,9 +35,11 @@ export const AuthGate = ({ auth, children }: AuthGateProps) => {
           <BodyShort>
             Du må logge inn for å se sensitiv informasjon for denne saken.
           </BodyShort>
-          <Button variant="primary" size="small" onClick={auth.openLogin}>
-            Logg inn
-          </Button>
+          {auth.loginUrl && (
+            <a href={auth.loginUrl} target="_blank" rel="opener noopener" onClick={auth.onLoginClick} className="navds-button navds-button--primary navds-button--small">
+              Logg inn
+            </a>
+          )}
         </VStack>
       </SensitivPanel>
     );
@@ -50,9 +50,11 @@ export const AuthGate = ({ auth, children }: AuthGateProps) => {
       <SensitivPanel>
         <VStack gap="space-12" align="start">
           <InlineMessage status="error" size="small" role="alert">{auth.error}</InlineMessage>
-          <Button variant="primary" size="small" onClick={auth.openLogin}>
-            Logg inn på nytt
-          </Button>
+          {auth.loginUrl && (
+            <a href={auth.loginUrl} target="_blank" rel="opener noopener" onClick={auth.onLoginClick} className="navds-button navds-button--primary navds-button--small">
+              Logg inn på nytt
+            </a>
+          )}
         </VStack>
       </SensitivPanel>
     );
