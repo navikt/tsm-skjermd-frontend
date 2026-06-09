@@ -4,7 +4,7 @@ import {
   Box,
   VStack,
   HStack,
-  Alert,
+  InlineMessage,
   BodyShort,
   Loader,
 } from "@navikt/ds-react";
@@ -546,9 +546,9 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
         )}
 
         {lagreStatus && lagreStatus.type === "error" && (
-          <Alert variant="error" size="small">
+          <InlineMessage status="error" size="small" role="alert">
             {lagreStatus.message}
-          </Alert>
+          </InlineMessage>
         )}
       </VStack>
     </Box>

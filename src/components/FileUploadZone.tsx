@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import { Alert, BodyShort, Loader } from "@navikt/ds-react";
+import { LocalAlert, BodyShort, Loader } from "@navikt/ds-react";
 import { UploadIcon } from "@navikt/aksel-icons";
 import { filApi } from "../api/sakApi";
 import type { FilInfo } from "../api/types";
@@ -132,9 +132,12 @@ export const FileUploadZone = ({ sakId, onFileUploaded }: FileUploadZoneProps) =
         )}
       </div>
       {error && (
-        <Alert variant="error" size="small" closeButton onClose={() => setError(null)}>
-          {error}
-        </Alert>
+        <LocalAlert status="error" size="small">
+          <LocalAlert.Header>
+            <LocalAlert.Title as="div">{error}</LocalAlert.Title>
+            <LocalAlert.CloseButton onClick={() => setError(null)} />
+          </LocalAlert.Header>
+        </LocalAlert>
       )}
     </div>
   );

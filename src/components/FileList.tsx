@@ -125,7 +125,8 @@ export const FileList = ({ filer, sakId, onFileDeleted, readOnly }: FileListProp
         </Modal.Body>
         <Modal.Footer>
           <Button
-            variant="danger"
+            variant="primary"
+            data-color="danger"
             onClick={() => slettModal && handleSlett(slettModal)}
           >
             Slett

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Button,
-  Alert,
+  LocalAlert,
   Loader,
   Heading,
   HStack,
@@ -123,9 +123,12 @@ export const SakerList = () => {
       </HStack>
 
       {error && (
-        <Alert variant="error" closeButton onClose={() => setError(null)}>
-          {error}
-        </Alert>
+        <LocalAlert status="error">
+          <LocalAlert.Header>
+            <LocalAlert.Title as="div">{error}</LocalAlert.Title>
+            <LocalAlert.CloseButton onClick={() => setError(null)} />
+          </LocalAlert.Header>
+        </LocalAlert>
       )}
 
       <Box

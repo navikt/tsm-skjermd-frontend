@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   Button,
-  Alert,
+  LocalAlert,
   Loader,
   Heading,
   Textarea,
@@ -15,7 +15,7 @@ import {
   Detail,
   CopyButton,
   Modal,
-  ConfirmationPanel,
+  Checkbox,
   Table,
 } from "@navikt/ds-react";
 import {
@@ -245,7 +245,8 @@ export const SakDetail = () => {
                     Rediger
                   </Button>
                   <Button
-                    variant="danger"
+                    variant="primary"
+                    data-color="danger"
                     size="small"
                     icon={<TrashIcon aria-hidden />}
                     onClick={() => setShowDeleteModal(true)}
@@ -259,9 +260,12 @@ export const SakDetail = () => {
         </Box>
 
         {error && (
-          <Alert variant="error" closeButton onClose={() => setError(null)}>
-            {error}
-          </Alert>
+          <LocalAlert status="error">
+            <LocalAlert.Header>
+              <LocalAlert.Title as="div">{error}</LocalAlert.Title>
+              <LocalAlert.CloseButton onClick={() => setError(null)} />
+            </LocalAlert.Header>
+          </LocalAlert>
         )}
 
         {/* Metadata */}
@@ -531,16 +535,18 @@ export const SakDetail = () => {
               Er du sikker på at du vil slette saken{" "}
               <strong>{sak.jiraIssueKey ?? sak.id}</strong>? Dette kan ikke angres.
             </BodyShort>
-            <ConfirmationPanel
+            <Checkbox
               checked={deleteConfirmed}
               onChange={() => setDeleteConfirmed(!deleteConfirmed)}
-              label="Ja, jeg forstår at saken blir permanent slettet"
-            />
+            >
+              Ja, jeg forstår at saken blir permanent slettet
+            </Checkbox>
           </VStack>
         </Modal.Body>
         <Modal.Footer>
           <Button
-            variant="danger"
+            variant="primary"
+            data-color="danger"
             onClick={handleSlett}
             disabled={!deleteConfirmed}
           >
@@ -577,7 +583,6 @@ export const SakDetail = () => {
               description="Skriv inn NAVident (f.eks. Z123456)"
               value={newNavIdent}
               onChange={(e) => setNewNavIdent(e.target.value)}
-              placeholder="Z123456"
             />
           </VStack>
         </Modal.Body>

@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { Alert, Button, VStack, BodyShort } from "@navikt/ds-react";
+import { LocalAlert, Button, VStack, BodyShort } from "@navikt/ds-react";
 import { kommentarApi, filApi, sakApi, setEmbedTokenProvider } from "../api/sakApi";
 import type { FilInfo, Kommentar, Sak } from "../api/types";
 import { useEmbedAuth } from "../auth/useEmbedAuth";
@@ -111,9 +111,12 @@ export const SakIframe = () => {
 
           <VStack gap="space-12">
             {error && (
-              <Alert variant="error" size="small" closeButton onClose={() => setError(null)}>
-                {error}
-              </Alert>
+              <LocalAlert status="error" size="small">
+                <LocalAlert.Header>
+                  <LocalAlert.Title as="div">{error}</LocalAlert.Title>
+                  <LocalAlert.CloseButton onClick={() => setError(null)} />
+                </LocalAlert.Header>
+              </LocalAlert>
             )}
 
             <BeskrivelseSeksjon

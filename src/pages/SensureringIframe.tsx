@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { Alert, BodyShort, Button, Heading, Link, VStack } from "@navikt/ds-react";
+import { InlineMessage, BodyShort, Button, Heading, Link, VStack } from "@navikt/ds-react";
 import { XMarkIcon } from "@navikt/aksel-icons";
 import { SensureringEditor } from "../components/SensureringEditor";
 import { FileUploadZone } from "../components/FileUploadZone";
@@ -55,13 +55,9 @@ export const SensureringIframe = () => {
       <div className="p-4" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
         <VStack gap="space-12" align="start">
           <BodyShort>Du må logge inn for å bruke sensureringseditoren.</BodyShort>
-          <button
-            type="button"
-            onClick={auth.openLogin}
-            className="navds-button navds-button--primary navds-button--small"
-          >
+          <Button variant="primary" size="small" onClick={auth.openLogin}>
             Logg inn
-          </button>
+          </Button>
         </VStack>
       </div>
     );
@@ -75,14 +71,10 @@ export const SensureringIframe = () => {
     return (
       <div className="p-4" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
         <VStack gap="space-12" align="start">
-          <Alert variant="error" size="small">{auth.error}</Alert>
-          <button
-            type="button"
-            onClick={auth.openLogin}
-            className="navds-button navds-button--primary navds-button--small"
-          >
+          <InlineMessage status="error" size="small" role="alert">{auth.error}</InlineMessage>
+          <Button variant="primary" size="small" onClick={auth.openLogin}>
             Logg inn på nytt
-          </button>
+          </Button>
         </VStack>
       </div>
     );
@@ -91,7 +83,7 @@ export const SensureringIframe = () => {
   if (tilgang === "denied") {
     return (
       <div className="p-4" style={{ backgroundColor: "var(--ax-bg-danger-soft)" }}>
-        <Alert variant="warning">Ingen tilgang</Alert>
+        <InlineMessage status="warning" role="alert">Ingen tilgang</InlineMessage>
       </div>
     );
   }

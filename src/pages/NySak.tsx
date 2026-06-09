@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   Button,
-  Alert,
+  LocalAlert,
   Heading,
   TextField,
   Textarea,
@@ -95,9 +95,12 @@ export const NySak = () => {
       </Box>
 
       {error && (
-        <Alert variant="error" closeButton onClose={() => setError(null)}>
-          {error}
-        </Alert>
+        <LocalAlert status="error">
+          <LocalAlert.Header>
+            <LocalAlert.Title as="div">{error}</LocalAlert.Title>
+            <LocalAlert.CloseButton onClick={() => setError(null)} />
+          </LocalAlert.Header>
+        </LocalAlert>
       )}
 
       {/* Info panel */}

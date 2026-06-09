@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Alert, Button, VStack, HStack, BodyShort, Textarea } from "@navikt/ds-react";
+import { LocalAlert, Button, VStack, HStack, BodyShort, Textarea } from "@navikt/ds-react";
 import { leseloggApi } from "../api/sakApi";
 import { cacheLeselogg } from "../utils/leselogg";
 import { SensitivPanel } from "./SensitivPanel";
@@ -38,9 +38,12 @@ export const LeseloggGate = ({ sakId, tilgangerHeader, onGodkjent }: LeseloggGat
               For å se innholdet må du oppgi en begrunnelse. Tilgangen vil bli logget.
             </BodyShort>
             {error && (
-              <Alert variant="error" size="small" closeButton onClose={() => setError(null)}>
-                {error}
-              </Alert>
+              <LocalAlert status="error" size="small">
+                <LocalAlert.Header>
+                  <LocalAlert.Title as="div">{error}</LocalAlert.Title>
+                  <LocalAlert.CloseButton onClick={() => setError(null)} />
+                </LocalAlert.Header>
+              </LocalAlert>
             )}
             <Textarea
               label="Begrunnelse"

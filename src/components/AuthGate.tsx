@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Alert, BodyShort, VStack } from "@navikt/ds-react";
+import { InlineMessage, BodyShort, Button, VStack } from "@navikt/ds-react";
 import type { useEmbedAuth } from "../auth/useEmbedAuth";
 import { SensitivPanel } from "./SensitivPanel";
 
@@ -37,13 +37,9 @@ export const AuthGate = ({ auth, children }: AuthGateProps) => {
           <BodyShort>
             Du må logge inn for å se sensitiv informasjon for denne saken.
           </BodyShort>
-          <button
-            type="button"
-            onClick={auth.openLogin}
-            className="navds-button navds-button--primary navds-button--small"
-          >
+          <Button variant="primary" size="small" onClick={auth.openLogin}>
             Logg inn
-          </button>
+          </Button>
         </VStack>
       </SensitivPanel>
     );
@@ -53,14 +49,10 @@ export const AuthGate = ({ auth, children }: AuthGateProps) => {
     return (
       <SensitivPanel>
         <VStack gap="space-12" align="start">
-          <Alert variant="error" size="small">{auth.error}</Alert>
-          <button
-            type="button"
-            onClick={auth.openLogin}
-            className="navds-button navds-button--primary navds-button--small"
-          >
+          <InlineMessage status="error" size="small" role="alert">{auth.error}</InlineMessage>
+          <Button variant="primary" size="small" onClick={auth.openLogin}>
             Logg inn på nytt
-          </button>
+          </Button>
         </VStack>
       </SensitivPanel>
     );

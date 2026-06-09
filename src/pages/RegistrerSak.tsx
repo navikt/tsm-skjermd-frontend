@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
   Button,
-  Alert,
+  LocalAlert,
+  InlineMessage,
   Loader,
   Heading,
   TextField,
@@ -24,7 +25,6 @@ import {
   ExternalLinkIcon,
   PersonGroupIcon,
   PlusIcon,
-  ShieldLockIcon,
 } from "@navikt/aksel-icons";
 import { sakApi } from "../api/sakApi";
 import type { Sak } from "../api/types";
@@ -145,19 +145,19 @@ export const RegistrerSak = () => {
     <>
       <VStack gap="space-24">
         {error && (
-          <Alert variant="error" closeButton onClose={() => setError(null)}>
-            {error}
-          </Alert>
+          <LocalAlert status="error">
+            <LocalAlert.Header>
+              <LocalAlert.Title as="div">{error}</LocalAlert.Title>
+              <LocalAlert.CloseButton onClick={() => setError(null)} />
+            </LocalAlert.Header>
+          </LocalAlert>
         )}
 
         {/* Lesemodus-varsling */}
         {sak.jiraIssueKey && (
-          <Alert variant="info">
-            <HStack gap="space-8" align="center">
-              <ShieldLockIcon aria-hidden />
-              Saken er knyttet til Jira-sak {sak.jiraIssueKey} og kan ikke redigeres. Tilganger kan fortsatt endres.
-            </HStack>
-          </Alert>
+          <InlineMessage status="info">
+            Saken er knyttet til Jira-sak {sak.jiraIssueKey} og kan ikke redigeres. Tilganger kan fortsatt endres.
+          </InlineMessage>
         )}
 
         {/* Sensitiv data med sensurering */}
@@ -335,7 +335,6 @@ export const RegistrerSak = () => {
               description="Skriv inn NAVident (f.eks. Z123456)"
               value={newNavIdent}
               onChange={(e) => setNewNavIdent(e.target.value)}
-              placeholder="Z123456"
             />
           </VStack>
         </Modal.Body>

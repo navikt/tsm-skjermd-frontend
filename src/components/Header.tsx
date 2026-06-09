@@ -1,6 +1,6 @@
 import {
     InternalHeader,
-    Dropdown,
+    ActionMenu,
     Spacer,
 } from "@navikt/ds-react";
 import {
@@ -26,41 +26,39 @@ export const Header = ({ title = "Skjermd", userName }: Props) => {
             <Spacer />
 
             {/* Systemmeny */}
-            <Dropdown>
-                <InternalHeader.Button as={Dropdown.Toggle}>
-                    <MenuGridIcon style={{ fontSize: "1.5rem" }} title="Systemer og oppslagsverk" />
-                </InternalHeader.Button>
-                <Dropdown.Menu>
-                    <Dropdown.Menu.GroupedList>
-                        <Dropdown.Menu.GroupedList.Heading>
-                            Systemer
-                        </Dropdown.Menu.GroupedList.Heading>
-                        <Dropdown.Menu.GroupedList.Item
+            <ActionMenu>
+                <ActionMenu.Trigger>
+                    <InternalHeader.Button>
+                        <MenuGridIcon style={{ fontSize: "1.5rem" }} title="Systemer og oppslagsverk" />
+                    </InternalHeader.Button>
+                </ActionMenu.Trigger>
+                <ActionMenu.Content>
+                    <ActionMenu.Group label="Systemer">
+                        <ActionMenu.Item
                             as="a"
                             href="https://jira.adeo.no"
                             target="_blank"
+                            icon={<BriefcaseIcon aria-hidden />}
                         >
-                            <BriefcaseIcon aria-hidden />
                             Jira <ExternalLinkIcon aria-hidden />
-                        </Dropdown.Menu.GroupedList.Item>
-                    </Dropdown.Menu.GroupedList>
-                </Dropdown.Menu>
-            </Dropdown>
+                        </ActionMenu.Item>
+                    </ActionMenu.Group>
+                </ActionMenu.Content>
+            </ActionMenu>
 
             {/* Bruker */}
-            <Dropdown>
-                <InternalHeader.Button as={Dropdown.Toggle}>
-                    {displayName}
-                </InternalHeader.Button>
-                <Dropdown.Menu>
-                    <Dropdown.Menu.List>
-                        <Dropdown.Menu.List.Item as="a" href="/oauth2/logout">
-                            <LeaveIcon aria-hidden />
-                            Logg ut
-                        </Dropdown.Menu.List.Item>
-                    </Dropdown.Menu.List>
-                </Dropdown.Menu>
-            </Dropdown>
+            <ActionMenu>
+                <ActionMenu.Trigger>
+                    <InternalHeader.Button>
+                        {displayName}
+                    </InternalHeader.Button>
+                </ActionMenu.Trigger>
+                <ActionMenu.Content>
+                    <ActionMenu.Item as="a" href="/oauth2/logout" icon={<LeaveIcon aria-hidden />}>
+                        Logg ut
+                    </ActionMenu.Item>
+                </ActionMenu.Content>
+            </ActionMenu>
         </InternalHeader>
     );
 };
