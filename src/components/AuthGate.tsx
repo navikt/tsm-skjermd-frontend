@@ -40,6 +40,9 @@ export const AuthGate = ({ auth, children }: AuthGateProps) => {
               Logg inn
             </a>
           )}
+          <BodyShort size="small" textColor="subtle">
+            Jira spør om å åpne en ekstern lenke – velg åpne for å logge inn.
+          </BodyShort>
         </VStack>
       </SensitivPanel>
     );

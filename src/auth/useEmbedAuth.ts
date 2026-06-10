@@ -98,17 +98,17 @@ export function useEmbedAuth() {
     const url = `/embed/auth/start?sid=${sidRef.current}`;
     const absoluteUrl = new URL(url, window.location.origin).href;
 
-    const isEmbedded = window.parent !== window;
-    if (isEmbedded) {
-      // Forge iframe sandbox blocks page-initiated window.open, so ask the
-      // Forge host to open the login tab via router.open.
-      log.info("Requesting parent to open login");
+    // Try a native popup first. When the iframe sandbox allows popups
+    // (allow-popups allow-popups-to-escape-sandbox) this opens the login tab
+    // directly without the Forge external-link confirmation dialog.
+    const popup = window.open(absoluteUrl, "_blank", "noopener,noreferrer");
+    if (!popup) {
+      // Popup blocked — ask the Forge host to open it via router.open.
+      log.info("Popup blocked, requesting parent to open login");
       window.parent.postMessage(
         { type: "skjermd:open-login", url: absoluteUrl },
         "*",
       );
-    } else {
-      window.open(absoluteUrl, "_blank", "noopener,noreferrer");
     }
 
     startPolling();
