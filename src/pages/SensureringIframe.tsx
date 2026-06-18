@@ -9,9 +9,46 @@ import { filApi, setEmbedTokenProvider } from "../api/sakApi";
 import type { FilInfo } from "../api/types";
 import { useEmbedAuth } from "../auth/useEmbedAuth";
 
+// Domener som har lov til å embedde editoren og motta ferdig-resultatet.
+// Må samsvare med frameAncestors i server.js (CSP).
+const PUZZEL_WIDGETS_ORIGINS = [
+  "https://puzzel-widgets.intern.dev.nav.no",
+  "https://puzzel-widgets.nav.no",
+];
+
+// Origin til forelderen som embedder oss (tom hvis vi ikke er i en iframe vi kjenner).
+const parentPuzzelOrigin = (): string | null => {
+  try {
+    const ancestor = window.location.ancestorOrigins?.[0];
+    if (ancestor && PUZZEL_WIDGETS_ORIGINS.includes(ancestor)) return ancestor;
+  } catch {
+    // ancestorOrigins finnes ikke i alle nettlesere – fall tilbake til referrer.
+  }
+  try {
+    const ref = document.referrer ? new URL(document.referrer).origin : "";
+    if (PUZZEL_WIDGETS_ORIGINS.includes(ref)) return ref;
+  } catch {
+    // ignore
+  }
+  return null;
+};
+
+// Sender resultatet tilbake til puzzel-widgets-forelderen via postMessage.
+const sendFerdigTilParent = (sakId: string, sensurertTekst: string) => {
+  const origin = parentPuzzelOrigin();
+  if (!origin) return;
+  window.parent.postMessage(
+    { type: "SKJERMD_FERDIG", sakId, sensurertTekst },
+    origin,
+  );
+};
+
 export const SensureringIframe = () => {
   const { sakId } = useParams<{ sakId: string }>();
   const auth = useEmbedAuth();
+  // Embeddet av puzzel-widgets? Da bruker vi en eksplisitt "Fullfør"-knapp som
+  // sender resultatet tilbake. Ellers (Jira/Forge) beholder vi autoSave-oppførselen.
+  const embeddetAvPuzzel = parentPuzzelOrigin() !== null;
   const [tilgang, setTilgang] = useState<"loading" | "ok" | "denied">("loading");
   const [visInfo, setVisInfo] = useState(false);
   const [filer, setFiler] = useState<FilInfo[]>([]);
@@ -167,11 +204,21 @@ export const SensureringIframe = () => {
           Veiledning
         </Link>
       </div>
-      <SensureringEditor
-        sakId={sakId}
-        autoSave
-        onAuthError={() => setTilgang("denied")}
-      />
+      {embeddetAvPuzzel ? (
+        <SensureringEditor
+          sakId={sakId}
+          singleSaveButton
+          lagreKnappTekst="Fullfør skjerming"
+          onLagreOgLukk={(sensurertTekst) => sendFerdigTilParent(sakId, sensurertTekst)}
+          onAuthError={() => setTilgang("denied")}
+        />
+      ) : (
+        <SensureringEditor
+          sakId={sakId}
+          autoSave
+          onAuthError={() => setTilgang("denied")}
+        />
+      )}
       <div className="mt-4">
         <BodyShort size="small" weight="semibold" className="mb-2">Filer</BodyShort>
         <FileUploadZone
