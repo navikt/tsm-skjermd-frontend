@@ -41,7 +41,14 @@ app.use(helmet({
             imgSrc: ["'self'", "data:"],
             connectSrc: ["'self'"],
             frameSrc: ["'none'"],
-            frameAncestors: ["'self'", "https://*.atlassian.net", "https://*.atlassian-dev.net"],
+            frameAncestors: [
+                "'self'",
+                "https://*.atlassian.net",
+                "https://*.atlassian-dev.net",
+                // puzzel-widgets embedder sensureringseditoren for chat-flyten
+                "https://puzzel-widgets.intern.dev.nav.no",
+                "https://puzzel-widgets.nav.no",
+            ],
         },
     },
     frameguard: false,
