@@ -45,6 +45,11 @@ app.use(helmet({
                 "'self'",
                 "https://*.atlassian.net",
                 "https://*.atlassian-dev.net",
+                // Forge Custom UI rendres fra et CDN med dynamisk subdomene
+                // (<random>.cdn.prod.atlassian-dev.net), som er en mellomliggende
+                // ancestor mellom Jira og denne iframen. Wildcard kreves fordi
+                // subdomenet roterer per app/versjon.
+                "https://*.cdn.prod.atlassian-dev.net",
                 // puzzel-widgets embedder sensureringseditoren for chat-flyten
                 "https://puzzel-widgets.intern.dev.nav.no",
                 "https://puzzel-widgets.nav.no",
