@@ -1,42 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createLogger } from "../logger";
+import { openLoginPopup } from "../api/sakApi";
 
 const log = createLogger("EmbedAuth");
-
-const TOKEN_STORAGE_KEY = "embed-access-token";
-const EXPIRY_SKEW_MS = 60 * 1000;
-
-function decodeTokenExp(token: string): number | null {
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return typeof payload.exp === "number" ? payload.exp * 1000 : null;
-  } catch {
-    return null;
-  }
-}
-
-function loadStoredToken(): string | null {
-  try {
-    const token = sessionStorage.getItem(TOKEN_STORAGE_KEY);
-    if (!token) return null;
-    const exp = decodeTokenExp(token);
-    if (!exp || exp - EXPIRY_SKEW_MS < Date.now()) {
-      sessionStorage.removeItem(TOKEN_STORAGE_KEY);
-      return null;
-    }
-    return token;
-  } catch {
-    return null;
-  }
-}
-
-function storeToken(token: string): void {
-  try {
-    sessionStorage.setItem(TOKEN_STORAGE_KEY, token);
-  } catch {
-    // Storage unavailable, token kept in memory only
-  }
-}
 
 type AuthState =
   | { status: "loading" }
@@ -47,90 +13,29 @@ type AuthState =
 
 export function useEmbedAuth() {
   const [state, setState] = useState<AuthState>({ status: "loading" });
-  const [loginUrl, setLoginUrl] = useState<string | null>(null);
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const sidRef = useRef<string>(crypto.randomUUID());
-  const tokenRef = useRef<string | null>(null);
 
   useEffect(() => {
-    setLoginUrl(`/embed/auth/start?sid=${sidRef.current}`);
-
-    const stored = loadStoredToken();
-    if (stored) {
-      tokenRef.current = stored;
-      log.info("Reusing stored access token");
-      setState({ status: "authenticated" });
-    } else {
-      setState({ status: "unauthenticated" });
-    }
-  }, []);
-
-  useEffect(() => {
+    let cancelled = false;
+    fetch("/embed/api/auth-config", { credentials: "include" })
+      .then((res) => {
+        if (cancelled) return;
+        setState({ status: res.ok ? "authenticated" : "unauthenticated" });
+      })
+      .catch(() => {
+        if (!cancelled) setState({ status: "unauthenticated" });
+      });
     return () => {
-      if (pollingRef.current) clearInterval(pollingRef.current);
+      cancelled = true;
     };
-  }, []);
-
-  const startPolling = useCallback(() => {
-    setState({ status: "polling" });
-
-    pollingRef.current = setInterval(async () => {
-      try {
-        const res = await fetch(`/embed/api/auth/poll?sid=${sidRef.current}`);
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.status === "authenticated" && data.accessToken) {
-          if (pollingRef.current) clearInterval(pollingRef.current);
-          tokenRef.current = data.accessToken;
-          storeToken(data.accessToken);
-          log.info("Login completed via server-side auth");
-          setState({ status: "authenticated" });
-        }
-      } catch {
-        // Network error, keep polling
-      }
-    }, 2000);
   }, []);
 
   const openLogin = useCallback((event?: { preventDefault?: () => void }) => {
     event?.preventDefault?.();
-
-    const url = `/embed/auth/start?sid=${sidRef.current}`;
-    const absoluteUrl = new URL(url, window.location.origin).href;
-
-    // Try a native popup first. When the iframe sandbox allows popups
-    // (allow-popups allow-popups-to-escape-sandbox) this opens the login tab
-    // directly without the Forge external-link confirmation dialog.
-    const popup = window.open(absoluteUrl, "_blank", "noopener,noreferrer");
-    if (!popup) {
-      // Popup blocked — ask the Forge host to open it via router.open.
-      log.info("Popup blocked, requesting parent to open login");
-      window.parent.postMessage(
-        { type: "skjermd:open-login", url: absoluteUrl },
-        "*",
-      );
-    }
-
-    startPolling();
-  }, [startPolling]);
-
-  const getAccessToken = useCallback(async (): Promise<string> => {
-    if (tokenRef.current) {
-      const exp = decodeTokenExp(tokenRef.current);
-      if (exp && exp - EXPIRY_SKEW_MS < Date.now()) {
-        tokenRef.current = null;
-        try {
-          sessionStorage.removeItem(TOKEN_STORAGE_KEY);
-        } catch {
-          // ignore
-        }
-        setState({ status: "unauthenticated" });
-        throw new Error("Tokenet er utløpt. Logg inn på nytt.");
-      }
-      return tokenRef.current;
-    }
-    throw new Error("Ikke autentisert");
+    log.info("Opening login popup");
+    openLoginPopup();
   }, []);
 
-  return { ...state, loginUrl, openLogin, getAccessToken };
+  const getAccessToken = useCallback(async (): Promise<string> => "", []);
+
+  return { ...state, loginUrl: "/oauth2/login", openLogin, getAccessToken };
 }

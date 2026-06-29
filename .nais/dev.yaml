@@ -38,22 +38,6 @@ spec:
           - /favicon.svg
           - /embed/sensurering/*
           - /embed/sensurering-editor/*
-          - /embed/auth/start
-          - /embed/auth/callback
-          - /embed/api/saker/*
-          - /embed/api/saker/*/tilganger
-          - /embed/api/saker/*/tilganger/*
-          - /embed/api/saker/*/sensurering
-          - /embed/api/saker/*/kommentarer
-          - /embed/api/saker/*/leselogg
-          - /embed/api/saker/*/filer
-          - /embed/api/saker/*/filer/*
-          - /embed/api/jira/update-description
-          - /embed/api/brukere
-          - /embed/api/auth-config
-          - /embed/api/auth/poll
-          - /api/generate-embed-token
-          - /api/validate-embed-token
   env:
     - name: BACKEND_URL
       value: "http://tsm-skjermd"
