@@ -350,7 +350,8 @@ app.get('/embed/auth/callback', async (req, res) => {
         const tokenData = await tokenRes.json();
         authSessions.set(flowData.sid, { accessToken: tokenData.access_token, createdAt: Date.now() });
         log('Auth', `Login completed for session ${flowData.sid.slice(0, 8)}...`);
-        res.send(authResultPage('Du er logget inn!', 'Du kan lukke denne fanen og gå tilbake til Jira.', false));
+        res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'");
+        res.send(authResultPage('Du er logget inn!', 'Du kan lukke dette vinduet og gå tilbake til Jira.', false, true));
     } catch (err) {
         logError('Auth', 'Token exchange error:', err);
         res.send(authResultPage('Innlogging feilet', 'En uventet feil oppstod.', true));
@@ -366,15 +367,16 @@ function escapeHtml(str) {
         .replace(/'/g, '&#39;');
 }
 
-function authResultPage(title, message, isError) {
+function authResultPage(title, message, isError, autoClose = false) {
     const t = escapeHtml(title);
     const m = escapeHtml(message);
+    const closeScript = autoClose ? '<script>setTimeout(function(){window.close();},800);<\/script>' : '';
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${t}</title></head>
 <body style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:#f5f5f5">
 <div style="text-align:center;padding:2rem;background:white;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1)">
 <h2 style="color:${isError ? '#c30000' : '#006a4e'}">${t}</h2>
 <p>${m}</p>
-</div></body></html>`;
+</div>${closeScript}</body></html>`;
 }
 
 app.get('/embed/api/auth/poll', (req, res) => {

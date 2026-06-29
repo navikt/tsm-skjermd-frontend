@@ -98,12 +98,18 @@ export function useEmbedAuth() {
     const url = `/embed/auth/start?sid=${sidRef.current}`;
     const absoluteUrl = new URL(url, window.location.origin).href;
 
-    // Try a native popup first. When the iframe sandbox allows popups
-    // (allow-popups allow-popups-to-escape-sandbox) this opens the login tab
-    // directly without the Forge external-link confirmation dialog.
-    const popup = window.open(absoluteUrl, "_blank", "noopener,noreferrer");
+    // Åpne login i et popup-vindu. Når iframe-sandboxen tillater popups
+    // (allow-popups allow-popups-to-escape-sandbox) åpnes vinduet direkte.
+    const w = 500, h = 700;
+    const left = window.screenX + (window.outerWidth - w) / 2;
+    const top = window.screenY + (window.outerHeight - h) / 2;
+    const popup = window.open(
+      absoluteUrl,
+      "skjermd-login",
+      `popup=yes,width=${w},height=${h},left=${left},top=${top}`,
+    );
     if (!popup) {
-      // Popup blocked — ask the Forge host to open it via router.open.
+      // Popup blokkert — be Forge-verten åpne via router.open.
       log.info("Popup blocked, requesting parent to open login");
       window.parent.postMessage(
         { type: "skjermd:open-login", url: absoluteUrl },
