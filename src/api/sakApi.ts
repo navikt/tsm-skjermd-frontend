@@ -8,39 +8,20 @@ const API_BASE = "/internal/v1";
 const EMBED_API_BASE = "/embed/api";
 
 const isLocalDev = window.location.hostname === "localhost";
-const isIframe = window.self !== window.top;
-
-export class AuthRequiredError extends Error {
-  constructor(message = "Innlogging kreves") {
-    super(message);
-    this.name = "AuthRequiredError";
-  }
-}
-
-export function openLoginPopup(): void {
-  const w = 500, h = 700;
-  const left = window.screenX + (window.outerWidth - w) / 2;
-  const top = window.screenY + (window.outerHeight - h) / 2;
-  const popup = window.open(
-    "/oauth2/login",
-    "skjermd-login",
-    `popup=yes,width=${w},height=${h},left=${left},top=${top}`,
-  );
-  const timer = setInterval(() => {
-    if (popup?.closed) {
-      clearInterval(timer);
-      window.location.reload();
-    }
-  }, 500);
-}
 
 function isEmbedMode(): boolean {
   return window.location.pathname.startsWith("/embed/");
 }
 
+function getEmbedToken(): string | null {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("token");
+}
+
+let embedTokenProvider: (() => Promise<string>) | null = null;
+
 export function setEmbedTokenProvider(provider: () => Promise<string>) {
-  void provider;
-  // No-op: embed-modus bruker Wonderwall-cookie, ikke Bearer-token.
+  embedTokenProvider = provider;
 }
 
 function getApiBase(): string {
@@ -80,8 +61,18 @@ async function apiRequest<T>(
     ...options.headers,
   };
 
-  // Embed mode bruker Wonderwall-cookie (credentials: include). Lokal dev bruker mock-token.
-  if (isLocalDev) {
+  // Add Authorization header for local dev or embed mode
+  if (isEmbedMode()) {
+    if (embedTokenProvider) {
+      const token = await embedTokenProvider();
+      (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
+    } else {
+      const embedToken = getEmbedToken();
+      if (embedToken) {
+        (headers as Record<string, string>)["Authorization"] = `Bearer ${embedToken}`;
+      }
+    }
+  } else if (isLocalDev) {
     const token = await getLocalDevToken();
     (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
   }
@@ -96,7 +87,7 @@ async function apiRequest<T>(
   try {
     res = await fetch(fullUrl, {
       ...options,
-      credentials: "include",
+      credentials: isEmbedMode() ? "omit" : "include",
       headers,
     });
   } catch (err) {
@@ -110,15 +101,12 @@ async function apiRequest<T>(
   if (res.status === 401) {
     log.warn(`${method} ${path} → 401 Unauthorized (${duration}ms)`);
     if (isEmbedMode()) {
-      throw new AuthRequiredError("Innlogging kreves");
+      throw new Error("Embed-token ugyldig eller utløpt");
     }
     if (isLocalDev) {
       localDevToken = null;
       tokenPromise = null;
       throw new Error("Token ugyldig - prøv igjen");
-    }
-    if (isIframe) {
-      throw new AuthRequiredError("Innlogging kreves");
     }
     const lastRedirect = sessionStorage.getItem("lastLoginRedirect");
     const now = Date.now();
@@ -251,7 +239,17 @@ export const filApi = {
 
     const headers: HeadersInit = {};
 
-    if (isLocalDev) {
+    if (isEmbedMode()) {
+      if (embedTokenProvider) {
+        const token = await embedTokenProvider();
+        headers["Authorization"] = `Bearer ${token}`;
+      } else {
+        const embedToken = getEmbedToken();
+        if (embedToken) {
+          headers["Authorization"] = `Bearer ${embedToken}`;
+        }
+      }
+    } else if (isLocalDev) {
       const token = await getLocalDevToken();
       headers["Authorization"] = `Bearer ${token}`;
     }
@@ -261,7 +259,7 @@ export const filApi = {
       method: "POST",
       headers,
       body: formData,
-      credentials: "include",
+      credentials: isEmbedMode() ? "omit" : "include",
     });
 
     if (!res.ok) {
