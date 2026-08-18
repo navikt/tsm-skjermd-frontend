@@ -40,8 +40,6 @@ app.use(helmet({
             styleSrc: ["'self'", "'unsafe-inline'"],
             imgSrc: ["'self'", "data:"],
             connectSrc: ["'self'"],
-            // Silent SSO laster /embed/auth/start i en skjult iframe, som
-            // redirecter videre til Entra. Begge navigasjonene treffer frame-src.
             frameSrc: ["'self'", "https://login.microsoftonline.com"],
             frameAncestors: [
                 "'self'",
@@ -286,10 +284,6 @@ app.get('/embed/auth/start', (req, res) => {
     const sid = req.query.sid;
     if (!sid) return res.status(400).send('Missing sid');
 
-    // silent=1 brukes av det stille SSO-forsøket ved oppstart. Da legges
-    // prompt=none på, slik at Entra svarer umiddelbart uten å vise UI:
-    // enten med en code (brukeren har en aktiv SSO-sesjon), eller med
-    // error=login_required. Sistnevnte lar oss falle tilbake til popup.
     const silent = req.query.silent === '1';
 
     const state = crypto.randomUUID();
@@ -324,9 +318,6 @@ app.get('/embed/auth/start', (req, res) => {
 app.get('/embed/auth/callback', async (req, res) => {
     const { code, state, error, error_description } = req.query;
 
-    // Slå opp flyten før feilhåndtering, slik at et mislykket stille forsøk
-    // kan meldes tilbake til klienten med én gang i stedet for at den venter
-    // ut timeouten sin.
     const flowData = authFlowStore.get(state);
     if (flowData) {
         authFlowStore.delete(state);
@@ -334,9 +325,7 @@ app.get('/embed/auth/callback', async (req, res) => {
 
     if (error) {
         if (flowData?.silent) {
-            // Forventet utfall når brukeren ikke har aktiv SSO-sesjon, eller
-            // når nettleseren blokkerer tredjeparts-cookies mot Entra.
-            log('Auth', `Silent auth failed for sid ${flowData.sid.slice(0, 8)}: ${error}`);
+            log('Auth', `Silent auth failed for sid ${flowData.sid.slice(0, 8)}: ${error} - ${error_description || '(ingen beskrivelse)'}`);
             authSessions.set(flowData.sid, { error: String(error), createdAt: Date.now() });
             return res.send(silentResultPage());
         }
@@ -380,7 +369,6 @@ app.get('/embed/auth/callback', async (req, res) => {
         authSessions.set(flowData.sid, { accessToken: tokenData.access_token, createdAt: Date.now() });
         log('Auth', `${flowData.silent ? 'Silent login' : 'Login'} completed for session ${flowData.sid.slice(0, 8)}...`);
         if (flowData.silent) {
-            // Siden kjører i en skjult iframe – ingen synlig kvittering.
             return res.send(silentResultPage());
         }
         res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'");
@@ -395,8 +383,6 @@ app.get('/embed/auth/callback', async (req, res) => {
     }
 });
 
-// Kvitteringsside for det stille SSO-forsøket. Den rendres i en skjult
-// iframe og skal derfor ikke vise noe – klienten henter utfallet via polling.
 function silentResultPage() {
     return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>.</title></head><body></body></html>';
 }
@@ -430,8 +416,6 @@ app.get('/embed/api/auth/poll', (req, res) => {
     if (!session) return res.json({ status: 'pending' });
     authSessions.delete(sid);
 
-    // Et mislykket stille forsøk rapporteres eksplisitt, slik at klienten kan
-    // vise innloggingsknappen med én gang i stedet for å vente ut timeouten.
     if (session.error) {
         log('Auth', `Silent auth failure reported for session ${sid.slice(0, 8)}: ${session.error}`);
         return res.json({ status: 'failed', error: session.error });
