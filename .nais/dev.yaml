@@ -52,6 +52,7 @@ spec:
           - /embed/api/brukere
           - /embed/api/auth-config
           - /embed/api/auth/poll
+          - /embed/api/auth/session
           - /api/generate-embed-token
           - /api/validate-embed-token
   env:

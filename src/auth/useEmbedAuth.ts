@@ -143,6 +143,17 @@ export function useEmbedAuth() {
     startPolling({ silent: true });
   }, [startPolling, stopPolling, cleanupSilentAttempt]);
 
+  const fetchSessionToken = useCallback(async (): Promise<string | null> => {
+    try {
+      const res = await fetch("/embed/api/auth/session", { credentials: "include" });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.status === "authenticated" && data.accessToken ? data.accessToken : null;
+    } catch {
+      return null;
+    }
+  }, []);
+
   useEffect(() => {
     setLoginUrl(`/embed/auth/start?sid=${sidRef.current}`);
 
@@ -154,7 +165,20 @@ export function useEmbedAuth() {
       return;
     }
 
-    trySilentLogin();
+    let cancelled = false;
+    fetchSessionToken().then((accessToken) => {
+      if (cancelled) return;
+      if (accessToken) {
+        log.info("Restored access token from embed session");
+        applyToken(accessToken);
+        return;
+      }
+      trySilentLogin();
+    });
+
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -173,8 +197,6 @@ export function useEmbedAuth() {
     const url = `/embed/auth/start?sid=${sidRef.current}`;
     const absoluteUrl = new URL(url, window.location.origin).href;
 
-    // Åpne login i et popup-vindu. Når iframe-sandboxen tillater popups
-    // (allow-popups allow-popups-to-escape-sandbox) åpnes vinduet direkte.
     const w = 500, h = 700;
     const left = window.screenX + (window.outerWidth - w) / 2;
     const top = window.screenY + (window.outerHeight - h) / 2;
@@ -184,7 +206,6 @@ export function useEmbedAuth() {
       `popup=yes,width=${w},height=${h},left=${left},top=${top}`,
     );
     if (!popup) {
-      // Popup blokkert — be Forge-verten åpne via router.open.
       log.info("Popup blocked, requesting parent to open login");
       window.parent.postMessage(
         { type: "skjermd:open-login", url: absoluteUrl },
@@ -198,20 +219,27 @@ export function useEmbedAuth() {
   const getAccessToken = useCallback(async (): Promise<string> => {
     if (tokenRef.current) {
       const exp = decodeTokenExp(tokenRef.current);
-      if (exp && exp - EXPIRY_SKEW_MS < Date.now()) {
-        tokenRef.current = null;
-        try {
-          sessionStorage.removeItem(TOKEN_STORAGE_KEY);
-        } catch {
-          // ignore
-        }
-        setState({ status: "unauthenticated" });
-        throw new Error("Tokenet er utløpt. Logg inn på nytt.");
+      if (!exp || exp - EXPIRY_SKEW_MS > Date.now()) {
+        return tokenRef.current;
       }
-      return tokenRef.current;
+      tokenRef.current = null;
+      try {
+        sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+      } catch {
+        // ignore
+      }
     }
-    throw new Error("Ikke autentisert");
-  }, []);
+
+    const refreshed = await fetchSessionToken();
+    if (refreshed) {
+      log.info("Renewed access token from embed session");
+      applyToken(refreshed);
+      return refreshed;
+    }
+
+    setState({ status: "unauthenticated" });
+    throw new Error("Tokenet er utløpt. Logg inn på nytt.");
+  }, [fetchSessionToken, applyToken]);
 
   return { ...state, loginUrl, openLogin, getAccessToken };
 }
