@@ -40,7 +40,9 @@ app.use(helmet({
             styleSrc: ["'self'", "'unsafe-inline'"],
             imgSrc: ["'self'", "data:"],
             connectSrc: ["'self'"],
-            frameSrc: ["'none'"],
+            // Silent SSO laster /embed/auth/start i en skjult iframe, som
+            // redirecter videre til Entra. Begge navigasjonene treffer frame-src.
+            frameSrc: ["'self'", "https://login.microsoftonline.com"],
             frameAncestors: [
                 "'self'",
                 "https://*.atlassian.net",
@@ -284,9 +286,15 @@ app.get('/embed/auth/start', (req, res) => {
     const sid = req.query.sid;
     if (!sid) return res.status(400).send('Missing sid');
 
+    // silent=1 brukes av det stille SSO-forsøket ved oppstart. Da legges
+    // prompt=none på, slik at Entra svarer umiddelbart uten å vise UI:
+    // enten med en code (brukeren har en aktiv SSO-sesjon), eller med
+    // error=login_required. Sistnevnte lar oss falle tilbake til popup.
+    const silent = req.query.silent === '1';
+
     const state = crypto.randomUUID();
     const { verifier, challenge } = generatePKCE();
-    authFlowStore.set(state, { sid, codeVerifier: verifier, createdAt: Date.now() });
+    authFlowStore.set(state, { sid, codeVerifier: verifier, silent, createdAt: Date.now() });
 
     const clientId = process.env.AZURE_APP_CLIENT_ID;
     const tenantId = process.env.AZURE_APP_TENANT_ID;
@@ -304,24 +312,41 @@ app.get('/embed/auth/start', (req, res) => {
         response_mode: 'query',
     });
 
+    if (silent) {
+        params.set('prompt', 'none');
+    }
+
     const authUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize?${params}`;
-    log('Auth', `Starting server-side auth flow for sid ${sid.slice(0, 8)}...`);
+    log('Auth', `Starting ${silent ? 'silent' : 'interactive'} auth flow for sid ${sid.slice(0, 8)}...`);
     res.redirect(authUrl);
 });
 
 app.get('/embed/auth/callback', async (req, res) => {
     const { code, state, error, error_description } = req.query;
 
+    // Slå opp flyten før feilhåndtering, slik at et mislykket stille forsøk
+    // kan meldes tilbake til klienten med én gang i stedet for at den venter
+    // ut timeouten sin.
+    const flowData = authFlowStore.get(state);
+    if (flowData) {
+        authFlowStore.delete(state);
+    }
+
     if (error) {
+        if (flowData?.silent) {
+            // Forventet utfall når brukeren ikke har aktiv SSO-sesjon, eller
+            // når nettleseren blokkerer tredjeparts-cookies mot Entra.
+            log('Auth', `Silent auth failed for sid ${flowData.sid.slice(0, 8)}: ${error}`);
+            authSessions.set(flowData.sid, { error: String(error), createdAt: Date.now() });
+            return res.send(silentResultPage());
+        }
         logError('Auth', `Auth error: ${error} - ${error_description}`);
         return res.send(authResultPage('Innlogging feilet', error_description || error, true));
     }
 
-    const flowData = authFlowStore.get(state);
     if (!flowData) {
         return res.status(400).send(authResultPage('Ugyldig forespørsel', 'State er utløpt eller ugyldig. Prøv å logge inn på nytt.', true));
     }
-    authFlowStore.delete(state);
 
     const tokenEndpoint = process.env.AZURE_OPENID_CONFIG_TOKEN_ENDPOINT
         || `https://login.microsoftonline.com/${process.env.AZURE_APP_TENANT_ID}/oauth2/v2.0/token`;
@@ -344,19 +369,37 @@ app.get('/embed/auth/callback', async (req, res) => {
         if (!tokenRes.ok) {
             const errText = await tokenRes.text();
             logError('Auth', `Token exchange failed: ${errText}`);
+            if (flowData.silent) {
+                authSessions.set(flowData.sid, { error: 'token_exchange_failed', createdAt: Date.now() });
+                return res.send(silentResultPage());
+            }
             return res.send(authResultPage('Innlogging feilet', 'Kunne ikke fullføre innlogging. Prøv igjen.', true));
         }
 
         const tokenData = await tokenRes.json();
         authSessions.set(flowData.sid, { accessToken: tokenData.access_token, createdAt: Date.now() });
-        log('Auth', `Login completed for session ${flowData.sid.slice(0, 8)}...`);
+        log('Auth', `${flowData.silent ? 'Silent login' : 'Login'} completed for session ${flowData.sid.slice(0, 8)}...`);
+        if (flowData.silent) {
+            // Siden kjører i en skjult iframe – ingen synlig kvittering.
+            return res.send(silentResultPage());
+        }
         res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'");
         res.send(authResultPage('Du er logget inn!', 'Du kan lukke dette vinduet og gå tilbake til Jira.', false, true));
     } catch (err) {
         logError('Auth', 'Token exchange error:', err);
+        if (flowData.silent) {
+            authSessions.set(flowData.sid, { error: 'token_exchange_error', createdAt: Date.now() });
+            return res.send(silentResultPage());
+        }
         res.send(authResultPage('Innlogging feilet', 'En uventet feil oppstod.', true));
     }
 });
+
+// Kvitteringsside for det stille SSO-forsøket. Den rendres i en skjult
+// iframe og skal derfor ikke vise noe – klienten henter utfallet via polling.
+function silentResultPage() {
+    return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>.</title></head><body></body></html>';
+}
 
 function escapeHtml(str) {
     return String(str)
@@ -385,10 +428,17 @@ app.get('/embed/api/auth/poll', (req, res) => {
     res.set('Cache-Control', 'no-store');
     const session = authSessions.get(sid);
     if (!session) return res.json({ status: 'pending' });
-    const { accessToken } = session;
     authSessions.delete(sid);
+
+    // Et mislykket stille forsøk rapporteres eksplisitt, slik at klienten kan
+    // vise innloggingsknappen med én gang i stedet for å vente ut timeouten.
+    if (session.error) {
+        log('Auth', `Silent auth failure reported for session ${sid.slice(0, 8)}: ${session.error}`);
+        return res.json({ status: 'failed', error: session.error });
+    }
+
     log('Auth', `Token delivered for session ${sid.slice(0, 8)}...`);
-    res.json({ status: 'authenticated', accessToken });
+    res.json({ status: 'authenticated', accessToken: session.accessToken });
 });
 // --- End server-side OAuth ---
 

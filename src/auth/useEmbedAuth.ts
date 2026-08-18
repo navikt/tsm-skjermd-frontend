@@ -5,6 +5,9 @@ const log = createLogger("EmbedAuth");
 
 const TOKEN_STORAGE_KEY = "embed-access-token";
 const EXPIRY_SKEW_MS = 60 * 1000;
+const SILENT_TIMEOUT_MS = 5000;
+const POLL_INTERVAL_MS = 2000;
+const SILENT_POLL_INTERVAL_MS = 750;
 
 function decodeTokenExp(token: string): number | null {
   try {
@@ -51,6 +54,103 @@ export function useEmbedAuth() {
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sidRef = useRef<string>(crypto.randomUUID());
   const tokenRef = useRef<string | null>(null);
+  const silentFrameRef = useRef<HTMLIFrameElement | null>(null);
+  const silentTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const stopPolling = useCallback(() => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+  }, []);
+
+  const cleanupSilentAttempt = useCallback(() => {
+    if (silentTimeoutRef.current) {
+      clearTimeout(silentTimeoutRef.current);
+      silentTimeoutRef.current = null;
+    }
+    if (silentFrameRef.current) {
+      silentFrameRef.current.remove();
+      silentFrameRef.current = null;
+    }
+  }, []);
+
+  const applyToken = useCallback((accessToken: string) => {
+    tokenRef.current = accessToken;
+    storeToken(accessToken);
+    setState({ status: "authenticated" });
+  }, []);
+
+  const startPolling = useCallback(
+    ({ silent = false }: { silent?: boolean } = {}) => {
+      stopPolling();
+
+      // Under et stille forsøk skal brukeren ikke se noe. Vi blir stående i
+      // "loading" til utfallet er kjent, i stedet for å vise ventetekst.
+      setState({ status: silent ? "loading" : "polling" });
+
+      pollingRef.current = setInterval(
+        async () => {
+          try {
+            const res = await fetch(`/embed/api/auth/poll?sid=${sidRef.current}`);
+            if (!res.ok) return;
+            const data = await res.json();
+
+            if (data.status === "authenticated" && data.accessToken) {
+              stopPolling();
+              cleanupSilentAttempt();
+              log.info(`Login completed via ${silent ? "silent SSO" : "server-side auth"}`);
+              applyToken(data.accessToken);
+              return;
+            }
+
+            if (data.status === "failed") {
+              stopPolling();
+              cleanupSilentAttempt();
+              if (silent) {
+                log.info(`Silent SSO unavailable (${data.error}), falling back to interactive login`);
+                setState({ status: "unauthenticated" });
+              } else {
+                log.warn(`Login failed (${data.error})`);
+                setState({ status: "error", error: "Innlogging feilet. Prøv igjen." });
+              }
+            }
+          } catch {
+            // Network error, keep polling
+          }
+        },
+        silent ? SILENT_POLL_INTERVAL_MS : POLL_INTERVAL_MS,
+      );
+    },
+    [stopPolling, cleanupSilentAttempt, applyToken],
+  );
+
+  // Stille SSO-forsøk: laster autorisasjonsflyten med prompt=none i en skjult
+  // iframe. Har brukeren en aktiv Entra-sesjon fullføres innloggingen uten
+  // klikk. Hvis ikke – eller hvis nettleseren blokkerer tredjeparts-cookies
+  // mot Entra – svarer serveren "failed", og vi viser innloggingsknappen.
+  const trySilentLogin = useCallback(() => {
+    // Rydd bort et eventuelt tidligere forsøk først. React StrictMode kjører
+    // mount-effekten to ganger i utvikling, og uten dette ville den første
+    // skjulte iframen bli liggende igjen i DOM uten å bli ryddet.
+    cleanupSilentAttempt();
+
+    const frame = document.createElement("iframe");
+    frame.setAttribute("aria-hidden", "true");
+    frame.style.display = "none";
+    frame.src = `/embed/auth/start?sid=${sidRef.current}&silent=1`;
+    document.body.appendChild(frame);
+    silentFrameRef.current = frame;
+
+    silentTimeoutRef.current = setTimeout(() => {
+      stopPolling();
+      cleanupSilentAttempt();
+      log.info("Silent SSO timed out, falling back to interactive login");
+      setState({ status: "unauthenticated" });
+    }, SILENT_TIMEOUT_MS);
+
+    startPolling({ silent: true });
+  }, [startPolling, stopPolling, cleanupSilentAttempt]);
 
   useEffect(() => {
     setLoginUrl(`/embed/auth/start?sid=${sidRef.current}`);
@@ -60,40 +160,26 @@ export function useEmbedAuth() {
       tokenRef.current = stored;
       log.info("Reusing stored access token");
       setState({ status: "authenticated" });
-    } else {
-      setState({ status: "unauthenticated" });
+      return;
     }
+
+    trySilentLogin();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     return () => {
-      if (pollingRef.current) clearInterval(pollingRef.current);
+      stopPolling();
+      cleanupSilentAttempt();
     };
-  }, []);
-
-  const startPolling = useCallback(() => {
-    setState({ status: "polling" });
-
-    pollingRef.current = setInterval(async () => {
-      try {
-        const res = await fetch(`/embed/api/auth/poll?sid=${sidRef.current}`);
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.status === "authenticated" && data.accessToken) {
-          if (pollingRef.current) clearInterval(pollingRef.current);
-          tokenRef.current = data.accessToken;
-          storeToken(data.accessToken);
-          log.info("Login completed via server-side auth");
-          setState({ status: "authenticated" });
-        }
-      } catch {
-        // Network error, keep polling
-      }
-    }, 2000);
-  }, []);
+  }, [stopPolling, cleanupSilentAttempt]);
 
   const openLogin = useCallback((event?: { preventDefault?: () => void }) => {
     event?.preventDefault?.();
+
+    // Avbryt et eventuelt pågående stille forsøk, slik at timeouten ikke
+    // senere overstyrer tilstanden midt i den interaktive innloggingen.
+    cleanupSilentAttempt();
 
     const url = `/embed/auth/start?sid=${sidRef.current}`;
     const absoluteUrl = new URL(url, window.location.origin).href;
@@ -118,7 +204,7 @@ export function useEmbedAuth() {
     }
 
     startPolling();
-  }, [startPolling]);
+  }, [startPolling, cleanupSilentAttempt]);
 
   const getAccessToken = useCallback(async (): Promise<string> => {
     if (tokenRef.current) {
