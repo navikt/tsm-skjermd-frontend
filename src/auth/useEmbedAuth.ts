@@ -85,8 +85,6 @@ export function useEmbedAuth() {
     ({ silent = false }: { silent?: boolean } = {}) => {
       stopPolling();
 
-      // Under et stille forsøk skal brukeren ikke se noe. Vi blir stående i
-      // "loading" til utfallet er kjent, i stedet for å vise ventetekst.
       setState({ status: silent ? "loading" : "polling" });
 
       pollingRef.current = setInterval(
@@ -125,14 +123,7 @@ export function useEmbedAuth() {
     [stopPolling, cleanupSilentAttempt, applyToken],
   );
 
-  // Stille SSO-forsøk: laster autorisasjonsflyten med prompt=none i en skjult
-  // iframe. Har brukeren en aktiv Entra-sesjon fullføres innloggingen uten
-  // klikk. Hvis ikke – eller hvis nettleseren blokkerer tredjeparts-cookies
-  // mot Entra – svarer serveren "failed", og vi viser innloggingsknappen.
   const trySilentLogin = useCallback(() => {
-    // Rydd bort et eventuelt tidligere forsøk først. React StrictMode kjører
-    // mount-effekten to ganger i utvikling, og uten dette ville den første
-    // skjulte iframen bli liggende igjen i DOM uten å bli ryddet.
     cleanupSilentAttempt();
 
     const frame = document.createElement("iframe");
@@ -177,8 +168,6 @@ export function useEmbedAuth() {
   const openLogin = useCallback((event?: { preventDefault?: () => void }) => {
     event?.preventDefault?.();
 
-    // Avbryt et eventuelt pågående stille forsøk, slik at timeouten ikke
-    // senere overstyrer tilstanden midt i den interaktive innloggingen.
     cleanupSilentAttempt();
 
     const url = `/embed/auth/start?sid=${sidRef.current}`;
