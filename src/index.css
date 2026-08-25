@@ -23,6 +23,44 @@
   white-space: nowrap;
 }
 
+.sensur-felt .sensurert-span[data-placeholder] {
+  position: relative;
+  color: transparent;
+}
+
+.sensur-felt .sensurert-span[data-placeholder]::before {
+  content: attr(data-placeholder);
+  position: absolute;
+  left: 6px;
+  top: 1px;
+  color: #fff;
+  pointer-events: none;
+}
+
+.sensur-felt:hover .sensurert-span[data-placeholder],
+.sensur-felt:focus-within .sensurert-span[data-placeholder] {
+  color: #fff;
+}
+
+.sensur-felt:hover .sensurert-span[data-placeholder]::before,
+.sensur-felt:focus-within .sensurert-span[data-placeholder]::before {
+  content: none;
+}
+
+.stjerne-overlay {
+  position: absolute;
+  inset: 0;
+  background: #1a1a1a;
+  color: #fff;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.sensur-felt:hover .stjerne-overlay,
+.sensur-felt:focus-within .stjerne-overlay {
+  display: none;
+}
+
 .accordion-borderless .aksel-accordion__header::before,
 .accordion-borderless .aksel-accordion__header::after {
   display: none;
