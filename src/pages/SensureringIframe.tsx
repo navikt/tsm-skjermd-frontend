@@ -160,7 +160,12 @@ export const SensureringIframe = () => {
           <BodyShort size="small">
             Skriv eller lim inn teksten du vil registrere i editoren. Marker de delene av
             teksten som inneholder sensitiv informasjon — de blir automatisk sladdet og
-            erstattet med stjerner i samme lengde som den opprinnelige teksten.
+            vist som stjerner på svart bakgrunn, i samme lengde som den opprinnelige teksten.
+          </BodyShort>
+          <BodyShort size="small">
+            Markerer du ingenting, blir hele teksten ansett som sensitiv og vises som
+            stjerner på svart bakgrunn. Hold musen over tekstfeltet for å se den
+            opprinnelige teksten — når du flytter musen ut igjen vises stjernene på nytt.
           </BodyShort>
           <BodyShort size="small">
             Hold musen over et sladdet felt for å fjerne sladdingen. Endringer lagres

@@ -39,6 +39,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
   const [lagrer, setLagrer] = useState(false);
   const [laster, setLaster] = useState(true);
   const [lagreStatus, setLagreStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [plainTekst, setPlainTekst] = useState("");
   const editableRef = useRef<HTMLDivElement>(null);
   const removeButtonRef = useRef<HTMLButtonElement>(null);
   const hoveredSpanRef = useRef<HTMLElement | null>(null);
@@ -47,6 +48,13 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
   const genererPlaceholder = (original: string) => {
     return "*".repeat(original.length);
   };
+
+  const stjernemaskerLinjer = (tekst: string) =>
+    tekst.replace(/[^\n]/g, "*");
+
+  const oppdaterPlainTekst = useCallback(() => {
+    setPlainTekst(editableRef.current?.innerText ?? "");
+  }, []);
 
   const buildSensurertTekst = useCallback(() => {
     if (!editableRef.current) return "";
@@ -87,7 +95,8 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
 
   const markContentChanged = useCallback(() => {
     setChangeCounter((prev) => prev + 1);
-  }, []);
+    oppdaterPlainTekst();
+  }, [oppdaterPlainTekst]);
 
   const kommentarModusRef = useRef(kommentarModus);
   kommentarModusRef.current = kommentarModus;
@@ -146,7 +155,10 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
           onAuthErrorRef.current?.();
         }
       })
-      .finally(() => setLaster(false));
+      .finally(() => {
+        setLaster(false);
+        setPlainTekst(editableRef.current?.innerText ?? "");
+      });
   }, [sakId]);
 
   const markerSomSensitiv = useCallback(() => {
@@ -427,7 +439,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
           </HStack>
         ) : null}
 
-        <div className="relative">
+        <div className="sensur-felt relative">
           <div
             ref={editableRef}
             contentEditable={!readOnly}
@@ -435,13 +447,14 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
                        whitespace-pre-wrap font-mono text-sm
                        ${readOnly ? 'bg-gray-50 cursor-default' : 'bg-white focus:outline-none focus:ring-2 focus:ring-blue-500'}`}
             data-placeholder={kommentarModus
-              ? "Skriv kommentaren din her. Marker tekst for å sensurere sensitiv informasjon før den sendes."
-              : "Her kan du skrive tekst som inneholder sensitiv informasjon. Marker de delene av teksten som er sensitiv. Hvis du ikke markerer noe blir hele teksten anset som sensitiv"}
+              ? "Skriv kommentaren din her. Marker tekst for å sensurere sensitiv informasjon før den sendes. Sensurert tekst vises som stjerner på svart bakgrunn."
+              : "Her kan du skrive tekst som inneholder sensitiv informasjon. Marker de delene av teksten som er sensitiv — de vises som stjerner på svart bakgrunn. Hvis du ikke markerer noe blir hele teksten ansett som sensitiv. Hold musen over feltet for å se teksten igjen."}
             suppressContentEditableWarning
             onBlur={() => {
               if (editableRef.current && !editableRef.current.innerText.trim() && sensurertListe.length === 0) {
                 editableRef.current.innerHTML = '';
               }
+              oppdaterPlainTekst();
             }}
             onInput={() => {
               if (!readOnly) {
@@ -473,6 +486,14 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
               hoveredSpanRef.current = null;
             }}
           />
+          {!laster && sensurertListe.length === 0 && plainTekst.trim() !== "" && (
+            <div
+              aria-hidden
+              className="stjerne-overlay p-3 border border-transparent rounded-lg whitespace-pre-wrap font-mono text-sm"
+            >
+              {stjernemaskerLinjer(plainTekst)}
+            </div>
+          )}
           {!readOnly && (
             <button
               ref={removeButtonRef}
