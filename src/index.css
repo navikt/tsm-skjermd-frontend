@@ -50,10 +50,14 @@
 .stjerne-overlay {
   position: absolute;
   inset: 0;
-  background: #1a1a1a;
-  color: #fff;
+  background: #fff;
   pointer-events: none;
   overflow: hidden;
+}
+
+.stjerne-overlay .sensurert-span {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .sensur-felt:hover .stjerne-overlay,

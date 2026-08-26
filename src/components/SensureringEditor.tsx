@@ -491,7 +491,15 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
               aria-hidden
               className="stjerne-overlay p-3 border border-transparent rounded-lg whitespace-pre-wrap font-mono text-sm"
             >
-              {stjernemaskerLinjer(plainTekst)}
+              {plainTekst.split("\n").map((linje, i) => (
+                <div key={i}>
+                  {linje.trim() === "" ? (
+                    "\u00A0"
+                  ) : (
+                    <span className="sensurert-span">{stjernemaskerLinjer(linje)}</span>
+                  )}
+                </div>
+              ))}
             </div>
           )}
           {!readOnly && (
