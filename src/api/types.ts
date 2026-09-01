@@ -1,7 +1,21 @@
+export type TilgangKilde = "DIREKTE" | "GRUPPE";
+
 export interface Tilgang {
   navIdent: string;
   gittAv: string;
   gittTidspunkt: string;
+  kilde?: TilgangKilde;
+  gruppeId?: string | null;
+  gruppeNavn?: string | null;
+}
+
+export interface GruppeTilgang {
+  gruppeId: string;
+  gruppeNavn: string;
+  gruppeType?: GruppeType;
+  gittAv: string;
+  gittTidspunkt: string;
+  medlemmer: string[];
 }
 
 export interface Sak {
@@ -13,6 +27,7 @@ export interface Sak {
   endretAv: string | null;
   endretTidspunkt: string | null;
   tilganger: Tilgang[];
+  gruppeTilganger?: GruppeTilgang[];
 }
 
 export interface OpprettSakRequest {
@@ -26,6 +41,48 @@ export interface EndreSakRequest {
 
 export interface GiTilgangRequest {
   navIdent: string;
+}
+
+export type GruppeType = "TEAM" | "OMRAADE" | "PRODUKTOMRAADE";
+
+export interface Gruppe {
+  id: string;
+  navn: string;
+  type: GruppeType;
+  beskrivelse: string | null;
+  antallMedlemmer: number;
+}
+
+export interface GruppeMedlem {
+  navIdent: string;
+  displayName: string;
+  email: string | null;
+}
+
+export interface GiGruppeTilgangRequest {
+  gruppeId: string;
+}
+
+export interface GiGruppeTilgangResponse {
+  gruppeTilgang: GruppeTilgang;
+  tilganger: Tilgang[];
+}
+
+export type AuditHandling =
+  | "TILGANG_GITT"
+  | "TILGANG_FJERNET"
+  | "GRUPPETILGANG_GITT"
+  | "GRUPPETILGANG_FJERNET";
+
+export interface AuditHendelse {
+  id: string;
+  tidspunkt: string;
+  utfoertAv: string;
+  handling: AuditHandling;
+  navIdent: string | null;
+  gruppeId: string | null;
+  gruppeNavn: string | null;
+  antallBerorte: number | null;
 }
 
 export interface SensurertElement {

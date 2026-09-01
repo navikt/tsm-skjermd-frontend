@@ -43,6 +43,9 @@ spec:
           - /embed/api/saker/*
           - /embed/api/saker/*/tilganger
           - /embed/api/saker/*/tilganger/*
+          - /embed/api/saker/*/gruppetilganger
+          - /embed/api/saker/*/gruppetilganger/*
+          - /embed/api/saker/*/auditlogg
           - /embed/api/saker/*/sensurering
           - /embed/api/saker/*/kommentarer
           - /embed/api/saker/*/leselogg
@@ -50,6 +53,9 @@ spec:
           - /embed/api/saker/*/filer/*
           - /embed/api/jira/update-description
           - /embed/api/brukere
+          - /embed/api/grupper
+          - /embed/api/grupper/*
+          - /embed/api/grupper/*/medlemmer
           - /embed/api/auth-config
           - /embed/api/auth/poll
           - /api/generate-embed-token
