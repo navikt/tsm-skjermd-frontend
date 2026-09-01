@@ -22,7 +22,7 @@ type SensurertItem = SensurertElement & { id: string };
 
 interface SensureringEditorProps {
   sakId: string;
-  onLagreOgLukk?: (sensurertTekst: string) => void;
+  onLagreOgLukk?: (sensurertTekst: string, originaltekst: string) => void;
   onAvbryt?: () => void;
   onAuthError?: () => void;
   autoSave?: boolean;
@@ -324,6 +324,21 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
     markContentChanged();
   }, [sensurertListe, markContentChanged]);
 
+  const maskertTekstForDeling = useCallback(() => {
+    if (sensurertListe.length === 0) {
+      const fullTekst = editableRef.current?.innerText.trim() ?? "";
+      return stjernemaskerLinjer(fullTekst);
+    }
+    return buildSensurertTekst();
+  }, [sensurertListe, buildSensurertTekst]);
+
+  const originaltekstForDeling = useCallback(() => {
+    if (sensurertListe.length === 0) {
+      return editableRef.current?.innerText.trim() ?? "";
+    }
+    return buildOriginaltekst();
+  }, [sensurertListe, buildOriginaltekst]);
+
   const lagreSensurering = useCallback(async () => {
     if (!sakId) return;
     setLagrer(true);
@@ -411,7 +426,7 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
         });
 
         if (ok && onLagreOgLukk) {
-          onLagreOgLukk(placeholder);
+          onLagreOgLukk(stjernemaskerLinjer(fullTekst), fullTekst);
         }
         return;
       }
@@ -419,10 +434,9 @@ export const SensureringEditor = ({ sakId, onLagreOgLukk, onAvbryt, onAuthError,
 
     const ok = await lagreSensurering();
     if (ok && onLagreOgLukk) {
-      const sensurertTekst = buildSensurertTekst();
-      onLagreOgLukk(sensurertTekst);
+      onLagreOgLukk(maskertTekstForDeling(), originaltekstForDeling());
     }
-  }, [lagreSensurering, onLagreOgLukk, kommentarModus, sensurertListe, sakId, buildSensurertTekst]);
+  }, [lagreSensurering, onLagreOgLukk, kommentarModus, sensurertListe, sakId, maskertTekstForDeling, originaltekstForDeling]);
 
   return (
     <Box

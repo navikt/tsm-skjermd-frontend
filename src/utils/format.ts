@@ -16,7 +16,7 @@ export const formatTid = (dato: string | null): string => {
 };
 
 export const tekstTilJira = (tekst: string): string => {
-  if (tekst.length === 0) return "[Maskert]";
-  if ([...tekst].every((c) => c === "*")) return "[Maskert]";
+  if (tekst.trim().length === 0) return "[Maskert]";
+  if ([...tekst].every((c) => c === "*" || /\s/.test(c))) return "[Maskert]";
   return tekst;
 };
