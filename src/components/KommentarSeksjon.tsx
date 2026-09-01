@@ -66,15 +66,15 @@ export const KommentarSeksjon = ({
               setEditing(false);
               setEditorKey((k) => k + 1);
             }}
-            onLagreOgLukk={async (sensurertTekst) => {
-              if (!sensurertTekst.trim()) {
+            onLagreOgLukk={async (sensurertTekst, originaltekst) => {
+              if (!originaltekst.trim()) {
                 setEditing(false);
                 setEditorKey((k) => k + 1);
                 return;
               }
               if (sak?.jiraIssueKey) {
                 try {
-                  const nyKommentar = await kommentarApi.opprett(sakId, { tekst: sensurertTekst });
+                  const nyKommentar = await kommentarApi.opprett(sakId, { tekst: originaltekst });
                   setKommentarer((prev) => [nyKommentar, ...prev]);
                   createCommentInJira(sak.jiraIssueKey, tekstTilJira(sensurertTekst));
                 } catch (err) {
