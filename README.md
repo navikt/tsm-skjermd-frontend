@@ -64,6 +64,32 @@ Widgeten kjører i en sandboxet Jira-iframe, så innlogging kan ikke vises inlin
 4. `/embed/auth/callback` bytter koden mot et token server-side (med client secret) og lagrer det på `sid`.
 5. Widgeten poller `/embed/api/auth/poll?sid=...`, lagrer access-tokenet i `sessionStorage` og bruker det som Bearer-token mot backenden.
 
+## 👥 Tilganger og grupper
+
+Tilgang til en sak kan gis på to måter:
+
+- **Direkte til en person** – `POST /saker/{sakId}/tilganger` med `navIdent`.
+- **Til en gruppe fra Teamkatalogen** – `POST /saker/{sakId}/gruppetilganger` med `gruppeId`.
+
+En gruppetilgang er *aggregert av enkelttilganger*: backend slår opp medlemmene i Teamkatalogen på
+tildelingstidspunktet og oppretter én tilgang per person med `kilde: "GRUPPE"` og referanse til
+gruppen. Medlemmer som kommer til i gruppen senere får **ikke** tilgang automatisk. Fjerning av
+gruppetilgangen (`DELETE /saker/{sakId}/gruppetilganger/{gruppeId}`) fjerner de avledede
+enkelttilgangene. Tilganger som kommer fra en gruppe kan ikke fjernes enkeltvis i UI-et.
+
+Endepunkter frontend forventer fra `tsm-skjermd`:
+
+| Metode   | Path                                        | Beskrivelse                                  |
+| -------- | ------------------------------------------- | -------------------------------------------- |
+| `GET`    | `/grupper?q=`                               | Søk etter team/område i Teamkatalogen         |
+| `GET`    | `/grupper/{gruppeId}/medlemmer`             | Medlemmer i en gruppe                         |
+| `POST`   | `/saker/{sakId}/gruppetilganger`            | Gi gruppetilgang (returnerer oppdaterte tilganger) |
+| `DELETE` | `/saker/{sakId}/gruppetilganger/{gruppeId}` | Fjern gruppetilgang                           |
+| `GET`    | `/saker/{sakId}/auditlogg`                  | Auditlogg for tilgangsendringer               |
+
+All tildeling og fjerning av tilgang auditlogges i backend og vises under fanen «Historikk» i
+tilgangspanelet.
+
 ## 📁 Filstruktur
 
 ```

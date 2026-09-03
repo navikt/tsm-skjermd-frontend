@@ -1,4 +1,4 @@
-import type { Sak, OpprettSakRequest, EndreSakRequest, UserInfo, Tilgang, GiTilgangRequest, LagreSensureringRequest, LagreSensureringResponse, OpprettKommentarRequest, Kommentar, BrukerSøkResult, LeseloggRequest, FilInfo } from "./types";
+import type { Sak, OpprettSakRequest, EndreSakRequest, UserInfo, Tilgang, GiTilgangRequest, GiGruppeTilgangRequest, GiGruppeTilgangResponse, Gruppe, GruppeMedlem, AuditHendelse, LagreSensureringRequest, LagreSensureringResponse, OpprettKommentarRequest, Kommentar, BrukerSøkResult, LeseloggRequest, FilInfo } from "./types";
 import { createLogger } from "../logger";
 
 const log = createLogger("API");
@@ -164,6 +164,20 @@ export const sakApi = {
     apiRequest(`/saker/${sakId}/tilganger/${navIdent}`, {
       method: "DELETE",
     }),
+
+  giGruppeTilgang: (sakId: string, request: GiGruppeTilgangRequest): Promise<GiGruppeTilgangResponse> =>
+    apiRequest(`/saker/${sakId}/gruppetilganger`, {
+      method: "POST",
+      body: JSON.stringify(request),
+    }),
+
+  fjernGruppeTilgang: (sakId: string, gruppeId: string): Promise<void> =>
+    apiRequest(`/saker/${sakId}/gruppetilganger/${gruppeId}`, {
+      method: "DELETE",
+    }),
+
+  hentAuditlogg: (sakId: string): Promise<AuditHendelse[]> =>
+    apiRequest(`/saker/${sakId}/auditlogg`),
 };
 
 export const sensureringApi = {
@@ -219,6 +233,24 @@ export const brukerApi = {
     brukerCache.set(key, { data, timestamp: Date.now() });
     return data;
   },
+};
+
+const gruppeCache = new Map<string, { data: Gruppe[]; timestamp: number }>();
+
+export const gruppeApi = {
+  søk: async (query: string): Promise<Gruppe[]> => {
+    const key = query.toLowerCase();
+    const cached = gruppeCache.get(key);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      return cached.data;
+    }
+    const data: Gruppe[] = await apiRequest(`/grupper?q=${encodeURIComponent(query)}`);
+    gruppeCache.set(key, { data, timestamp: Date.now() });
+    return data;
+  },
+
+  hentMedlemmer: (gruppeId: string): Promise<GruppeMedlem[]> =>
+    apiRequest(`/grupper/${gruppeId}/medlemmer`),
 };
 
 export const leseloggApi = {
