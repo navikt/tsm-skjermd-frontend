@@ -261,8 +261,78 @@ app.get('/embed/api/auth-config', (req, res) => {
 });
 
 // --- Server-side OAuth flow for iframe embed auth ---
-const authSessions = new Map();   // sid -> { accessToken, createdAt }
+const authSessions = new Map();   // sid -> { accessToken, refreshToken, createdAt }
 const authFlowStore = new Map();  // state -> { sid, codeVerifier, createdAt }
+const embedSessions = new Map();  // sessionId -> { refreshToken, accessToken, accessTokenExpiresAt, createdAt }
+
+const EMBED_SESSION_COOKIE = 'skjermd_embed_session';
+const EMBED_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
+const ACCESS_TOKEN_SKEW_MS = 60 * 1000;
+
+function readCookie(req, name) {
+    const header = req.headers.cookie;
+    if (!header) return null;
+    for (const part of header.split(';')) {
+        const idx = part.indexOf('=');
+        if (idx === -1) continue;
+        if (part.slice(0, idx).trim() === name) {
+            return decodeURIComponent(part.slice(idx + 1).trim());
+        }
+    }
+    return null;
+}
+
+function createEmbedSession(res, { accessToken, refreshToken, expiresIn }) {
+    if (!refreshToken) return null;
+
+    const sessionId = crypto.randomUUID();
+    embedSessions.set(sessionId, {
+        refreshToken,
+        accessToken,
+        accessTokenExpiresAt: Date.now() + (Number(expiresIn) || 3600) * 1000,
+        createdAt: Date.now(),
+    });
+
+    res.cookie(EMBED_SESSION_COOKIE, sessionId, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none',
+        partitioned: true,
+        path: '/embed',
+        maxAge: EMBED_SESSION_TTL_MS,
+    });
+
+    return sessionId;
+}
+
+async function refreshAccessToken(session) {
+    const tokenEndpoint = process.env.AZURE_OPENID_CONFIG_TOKEN_ENDPOINT
+        || `https://login.microsoftonline.com/${process.env.AZURE_APP_TENANT_ID}/oauth2/v2.0/token`;
+
+    const res = await fetch(tokenEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+            client_id: process.env.AZURE_APP_CLIENT_ID,
+            client_secret: process.env.AZURE_APP_CLIENT_SECRET,
+            refresh_token: session.refreshToken,
+            grant_type: 'refresh_token',
+            scope: `openid profile offline_access api://${process.env.AZURE_APP_CLIENT_ID}/.default`,
+        }),
+    });
+
+    if (!res.ok) {
+        const errText = await res.text();
+        logError('Auth', `Refresh token exchange failed: ${res.status} ${errText}`);
+        return null;
+    }
+
+    const data = await res.json();
+    session.accessToken = data.access_token;
+    session.accessTokenExpiresAt = Date.now() + (Number(data.expires_in) || 3600) * 1000;
+    if (data.refresh_token) session.refreshToken = data.refresh_token;
+    return session.accessToken;
+}
 
 function generatePKCE() {
     const verifier = crypto.randomBytes(32).toString('base64url');
@@ -277,6 +347,9 @@ setInterval(() => {
     }
     for (const [key, val] of authFlowStore) {
         if (now - val.createdAt > 5 * 60 * 1000) authFlowStore.delete(key);
+    }
+    for (const [key, val] of embedSessions) {
+        if (now - val.createdAt > EMBED_SESSION_TTL_MS) embedSessions.delete(key);
     }
 }, 60 * 1000);
 
@@ -293,7 +366,7 @@ app.get('/embed/auth/start', (req, res) => {
     const clientId = process.env.AZURE_APP_CLIENT_ID;
     const tenantId = process.env.AZURE_APP_TENANT_ID;
     const redirectUri = `https://${req.get('host')}/embed/auth/callback`;
-    const scope = `openid profile api://${clientId}/.default`;
+    const scope = `openid profile offline_access api://${clientId}/.default`;
 
     const params = new URLSearchParams({
         client_id: clientId,
@@ -366,7 +439,12 @@ app.get('/embed/auth/callback', async (req, res) => {
         }
 
         const tokenData = await tokenRes.json();
-        authSessions.set(flowData.sid, { accessToken: tokenData.access_token, createdAt: Date.now() });
+        authSessions.set(flowData.sid, {
+            accessToken: tokenData.access_token,
+            refreshToken: tokenData.refresh_token,
+            expiresIn: tokenData.expires_in,
+            createdAt: Date.now(),
+        });
         log('Auth', `${flowData.silent ? 'Silent login' : 'Login'} completed for session ${flowData.sid.slice(0, 8)}...`);
         if (flowData.silent) {
             return res.send(silentResultPage());
@@ -422,7 +500,44 @@ app.get('/embed/api/auth/poll', (req, res) => {
     }
 
     log('Auth', `Token delivered for session ${sid.slice(0, 8)}...`);
+
+    const embedSessionId = createEmbedSession(res, {
+        accessToken: session.accessToken,
+        refreshToken: session.refreshToken,
+        expiresIn: session.expiresIn,
+    });
+    if (embedSessionId) {
+        log('Auth', `Embed session established (${embedSessionId.slice(0, 8)}...)`);
+    }
+
     res.json({ status: 'authenticated', accessToken: session.accessToken });
+});
+
+app.get('/embed/api/auth/session', async (req, res) => {
+    res.set('Cache-Control', 'no-store');
+
+    const sessionId = readCookie(req, EMBED_SESSION_COOKIE);
+    if (!sessionId) return res.status(401).json({ status: 'no_session' });
+
+    const session = embedSessions.get(sessionId);
+    if (!session) {
+        res.clearCookie(EMBED_SESSION_COOKIE, { path: '/embed' });
+        return res.status(401).json({ status: 'no_session' });
+    }
+
+    if (session.accessToken && session.accessTokenExpiresAt - ACCESS_TOKEN_SKEW_MS > Date.now()) {
+        return res.json({ status: 'authenticated', accessToken: session.accessToken });
+    }
+
+    const accessToken = await refreshAccessToken(session);
+    if (!accessToken) {
+        embedSessions.delete(sessionId);
+        res.clearCookie(EMBED_SESSION_COOKIE, { path: '/embed' });
+        return res.status(401).json({ status: 'refresh_failed' });
+    }
+
+    log('Auth', `Access token refreshed for embed session ${sessionId.slice(0, 8)}...`);
+    res.json({ status: 'authenticated', accessToken });
 });
 // --- End server-side OAuth ---
 
